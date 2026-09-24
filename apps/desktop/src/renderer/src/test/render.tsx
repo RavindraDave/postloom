@@ -4,7 +4,7 @@ import { render } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { MemoryRouter } from 'react-router';
 import { vi } from 'vitest';
-import { theme } from '../theme/theme';
+import { cssVariablesResolver, theme } from '../theme/theme';
 
 export function mockApi(overrides: Partial<PostloomApi> = {}): PostloomApi {
   const api: PostloomApi = {
@@ -28,7 +28,7 @@ export function mockApi(overrides: Partial<PostloomApi> = {}): PostloomApi {
 
 export function renderWithProviders(ui: ReactElement, { route = '/' } = {}) {
   return render(
-    <MantineProvider theme={theme}>
+    <MantineProvider theme={theme} cssVariablesResolver={cssVariablesResolver}>
       <MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>
     </MantineProvider>,
   );

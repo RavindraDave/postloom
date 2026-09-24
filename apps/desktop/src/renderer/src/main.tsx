@@ -1,3 +1,6 @@
+// Fonts are bundled with the app (no network, and the CSP allows only 'self').
+import '@fontsource-variable/bricolage-grotesque';
+import '@fontsource-variable/figtree';
 import '@mantine/core/styles.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';

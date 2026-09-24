@@ -215,7 +215,7 @@ Searchable in-app help articles (bundled Markdown), contextual ⓘ links from ev
 | UI state | **Zustand** (small, local stores) | Only where React state isn't enough. |
 | Routing | React Router (hash/memory router) | |
 | Forms & validation | Mantine Form + **zod** | The same zod schemas are reused at the IPC boundary. |
-| Email designer | **GrapesJS + grapesjs-mjml** | Phase 0 spike also evaluates **EmailBuilder.js** (simpler, MIT); choose one ([D6](#18-open-decisions)). |
+| Email editor | **TipTap** (Write mode, default) + **GrapesJS + grapesjs-mjml** (Design mode, to be confirmed) | See [ADR 0004](adr/0004-email-editor-strategy.md). Both compile through one MJML → Liquid pipeline in `packages/editor`. |
 | Email HTML | **mjml** (official) in the main process | Also generates plain text (html-to-text). |
 | Merge fields | **LiquidJS** (escape output by default, strict filters, no code execution) | Supports `{% if %}` for conditional blocks. |
 | HTML sanitizing | **sanitize-html** (main) / **DOMPurify** (renderer) | Strips scripts, event handlers and `javascript:` URLs from imported HTML. |
@@ -591,7 +591,7 @@ Decided on 2026-09-24 (owner accepted the recommendations). Revisit only with a 
 | D3 | Recipients source | Files only / + saved contact lists | **Decided:** files only in 1.0, lists in 1.x | Phase 4 |
 | D4 | Code-signing budget | Apple Developer ID ($99/yr); Windows OV cert or Azure Trusted Signing (~$10/mo) | **Decided:** both, before public release | Phase 6 |
 | D5 | UI component library | Mantine / shadcn/ui (Radix + Tailwind) | **Decided:** Mantine ([ADR 0003](adr/0003-mantine-ui-library.md)) | Phase 0 |
-| D6 | Email editor | GrapesJS + MJML / EmailBuilder.js / commercial (Unlayer, Beefree) | **Open:** decided from the Phase 0 spike (ease of use for Asha is the main criterion; commercial SDKs cost money and some require network access) | End of Phase 0 |
+| D6 | Email editor | GrapesJS + MJML / EmailBuilder.js / commercial (Unlayer, Beefree) | **Decided for Write mode:** TipTap letter editor, the default ([ADR 0004](adr/0004-email-editor-strategy.md)). **Design mode:** GrapesJS + MJML is the lead candidate, confirmed by a short hands-on trial at the start of Phase 3 | Phase 3 |
 | D7 | Crash reporting | None / opt-in Sentry | **Decided:** opt-in Sentry | Phase 5 |
 | D8 | License of the app | Private / open source (MIT/GPL) | **Decided for now:** private, all rights reserved; can be opened later. Only permissively licensed dependencies (MIT/BSD/Apache-2.0/ISC) are accepted, so every option stays available | Phase 0 |
 | D9 | Second UI language | Hindi / other / none | **Open:** decide after beta | 1.x |

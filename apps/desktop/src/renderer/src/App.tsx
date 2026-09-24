@@ -4,11 +4,15 @@ import { AppLayout } from './layout/AppLayout';
 import { HomePage } from './pages/HomePage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import { TemplatesPage } from './pages/TemplatesPage';
-import { theme } from './theme/theme';
+import { cssVariablesResolver, theme } from './theme/theme';
 
 export function App() {
   return (
-    <MantineProvider theme={theme} defaultColorScheme="auto">
+    <MantineProvider
+      theme={theme}
+      cssVariablesResolver={cssVariablesResolver}
+      defaultColorScheme="auto"
+    >
       <HashRouter>
         <AppRoutes />
       </HashRouter>

@@ -31,6 +31,8 @@ Electron · TypeScript · React · Mantine · GrapesJS/MJML (to be confirmed in 
 | [docs/glossary.md](docs/glossary.md) | Fixed user-facing terms and wording rules |
 | [docs/adr/](docs/adr/) | Architecture Decision Records |
 | [docs/security/threat-model.md](docs/security/threat-model.md) | Threat model and security controls |
+| [docs/design/tokens.md](docs/design/tokens.md) · [components.md](docs/design/components.md) | Visual design tokens and the shared component inventory |
+| [docs/research/usability-test-plan.md](docs/research/usability-test-plan.md) | How to run the prototype usability test |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How we work: branching, commits, reviews, Definition of Done |
 | [SECURITY.md](SECURITY.md) | How to report a vulnerability |
 

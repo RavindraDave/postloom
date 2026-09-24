@@ -1,9 +1,8 @@
-import { AppShell, Group, NavLink, Text, ThemeIcon } from '@mantine/core';
+import { AppShell, NavLink } from '@mantine/core';
 import {
   IconHelp,
   IconHistory,
   IconHome,
-  IconMailForward,
   IconSend,
   IconSettings,
   IconTemplate,
@@ -12,6 +11,8 @@ import {
 import type { ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NavLink as RouterNavLink, Outlet, useLocation } from 'react-router';
+import { LoomMark } from '../components/LoomMark';
+import classes from './AppLayout.module.css';
 
 interface NavItem {
   to: string;
@@ -25,6 +26,9 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/templates', labelKey: 'nav.templates', icon: IconTemplate },
   { to: '/senders', labelKey: 'nav.senders', icon: IconUsers },
   { to: '/history', labelKey: 'nav.history', icon: IconHistory },
+];
+
+export const SECONDARY_NAV_ITEMS: NavItem[] = [
   { to: '/settings', labelKey: 'nav.settings', icon: IconSettings },
   { to: '/help', labelKey: 'nav.help', icon: IconHelp },
 ];
@@ -33,37 +37,39 @@ export function AppLayout() {
   const { t } = useTranslation();
   const { pathname } = useLocation();
 
+  const renderItem = ({ to, labelKey, icon: Icon }: NavItem) => {
+    const active = to === '/' ? pathname === '/' : pathname.startsWith(to);
+    return (
+      <NavLink
+        key={to}
+        component={RouterNavLink}
+        to={to}
+        label={t(labelKey)}
+        leftSection={<Icon size={20} stroke={1.8} />}
+        active={active}
+        aria-current={active ? 'page' : undefined}
+        className={classes.link}
+      />
+    );
+  };
+
   return (
-    <AppShell navbar={{ width: 240, breakpoint: 0 }} padding="lg">
-      <AppShell.Navbar p="sm" component="nav" aria-label={t('nav.label')}>
-        <Group gap="xs" px="xs" pb="md">
-          <ThemeIcon size="lg" radius="md" aria-hidden>
-            <IconMailForward size={20} />
-          </ThemeIcon>
-          <div>
-            <Text fw={700}>{t('app.name')}</Text>
-            <Text size="xs" c="dimmed">
-              {t('app.tagline')}
-            </Text>
-          </div>
-        </Group>
-        {NAV_ITEMS.map(({ to, labelKey, icon: Icon }) => {
-          const active = to === '/' ? pathname === '/' : pathname.startsWith(to);
-          return (
-            <NavLink
-              key={to}
-              component={RouterNavLink}
-              to={to}
-              label={t(labelKey)}
-              leftSection={<Icon size={20} stroke={1.75} />}
-              active={active}
-              aria-current={active ? 'page' : undefined}
-              variant="light"
-            />
-          );
-        })}
+    <AppShell navbar={{ width: 248, breakpoint: 0 }} padding={40}>
+      <AppShell.Navbar component="nav" aria-label={t('nav.label')} className={classes.navbar}>
+        <div className={classes.brand}>
+          <span className={classes.mark} aria-hidden>
+            <LoomMark />
+          </span>
+          <span>
+            <div className={classes.name}>{t('app.name')}</div>
+            <div className={classes.tagline}>{t('app.tagline')}</div>
+          </span>
+        </div>
+        {NAV_ITEMS.map(renderItem)}
+        <div className={classes.spacer} />
+        {SECONDARY_NAV_ITEMS.map(renderItem)}
       </AppShell.Navbar>
-      <AppShell.Main>
+      <AppShell.Main className={classes.main}>
         <Outlet />
       </AppShell.Main>
     </AppShell>
