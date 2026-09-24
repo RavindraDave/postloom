@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+out/
+release/
+build/
+*.tsbuildinfo
+storybook-static/
+
+# Tests
+coverage/
+test-results/
+playwright-report/
+reports/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.pfx
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+
+# Logs & local data
+*.log
+*.sqlite
+*.db
