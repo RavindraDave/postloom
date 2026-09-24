@@ -13,7 +13,8 @@ export const theme = createTheme({
   autoContrast: true,
   fontFamily: fonts.body,
   fontFamilyMonospace: fonts.mono,
-  fontSizes: { xs: '13px', sm: '14px', md: '15px', lg: '17px', xl: '20px' },
+  // rem, so the Settings text size scales everything.
+  fontSizes: { xs: '0.8125rem', sm: '0.875rem', md: '0.9375rem', lg: '1.0625rem', xl: '1.25rem' },
   defaultRadius: 'md',
   radius: { sm: '8px', md: '10px', lg: '14px', xl: '20px' },
   cursorType: 'pointer',
@@ -22,9 +23,9 @@ export const theme = createTheme({
     fontFamily: fonts.display,
     fontWeight: '700',
     sizes: {
-      h1: { fontSize: '34px', lineHeight: '1.1' },
-      h2: { fontSize: '22px', lineHeight: '1.2' },
-      h3: { fontSize: '17px', lineHeight: '1.3' },
+      h1: { fontSize: '2.125rem', lineHeight: '1.1' },
+      h2: { fontSize: '1.375rem', lineHeight: '1.2' },
+      h3: { fontSize: '1.0625rem', lineHeight: '1.3' },
     },
   },
   components: {

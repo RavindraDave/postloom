@@ -1,12 +1,12 @@
 # Component inventory
 
-Shared components to build in `packages/ui` (Storybook: light, dark, keyboard focus, and loading/empty/error where relevant) before the screens that use them. Each maps to parts of the design prototype.
+Shared components (currently in `apps/desktop/src/renderer/src/components`; they move to `packages/ui` once a second app needs them). Build them (Storybook: light, dark, keyboard focus, and loading/empty/error where relevant) before the screens that use them. Each maps to parts of the design prototype.
 
 | Component | Built on | Used in (prototype screen) | Notes |
 |---|---|---|---|
 | `AppSidebar` | Mantine AppShell + NavLink | All main screens | ✅ First version done (`layout/AppLayout.tsx`). Needs the account-status card at the bottom. |
 | `LoomMark` | SVG | Sidebar, setup, done screens | ✅ Done |
-| `PageHeader` | Title + Text | All | Title, one-line explanation, optional main action |
+| `PageHeader` | Title + Text | All | ✅ Done, in Storybook. Title, one-line explanation, optional main action |
 | `WizardSteps` | Custom list | Send 1–4 | Done / current / to-do states; `aria-current="step"` |
 | `WizardFooter` | Group | Send 1–4, setup | Back on the left, one primary action on the right, an optional reason when disabled |
 | `ChoiceTile` | Radio card | Setup (providers), Send 2 (templates) | Big targets; selected ring + check; keyboard arrow navigation |
@@ -20,12 +20,12 @@ Shared components to build in `packages/ui` (Storybook: light, dark, keyboard fo
 | `ActivityList` | List | Sending | Sending… / Sent / Didn't go through, plain-language reasons |
 | `ConfirmSendDialog` | Modal | Confirm | Summary list, consent checkbox, 10-second cancel countdown |
 | `CelebrationPanel` | Custom | All done | Weave animation (reduced motion: static) |
-| `FieldChip` | TipTap node view | Write mode, subject line | Uses the `field` node from `@postloom/editor` |
+| `FieldChip` | TipTap node view | Write mode, subject line | Uses the `field` node from `@postloom/editor`. `FieldChips` (read-only list) ✅ done |
 | `InsertDetailMenu` | Combobox | Write mode | Lists spreadsheet columns with example values |
 | `ModeSwitch` | SegmentedControl (links) | Editor header | Write / Design |
 | `FixPanel` | Alert + steps | Account needs attention | Explains what happened, numbered steps, check-and-save |
-| `EmptyState` | Custom | History, templates | Loom illustration, one sentence, one action |
-| `Toast` | Mantine Notifications | Everywhere | Includes Undo for reversible actions |
+| `EmptyState` | Custom | History, templates | ✅ Done, in Storybook. Loom illustration, one sentence, one action |
+| `Toast` | Mantine Notifications | Everywhere | ✅ In use (template bin + Undo) |
 | `SkeletonBlock` | Skeleton | Loading states | Only after 500 ms |
 
 ## Rules

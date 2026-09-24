@@ -1,4 +1,5 @@
 import { AppError } from '@postloom/core';
+import { IPC_CHANNELS } from '@postloom/contracts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   registerIpcHandlers,
@@ -12,7 +13,15 @@ type Listener = (event: InvokeEvent, ...args: unknown[]) => unknown;
 function setup(overrides: Partial<IpcHandlers> = {}) {
   const listeners = new Map<string, Listener>();
   const ipcMain: IpcMainLike = { handle: (channel, listener) => listeners.set(channel, listener) };
+  // Channels a test doesn't care about reject, so accidental use is visible.
+  const notUsed = Object.fromEntries(
+    IPC_CHANNELS.map((channel) => [
+      channel,
+      () => Promise.reject(new Error(`${channel} not stubbed`)),
+    ]),
+  ) as unknown as IpcHandlers;
   const handlers: IpcHandlers = {
+    ...notUsed,
     'app:getInfo': async () => ({ name: 'Postloom', version: '0.1.0', platform: 'linux' }),
     'templates:renderPreview': async () => ({ html: '<p>Hi</p>', text: 'Hi', warnings: [] }),
     ...overrides,
@@ -33,7 +42,8 @@ const appFrame = { url: 'app://postloom/index.html', parent: null };
 describe('registerIpcHandlers', () => {
   it('registers exactly the channels in the contract', () => {
     const { listeners } = setup();
-    expect([...listeners.keys()].sort()).toEqual(['app:getInfo', 'templates:renderPreview']);
+    expect([...listeners.keys()].sort()).toEqual([...IPC_CHANNELS].sort());
+    expect(listeners.has('templates:list')).toBe(true);
   });
 
   it('returns handler output for valid requests from the app', async () => {

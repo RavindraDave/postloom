@@ -164,3 +164,68 @@ describe('collectFields', () => {
     expect(collectFields(paymentReminder)).toEqual(['First Name', 'Invoice No', 'Amount']);
   });
 });
+
+describe('formatting', () => {
+  const doc: WriteDocument = {
+    type: 'doc',
+    content: [
+      { type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: 'September' }] },
+      {
+        type: 'bulletList',
+        content: [
+          {
+            type: 'listItem',
+            content: [
+              {
+                type: 'paragraph',
+                content: [
+                  { type: 'text', text: 'Due ', marks: [{ type: 'italic' }] },
+                  { type: 'field', attrs: { name: 'Due Date' } },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'listItem',
+            content: [
+              {
+                type: 'paragraph',
+                content: [{ type: 'text', text: 'Late fee', marks: [{ type: 'underline' }] }],
+              },
+            ],
+          },
+        ],
+      },
+      { type: 'paragraph' },
+    ],
+  };
+
+  it('renders headings, lists and marks', async () => {
+    const mjml = writeDocumentToMjml(doc);
+    expect(mjml).toContain('font-size="22px"');
+    expect(mjml).toContain('<ul');
+    expect(mjml).toContain('<em>Due </em>');
+    expect(mjml).toContain('<u>Late fee</u>');
+    expect((await compileMjml(mjml)).warnings).toEqual([]);
+  });
+
+  it('finds details used inside lists', () => {
+    expect(collectFields(doc)).toEqual(['Due Date']);
+  });
+});
+
+describe('STARTER_LETTER', () => {
+  it('is valid and compiles cleanly', async () => {
+    const { STARTER_LETTER } = await import('./starters');
+    expect(writeDocumentSchema.safeParse(STARTER_LETTER).success).toBe(true);
+    expect((await compileMjml(writeDocumentToMjml(STARTER_LETTER))).warnings).toEqual([]);
+  });
+});
+
+describe('preview mode', () => {
+  it('shows personal details as readable placeholders instead of code', () => {
+    const mjml = writeDocumentToMjml(paymentReminder, undefined, 'placeholder');
+    expect(mjml).toContain('Dear [First Name],');
+    expect(mjml).not.toContain('{{');
+  });
+});

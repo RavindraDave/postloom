@@ -12,6 +12,7 @@
 - `pnpm test` - unit, component and integration tests (`pnpm test:coverage` for coverage)
 - `pnpm e2e` - builds the app and runs the Playwright end-to-end and security tests (on headless Linux: `xvfb-run -a pnpm e2e`)
 - `pnpm lint` · `pnpm typecheck` · `pnpm format`
+- `pnpm --filter @postloom/desktop storybook` - browse shared components (light/dark, accessibility checks)
 - `pnpm package` - unsigned installers for the current OS in `apps/desktop/release/`
 
 ## Workflow

@@ -1,6 +1,6 @@
 # ADR 0002: Local-first storage with SQLite; secrets in the OS keychain
 
-- **Status:** Accepted
+- **Status:** Accepted (database driver refined by [ADR 0005](0005-node-sqlite.md): built-in `node:sqlite` instead of better-sqlite3)
 - **Date:** 2026-09-24
 - **Deciders:** Ravindra Dave
 

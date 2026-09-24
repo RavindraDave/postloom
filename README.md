@@ -4,7 +4,7 @@
 
 Postloom is a cross-platform desktop app (Windows, macOS, Linux) that turns an Excel/CSV list and a template you design visually into individual, personalized emails sent from your own email account. It is designed first for people with little technical background: guided setup, plain language, a drag-and-drop email designer, and safety checks before anything is sent.
 
-> **Status: Phase 0 (foundations).** The app shell, security baseline, email compile/send pipeline and CI are in place; features come next. See the [plan](docs/PLAN.md).
+> **Status: Phase 1 (core & data).** Local database with migrations and backups, templates and settings saved in the app, Write-mode document model, design tokens and component catalogue are in place. Email accounts and senders (Phase 2) are next. See the [plan](docs/PLAN.md).
 >
 > Postloom succeeds [EmailAutomation](https://github.com/RavindraDave/EmailAutomation) (the .NET/Avalonia app), which remains the working tool until Postloom reaches feature parity, and can import its data.
 
@@ -21,7 +21,7 @@ Postloom is a cross-platform desktop app (Windows, macOS, Linux) that turns an E
 
 ## Technology
 
-Electron · TypeScript · React · Mantine · GrapesJS/MJML (to be confirmed in Phase 0) · SQLite (better-sqlite3 + Kysely) · Nodemailer · Vitest · Playwright · electron-builder. Rationale: [ADR 0001](docs/adr/0001-electron-typescript.md), [ADR 0002](docs/adr/0002-local-first-sqlite.md).
+Electron · TypeScript · React · Mantine · GrapesJS/MJML (to be confirmed in Phase 0) · SQLite (built-in `node:sqlite` + Kysely) · Nodemailer · Vitest · Playwright · electron-builder. Rationale: [ADRs](docs/adr/) 0001 (Electron), 0002 & 0005 (local SQLite), 0003 (Mantine), 0004 (editor).
 
 ## Documentation
 

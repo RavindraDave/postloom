@@ -27,9 +27,19 @@ const HEADING_SIZES = { 1: '28px', 2: '22px', 3: '18px' } as const;
  * typed is HTML-escaped, and `{` is encoded so typed text can never become a
  * Liquid tag. Only http(s) and mailto links survive.
  */
-export function writeDocumentToMjml(doc: WriteDocument, brand: BrandLook = DEFAULT_BRAND): string {
+/**
+ * How personal details are written: `liquid` for sending (filled per
+ * recipient), `placeholder` for previews ("[First Name]").
+ */
+export type FieldMode = 'liquid' | 'placeholder';
+
+export function writeDocumentToMjml(
+  doc: WriteDocument,
+  brand: BrandLook = DEFAULT_BRAND,
+  fieldMode: FieldMode = 'liquid',
+): string {
   const look = sanitiseBrand(brand);
-  const blocks = doc.content.map((block) => renderBlock(block, look)).join('\n');
+  const blocks = doc.content.map((block) => renderBlock(block, look, fieldMode)).join('\n');
   return [
     '<mjml>',
     '<mj-head>',
@@ -49,16 +59,17 @@ export function writeDocumentToMjml(doc: WriteDocument, brand: BrandLook = DEFAU
   ].join('\n');
 }
 
-function renderBlock(block: BlockNode, look: BrandLook): string {
+function renderBlock(block: BlockNode, look: BrandLook, fieldMode: FieldMode): string {
   switch (block.type) {
     case 'paragraph':
-      return `<mj-text><p style="margin:0">${renderInline(block.content)}</p></mj-text>`;
+      return `<mj-text><p style="margin:0">${renderInline(block.content, fieldMode)}</p></mj-text>`;
     case 'heading':
-      return `<mj-text font-size="${HEADING_SIZES[block.attrs.level]}" font-weight="700" line-height="1.3">${renderInline(block.content)}</mj-text>`;
+      return `<mj-text font-size="${HEADING_SIZES[block.attrs.level]}" font-weight="700" line-height="1.3">${renderInline(block.content, fieldMode)}</mj-text>`;
     case 'bulletList': {
       const items = block.content
         .map(
-          (item) => `<li>${item.content.map((p) => renderInline(p.content)).join('<br />')}</li>`,
+          (item) =>
+            `<li>${item.content.map((p) => renderInline(p.content, fieldMode)).join('<br />')}</li>`,
         )
         .join('');
       return `<mj-text><ul style="margin:0;padding-left:22px">${items}</ul></mj-text>`;
@@ -71,7 +82,7 @@ function renderBlock(block: BlockNode, look: BrandLook): string {
   }
 }
 
-function renderInline(nodes: InlineNode[] | undefined): string {
+function renderInline(nodes: InlineNode[] | undefined, fieldMode: FieldMode): string {
   return (nodes ?? [])
     .map((node) => {
       switch (node.type) {
@@ -80,7 +91,9 @@ function renderInline(nodes: InlineNode[] | undefined): string {
         case 'hardBreak':
           return '<br />';
         case 'field':
-          return liquidField(node.attrs.name, node.attrs.fallback);
+          return fieldMode === 'liquid'
+            ? liquidField(node.attrs.name, node.attrs.fallback)
+            : escapeText(`[${node.attrs.name}]`);
       }
     })
     .join('');

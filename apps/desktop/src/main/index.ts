@@ -1,6 +1,8 @@
-import { app, BrowserWindow, ipcMain, session } from 'electron';
+import { createRepositories, type OpenedDatabase } from '@postloom/db';
+import { app, BrowserWindow, dialog, ipcMain, session } from 'electron';
 import { join } from 'node:path';
 import { serveAppProtocol, registerAppScheme } from './app-protocol';
+import { databaseLocation, openAppDatabase } from './database';
 import { createHandlers } from './handlers';
 import { registerIpcHandlers } from './ipc-router';
 import {
@@ -15,6 +17,13 @@ const devServerUrl = app.isPackaged ? undefined : process.env['ELECTRON_RENDERER
 
 registerAppScheme();
 hardenAllWebContents(devServerUrl);
+
+// Tests and development can point Postloom at a throwaway data folder.
+// Never honoured in the installed app, so real data can't be redirected.
+const userDataOverride = app.isPackaged ? undefined : process.env['POSTLOOM_USER_DATA_DIR'];
+if (userDataOverride) app.setPath('userData', userDataOverride);
+
+let database: OpenedDatabase | null = null;
 
 // Only one Postloom may run at a time: two instances sending from the same
 // database could send the same email twice.
@@ -57,13 +66,44 @@ app.on('second-instance', () => {
   }
 });
 
-void app.whenReady().then(() => {
+function askAboutDamagedDatabase(
+  latest: { fileName: string; createdAt: Date } | null,
+): 'restore-latest' | 'quit' {
+  const detail = latest
+    ? `The newest backup is from ${latest.createdAt.toLocaleString()}. Restoring it keeps a copy of the damaged file, just in case.`
+    : 'There is no backup to restore. Please contact support. Your file has not been changed.';
+  const buttons = latest ? ['Restore the backup', 'Quit'] : ['Quit'];
+  const choice = dialog.showMessageBoxSync({
+    type: 'warning',
+    title: 'Postloom',
+    message: "Postloom couldn't read its saved information.",
+    detail,
+    buttons,
+    defaultId: 0,
+    cancelId: buttons.length - 1,
+  });
+  return latest && choice === 0 ? 'restore-latest' : 'quit';
+}
+
+void app.whenReady().then(async () => {
   hardenSession(session.defaultSession);
   serveAppProtocol(join(import.meta.dirname, '../renderer'));
 
+  database = await openAppDatabase(
+    databaseLocation(app.getPath('userData')),
+    askAboutDamagedDatabase,
+  );
+  if (!database) {
+    app.quit();
+    return;
+  }
+
   registerIpcHandlers(
     ipcMain,
-    createHandlers({ name: app.getName(), version: app.getVersion(), platform: platform() }),
+    createHandlers({
+      appInfo: { name: app.getName(), version: app.getVersion(), platform: platform() },
+      repos: createRepositories(database.db),
+    }),
     {
       isTrustedUrl: (url) => isAppUrl(url, devServerUrl),
       onError: (channel, error) => console.error(`[ipc] ${channel} failed`, error),
@@ -79,4 +119,9 @@ void app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
+});
+
+app.on('will-quit', () => {
+  void database?.close();
+  database = null;
 });

@@ -1,0 +1,100 @@
+import type {
+  CreateTemplateInput,
+  Preferences,
+  SaveTemplateInput,
+  TemplateDetail,
+} from '@postloom/contracts';
+import { writeDocumentToMjml, type WriteDocument } from '@postloom/editor';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { unwrap } from './ipc';
+
+export const queryKeys = {
+  preferences: ['preferences'] as const,
+  templates: ['templates'] as const,
+  template: (id: string) => ['templates', id] as const,
+  preview: (document: WriteDocument | undefined) => ['preview', document] as const,
+};
+
+export function usePreferences() {
+  return useQuery({
+    queryKey: queryKeys.preferences,
+    queryFn: () => unwrap(window.postloom.settings.get()),
+    staleTime: Infinity,
+  });
+}
+
+export function useUpdatePreferences() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (changes: Partial<Preferences>) => unwrap(window.postloom.settings.update(changes)),
+    onSuccess: (preferences) => client.setQueryData(queryKeys.preferences, preferences),
+  });
+}
+
+export function useTemplates() {
+  return useQuery({
+    queryKey: queryKeys.templates,
+    queryFn: () => unwrap(window.postloom.templates.list()),
+  });
+}
+
+export function useTemplate(id: string | null) {
+  return useQuery({
+    queryKey: queryKeys.template(id ?? ''),
+    queryFn: () => unwrap(window.postloom.templates.get({ id: id ?? '' })),
+    enabled: id !== null,
+  });
+}
+
+export function useCreateTemplate() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateTemplateInput) => unwrap(window.postloom.templates.create(input)),
+    onSuccess: (template: TemplateDetail) => {
+      client.setQueryData(queryKeys.template(template.id), template);
+      void client.invalidateQueries({ queryKey: queryKeys.templates, exact: true });
+    },
+  });
+}
+
+export function useSaveTemplate() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: SaveTemplateInput) => unwrap(window.postloom.templates.save(input)),
+    onSuccess: (template: TemplateDetail) => {
+      client.setQueryData(queryKeys.template(template.id), template);
+      void client.invalidateQueries({ queryKey: queryKeys.templates, exact: true });
+    },
+  });
+}
+
+export function useDeleteTemplate() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => unwrap(window.postloom.templates.delete({ id })),
+    onSuccess: () => client.invalidateQueries({ queryKey: queryKeys.templates, exact: true }),
+  });
+}
+
+export function useRestoreTemplate() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => unwrap(window.postloom.templates.restore({ id })),
+    onSuccess: () => client.invalidateQueries({ queryKey: queryKeys.templates, exact: true }),
+  });
+}
+
+/** Compiles a Write-mode document to email HTML (in the main process) for the preview. */
+export function useEmailPreview(document: WriteDocument | undefined) {
+  return useQuery({
+    queryKey: queryKeys.preview(document),
+    queryFn: () => {
+      if (!document) throw new Error('No document to preview');
+      // Previews show "[First Name]" rather than personalisation code.
+      const mjml = writeDocumentToMjml(document, undefined, 'placeholder');
+      return unwrap(window.postloom.templates.renderPreview({ mjml }));
+    },
+    enabled: document !== undefined,
+    staleTime: Infinity,
+  });
+}

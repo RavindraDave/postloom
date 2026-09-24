@@ -22,13 +22,33 @@ test('the preload exposes only the typed Postloom API', async ({ page }) => {
   const api = await page.evaluate(() => ({
     top: Object.keys(window.postloom).sort(),
     app: Object.keys(window.postloom.app),
-    templates: Object.keys(window.postloom.templates),
+    settings: Object.keys(window.postloom.settings),
+    templates: Object.keys(window.postloom.templates).sort(),
+    everyEntryIsAFunction: [
+      window.postloom.app,
+      window.postloom.settings,
+      window.postloom.templates,
+    ]
+      .flatMap((group): unknown[] => Object.values(group))
+      .every((value) => typeof value === 'function'),
     hasIpcRenderer: 'ipcRenderer' in window || 'electron' in window,
   }));
   expect(api).toEqual({
-    top: ['app', 'templates'],
+    top: ['app', 'settings', 'templates'],
     app: ['getInfo'],
-    templates: ['renderPreview'],
+    settings: ['get', 'update'],
+    templates: [
+      'create',
+      'delete',
+      'get',
+      'list',
+      'renderPreview',
+      'restore',
+      'restoreVersion',
+      'save',
+      'versions',
+    ],
+    everyEntryIsAFunction: true,
     hasIpcRenderer: false,
   });
 });
@@ -122,17 +142,30 @@ test('the app protocol cannot read files outside the app', async ({ page }) => {
 
 test('the email preview runs without scripts or same-origin access', async ({ page }) => {
   await page.getByRole('link', { name: 'Templates' }).click();
+  await page.getByRole('button', { name: 'New template' }).first().click();
+  await page.getByLabel('Name').fill('Security check');
+  await page.getByRole('button', { name: 'Make template' }).click();
+
   const frame = page.locator('iframe[title="Email preview"]');
   await expect(frame).toHaveAttribute('sandbox', '');
 
-  await page
-    .getByLabel('Template source (MJML)')
-    .fill(
-      '<mjml><mj-body><mj-raw><script>parent.document.title = "pwned"</script></mj-raw><mj-section><mj-column><mj-text>Scripted</mj-text></mj-column></mj-section></mj-body></mjml>',
-    );
-  await page.getByRole('button', { name: 'Update preview' }).click();
+  // Simulate hostile email HTML (e.g. from an imported template) reaching the preview.
+  const result = await page.evaluate(async () => {
+    const iframe = document.querySelector<HTMLIFrameElement>('iframe[title="Email preview"]');
+    if (!iframe) throw new Error('no preview');
+    iframe.srcdoc =
+      '<p>Scripted</p><script>parent.document.title = "pwned"; window.top.postloom = null;</script>';
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    return {
+      title: document.title,
+      apiStillThere: typeof window.postloom.templates.list === 'function',
+      canReachInside: iframe.contentDocument !== null,
+    };
+  });
+
+  expect(result).toEqual({ title: 'Postloom', apiStillThere: true, canReachInside: false });
+  // The hostile document really loaded; its script just couldn't do anything.
   await expect(
     page.frameLocator('iframe[title="Email preview"]').getByText('Scripted'),
-  ).toBeVisible();
-  await expect(page).toHaveTitle('Postloom');
+  ).toBeAttached();
 });
