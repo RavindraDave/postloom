@@ -1,16 +1,18 @@
 # Contributing to Postloom
 
-> The toolchain is set up in Phase 0; commands below become available then.
-
 ## Principles
 - **User first:** every change is judged by whether a non-technical user can understand and use it. Follow the [glossary](docs/glossary.md) and UX principles in [PLAN.md §4](docs/PLAN.md#4-ux-principles--design-system).
 - **Secure by default:** follow the Electron hardening rules in [PLAN.md §10](docs/PLAN.md#10-security). Never weaken them without an ADR.
 - **Tested:** no feature without tests (see [PLAN.md §13](docs/PLAN.md#13-testing-strategy)).
 
-## Setup (from Phase 0)
+## Setup
 - Node.js LTS (see `.nvmrc`) and pnpm (see `packageManager` in `package.json`).
 - `pnpm install --frozen-lockfile`
-- `pnpm dev` - run the app · `pnpm test` - unit/component/integration · `pnpm e2e` - Playwright · `pnpm lint` · `pnpm typecheck` · `pnpm storybook`
+- `pnpm dev` - run the app with hot reload
+- `pnpm test` - unit, component and integration tests (`pnpm test:coverage` for coverage)
+- `pnpm e2e` - builds the app and runs the Playwright end-to-end and security tests (on headless Linux: `xvfb-run -a pnpm e2e`)
+- `pnpm lint` · `pnpm typecheck` · `pnpm format`
+- `pnpm package` - unsigned installers for the current OS in `apps/desktop/release/`
 
 ## Workflow
 - Trunk-based on `main`; short-lived branches named `feat/…`, `fix/…`, `chore/…`, `docs/…`.

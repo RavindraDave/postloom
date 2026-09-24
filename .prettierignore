@@ -1,0 +1,10 @@
+pnpm-lock.yaml
+**/dist/
+**/out/
+**/release/
+**/coverage/
+**/test-results/
+**/playwright-report/
+
+# Prose is reviewed by humans; keep hand-formatted tables and line breaks.
+*.md

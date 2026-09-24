@@ -4,7 +4,7 @@
 
 Postloom is a cross-platform desktop app (Windows, macOS, Linux) that turns an Excel/CSV list and a template you design visually into individual, personalized emails sent from your own email account. It is designed first for people with little technical background: guided setup, plain language, a drag-and-drop email designer, and safety checks before anything is sent.
 
-> **Status: planning.** No code yet. Phase 0 (foundations and technical spikes) is next. See the [plan](docs/PLAN.md).
+> **Status: Phase 0 (foundations).** The app shell, security baseline, email compile/send pipeline and CI are in place; features come next. See the [plan](docs/PLAN.md).
 >
 > Postloom succeeds [EmailAutomation](https://github.com/RavindraDave/EmailAutomation) (the .NET/Avalonia app), which remains the working tool until Postloom reaches feature parity, and can import its data.
 

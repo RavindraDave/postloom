@@ -1,0 +1,57 @@
+# Packaging for Windows, macOS and Linux (PLAN.md §14.2).
+# Code signing and notarization are added in Phase 6 (decision D4); until then
+# builds are unsigned and intended for testing only.
+appId: com.ravindradave.postloom
+productName: Postloom
+executableName: postloom
+copyright: Copyright © 2026 Ravindra Dave
+
+directories:
+  output: release
+  buildResources: resources
+
+files:
+  - out/**
+  - package.json
+
+asar: true
+
+# Electron fuses (PLAN.md §10.2): lock down how the packaged app can be started.
+electronFuses:
+  runAsNode: false
+  enableCookieEncryption: true
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+  grantFileProtocolExtraPrivileges: false
+
+win:
+  target:
+    - nsis
+  artifactName: ${productName}-${version}-win-${arch}.${ext}
+
+nsis:
+  # One click, per-user install: no admin rights, no confusing options.
+  oneClick: true
+  perMachine: false
+  deleteAppDataOnUninstall: false
+
+mac:
+  target:
+    - dmg
+    - zip
+  category: public.app-category.productivity
+  hardenedRuntime: true
+  artifactName: ${productName}-${version}-mac-${arch}.${ext}
+
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Office
+  maintainer: Ravindra Dave <ravindra.dave86@gmail.com>
+  synopsis: Personal emails, from your spreadsheet
+  artifactName: ${productName}-${version}-linux-${arch}.${ext}
+
+publish: null

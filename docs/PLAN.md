@@ -582,17 +582,19 @@ Estimates assume one developer working with AI assistance; they're rough and get
 
 ## 18. Open decisions
 
-| # | Decision | Options | Recommendation | Needed by |
+Decided on 2026-09-24 (owner accepted the recommendations). Revisit only with a new ADR.
+
+| # | Decision | Options | Status | Needed by |
 |---|---|---|---|---|
-| D1 | Linux formats | AppImage only / + .deb / + .rpm | AppImage + .deb | Phase 6 |
-| D2 | Providers in 1.0 | SMTP presets only / + Gmail OAuth / + Microsoft 365 OAuth | SMTP presets in 1.0, OAuth in 1.1 (Microsoft needs an Azure app registration; Google needs OAuth consent verification for public distribution) | Phase 2 |
-| D3 | Recipients source | Files only / + saved contact lists | Files only in 1.0, lists in 1.x | Phase 4 |
-| D4 | Code-signing budget | Apple Developer ID ($99/yr); Windows OV cert or Azure Trusted Signing (~$10/mo) | Both, before public release | Phase 6 |
-| D5 | UI component library | Mantine / shadcn/ui (Radix + Tailwind) | Mantine (more built in: Stepper, Forms, Notifications) | Phase 0 |
-| D6 | Email editor | GrapesJS + MJML / EmailBuilder.js / commercial (Unlayer, Beefree) | Decide from the Phase 0 spike (ease of use for Asha is the main criterion; commercial SDKs cost money and some require network access) | End of Phase 0 |
-| D7 | Crash reporting | None / opt-in Sentry | Opt-in Sentry | Phase 5 |
-| D8 | License of the app | Private / open source (MIT/GPL) | Owner's choice. Affects which editor licenses are acceptable | Phase 0 |
-| D9 | Second UI language | Hindi / other / none | Decide after beta | 1.x |
+| D1 | Linux formats | AppImage only / + .deb / + .rpm | **Decided:** AppImage + .deb | Phase 6 |
+| D2 | Providers in 1.0 | SMTP presets only / + Gmail OAuth / + Microsoft 365 OAuth | **Decided:** SMTP presets in 1.0, OAuth in 1.1 (Microsoft needs an Azure app registration; Google needs OAuth consent verification for public distribution) | Phase 2 |
+| D3 | Recipients source | Files only / + saved contact lists | **Decided:** files only in 1.0, lists in 1.x | Phase 4 |
+| D4 | Code-signing budget | Apple Developer ID ($99/yr); Windows OV cert or Azure Trusted Signing (~$10/mo) | **Decided:** both, before public release | Phase 6 |
+| D5 | UI component library | Mantine / shadcn/ui (Radix + Tailwind) | **Decided:** Mantine ([ADR 0003](adr/0003-mantine-ui-library.md)) | Phase 0 |
+| D6 | Email editor | GrapesJS + MJML / EmailBuilder.js / commercial (Unlayer, Beefree) | **Open:** decided from the Phase 0 spike (ease of use for Asha is the main criterion; commercial SDKs cost money and some require network access) | End of Phase 0 |
+| D7 | Crash reporting | None / opt-in Sentry | **Decided:** opt-in Sentry | Phase 5 |
+| D8 | License of the app | Private / open source (MIT/GPL) | **Decided for now:** private, all rights reserved; can be opened later. Only permissively licensed dependencies (MIT/BSD/Apache-2.0/ISC) are accepted, so every option stays available | Phase 0 |
+| D9 | Second UI language | Hindi / other / none | **Open:** decide after beta | 1.x |
 
 ---
 
