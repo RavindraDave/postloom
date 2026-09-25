@@ -445,3 +445,39 @@ export function useExportReport() {
     mutationFn: (id: string) => unwrap(window.postloom.sends.exportReport({ id })),
   });
 }
+
+// ----------------------------------------------------------------- Your data
+
+export function useBackups() {
+  return useQuery({
+    queryKey: ['backups'] as const,
+    queryFn: () => unwrap(window.postloom.data.backups()),
+  });
+}
+
+export function useBackupNow() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => unwrap(window.postloom.data.backupNow()),
+    onSuccess: () => client.invalidateQueries({ queryKey: ['backups'] }),
+  });
+}
+
+/** Restores a backup; Postloom restarts straight after. */
+export function useRestoreBackup() {
+  return useMutation({
+    mutationFn: (fileName: string) => unwrap(window.postloom.data.restore({ fileName })),
+  });
+}
+
+export function useOpenDataFolder() {
+  return useMutation({ mutationFn: () => unwrap(window.postloom.data.openFolder()) });
+}
+
+export function useClearHistory() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => unwrap(window.postloom.data.clearHistory()),
+    onSuccess: () => client.invalidateQueries({ queryKey: ['sends'] }),
+  });
+}

@@ -12,6 +12,7 @@ import { collectFields, writeDocumentSchema, type WriteDocument } from '@postloo
 import { compileMjml, openMailer, sendEmail } from '@postloom/email';
 import { createAccountHandlers, type AccountDeps } from './accounts';
 import { createAssetHandlers, type AssetDeps } from './assets';
+import { applyHistoryRetention, createDataHandlers, type DataStore } from './data';
 import { readDocument } from './documents';
 import { createListService, type RecipientDeps } from './recipients';
 import { createInProcessRunner, type RunnerEvents, type SendRunner } from './send-runner';
@@ -40,7 +41,19 @@ export interface HandlerDeps extends Omit<AccountDeps, 'repos'>, Partial<Omit<As
   /** Shows a notification from the computer. */
   notify?: (title: string, body: string) => void;
   saveReport?: (suggestedName: string, csv: string) => Promise<string | null>;
+  /** Backups and the data folder (tests fake it). */
+  dataStore?: DataStore;
 }
+
+/** Without a real data folder (tests), there are no backups to list or take. */
+const noDataStore: DataStore = {
+  list: () => [],
+  backupNow: () => {
+    throw new Error('No data folder');
+  },
+  restoreOnRestart: () => undefined,
+  openFolder: () => Promise.resolve(),
+};
 
 /** Without a real file picker (tests), picking a picture just cancels. */
 const noPicker: Omit<AssetDeps, 'repos'> = {
@@ -65,6 +78,7 @@ export function createMainServices({
   openMailer: mailerFor = openMailer,
   notify,
   saveReport,
+  dataStore = noDataStore,
   ...accountDeps
 }: HandlerDeps): { handlers: IpcHandlers; sends: SendService } {
   const lists = createListService({ repos, pickSpreadsheetFile, ...(todayUtc && { todayUtc }) });
@@ -96,6 +110,7 @@ export function createMainServices({
     }),
     ...lists.handlers,
     ...sends.handlers,
+    ...createDataHandlers({ repos, store: dataStore, isSending: sends.isSending }),
     ...createTemplateTestHandler({
       repos,
       vault: accountDeps.vault,
@@ -109,6 +124,8 @@ export function createMainServices({
     'settings:update': async (changes) => {
       const next = preferencesSchema.parse({ ...(await loadPreferences()), ...changes });
       await repos.settings.set(PREFERENCES_KEY, next);
+      // A shorter History setting takes effect straight away.
+      if (changes.historyDays !== undefined) await applyHistoryRetention(repos, next.historyDays);
       return next;
     },
 

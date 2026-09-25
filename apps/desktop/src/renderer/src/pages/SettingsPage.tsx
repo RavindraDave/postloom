@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { errorKey } from '../api/ipc';
 import { usePreferences, useUpdatePreferences } from '../api/queries';
 import { PageHeader } from '../components/PageHeader';
+import { DataSettings } from './DataSettings';
 
 const TEXT_SCALES = [
   { value: '1', key: 'settings.textNormal' },
@@ -98,6 +99,13 @@ export function SettingsPage() {
               />
             </Stack>
           </Paper>
+
+          <DataSettings
+            historyDays={preferences.data.historyDays}
+            onHistoryDays={(historyDays) => {
+              change({ historyDays });
+            }}
+          />
         </>
       )}
     </Stack>

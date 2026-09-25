@@ -37,12 +37,15 @@ export const preferencesSchema = z.object({
   textScale: z.number().min(0.9).max(1.3),
   /** Always show the "Ready to send?" confirmation. */
   confirmBeforeSend: z.boolean(),
+  /** How long finished sends stay in History, in days; 0 keeps them forever. */
+  historyDays: z.union([z.literal(0), z.literal(30), z.literal(90), z.literal(365)]),
 });
 
 export const DEFAULT_PREFERENCES: Preferences = {
   colorScheme: 'auto',
   textScale: 1,
   confirmBeforeSend: true,
+  historyDays: 0,
 };
 
 // ------------------------------------------------------------------ Templates
@@ -351,6 +354,14 @@ export const sendProblemSchema = z.object({
   errorCode: z.string().nullable(),
 });
 
+export const backupSchema = z.object({
+  fileName: z.string(),
+  /** "daily", "manual", or "before-…" (taken automatically before an upgrade). */
+  kind: z.string(),
+  createdAt: z.string(),
+  sizeBytes: z.number().int(),
+});
+
 export const secretProtectionSchema = z.enum(['keychain', 'weak', 'unavailable']);
 
 // ------------------------------------------------------------------- Contract
@@ -467,6 +478,15 @@ export const ipcContract = {
   },
   /** Trusts the folders the last check flagged, for attachments from now on. */
   'recipients:approveFolders': { input: z.object({ token: z.uuid() }), output: ok },
+  /** Backups of Postloom's data, newest first. */
+  'data:backups': { input: z.undefined(), output: z.array(backupSchema) },
+  'data:backupNow': { input: z.undefined(), output: backupSchema },
+  /** Restores a backup (by name, from the list): Postloom restarts to do it. */
+  'data:restore': { input: z.object({ fileName: z.string().max(200) }), output: ok },
+  /** Opens Postloom's data folder in the computer's file manager. */
+  'data:openFolder': { input: z.undefined(), output: ok },
+  /** Deletes finished and stopped sends from History. */
+  'data:clearHistory': { input: z.undefined(), output: z.object({ deleted: z.number().int() }) },
   /** Opens the computer's file picker for an .html file; null if cancelled. */
   'templates:pickHtml': {
     input: z.undefined(),
@@ -517,6 +537,7 @@ export type CheckListInput = z.infer<typeof checkListInputSchema>;
 export type SendSummary = z.infer<typeof sendSummarySchema>;
 export type SendProblem = z.infer<typeof sendProblemSchema>;
 export type PauseReasonInfo = z.infer<typeof pauseReasonSchema>;
+export type BackupEntry = z.infer<typeof backupSchema>;
 export type Brand = z.infer<typeof brandSchema>;
 export type BrandInput = z.infer<typeof brandInputSchema>;
 export type SecretProtection = z.infer<typeof secretProtectionSchema>;
@@ -566,6 +587,13 @@ export interface PostloomApi {
     resolveUncertain: Call<'sends:resolveUncertain'>;
     problems: Call<'sends:problems'>;
     exportReport: Call<'sends:exportReport'>;
+  };
+  data: {
+    backups: Call<'data:backups'>;
+    backupNow: Call<'data:backupNow'>;
+    restore: Call<'data:restore'>;
+    openFolder: Call<'data:openFolder'>;
+    clearHistory: Call<'data:clearHistory'>;
   };
   assets: {
     pickImage: Call<'assets:pickImage'>;

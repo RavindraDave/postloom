@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { mockApi, renderWithProviders } from '../test/render';
@@ -27,5 +27,49 @@ describe('SettingsPage', () => {
       expect(api.settings.update).toHaveBeenCalledWith({ textScale: 1.3 });
       expect(api.settings.update).toHaveBeenCalledWith({ confirmBeforeSend: false });
     });
+  });
+
+  it('backs up now and lists backups', async () => {
+    const api = mockApi();
+    renderWithProviders(<SettingsPage />);
+    const table = await screen.findByRole('table', { name: 'Backups' });
+    expect(within(table).getByText('Daily')).toBeInTheDocument();
+    expect(within(table).getByText('1.2 MB')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Back up now' }));
+    expect(await screen.findByText('Backup saved.')).toBeInTheDocument();
+    expect(api.data.backupNow).toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Open the data folder' }));
+    expect(api.data.openFolder).toHaveBeenCalled();
+  });
+
+  it('asks before restoring a backup, and warns about passwords', async () => {
+    const api = mockApi();
+    renderWithProviders(<SettingsPage />);
+    await userEvent.click(await screen.findByRole('button', { name: /^Restore / }));
+    const dialog = await screen.findByRole('dialog', { name: 'Restore this backup?' });
+    expect(within(dialog).getByText(/Saved email passwords are never kept/)).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Restore and restart' }));
+    await waitFor(() => {
+      expect(api.data.restore).toHaveBeenCalledWith({
+        fileName: 'postloom-daily-2026-09-25.sqlite',
+      });
+    });
+  });
+
+  it('keeps History for the chosen time, and clears it after asking', async () => {
+    const api = mockApi();
+    renderWithProviders(<SettingsPage />);
+    await userEvent.click(
+      await screen.findByRole('combobox', { name: /Keep sends in History for/ }),
+    );
+    await userEvent.click(screen.getByRole('option', { name: '90 days' }));
+    await waitFor(() => {
+      expect(api.settings.update).toHaveBeenCalledWith({ historyDays: 90 });
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Clear history now' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Clear History?' });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Clear history' }));
+    expect(await screen.findByText('3 sends removed from History.')).toBeInTheDocument();
   });
 });

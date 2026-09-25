@@ -1,5 +1,6 @@
 import { AppError } from '@postloom/core';
 import { listBackups, openDatabase, restoreBackup, type OpenedDatabase } from '@postloom/db';
+import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
 export interface DatabaseLocation {
@@ -38,5 +39,30 @@ export async function openAppDatabase(
 
     restoreBackup(location.file, latest.path, new Date());
     return openDatabase(location);
+  }
+}
+
+/**
+ * Restores the backup chosen in Settings (recorded in `pendingFile`) before
+ * the database is opened: an open database can't be replaced. The current
+ * file is kept alongside. Only a backup from the backups folder is used.
+ * Returns the restored backup's file name, if any.
+ */
+export function restorePendingBackup(
+  location: DatabaseLocation,
+  pendingFile: string,
+): string | null {
+  if (!existsSync(pendingFile)) return null;
+  try {
+    const { fileName } = JSON.parse(readFileSync(pendingFile, 'utf8')) as { fileName?: unknown };
+    const backup = listBackups(location.backupDir).find((b) => b.fileName === fileName);
+    if (!backup) return null;
+    restoreBackup(location.file, backup.path, new Date());
+    return backup.fileName;
+  } catch (error) {
+    console.error('[data] restoring the backup failed', error);
+    return null;
+  } finally {
+    rmSync(pendingFile, { force: true });
   }
 }

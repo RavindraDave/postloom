@@ -50,6 +50,13 @@ const api: PostloomApi = {
     problems: (input) => invoke('sends:problems', input),
     exportReport: (input) => invoke('sends:exportReport', input),
   },
+  data: {
+    backups: () => invoke('data:backups'),
+    backupNow: () => invoke('data:backupNow'),
+    restore: (input) => invoke('data:restore', input),
+    openFolder: () => invoke('data:openFolder'),
+    clearHistory: () => invoke('data:clearHistory'),
+  },
   assets: {
     pickImage: () => invoke('assets:pickImage'),
     totalSize: (input) => invoke('assets:totalSize', input),

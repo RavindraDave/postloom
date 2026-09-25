@@ -1,5 +1,5 @@
 import { AppError } from '@postloom/core';
-import { createRepositories, type OpenedDatabase } from '@postloom/db';
+import { createRepositories, listBackups, type OpenedDatabase } from '@postloom/db';
 import {
   app,
   BrowserWindow,
@@ -10,9 +10,10 @@ import {
   powerMonitor,
   safeStorage,
   session,
+  shell,
   utilityProcess,
 } from 'electron';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { readFile, stat, writeFile } from 'node:fs/promises';
 import { basename, dirname } from 'node:path';
 import { join } from 'node:path';
@@ -20,7 +21,8 @@ import { serveAppProtocol, registerAppScheme, type AssetReader } from './app-pro
 import type { PickedFile } from './assets';
 import { MAX_IMAGE_FILE_BYTES } from './images';
 import { MAX_SPREADSHEET_BYTES } from '@postloom/recipients';
-import { databaseLocation, openAppDatabase } from './database';
+import { databaseLocation, openAppDatabase, restorePendingBackup } from './database';
+import { applyHistoryRetention } from './data';
 import { createMainServices } from './handlers';
 import { registerIpcHandlers } from './ipc-router';
 import { createSecretVault } from './secrets';
@@ -114,6 +116,7 @@ void app.whenReady().then(async () => {
   serveAppProtocol(join(import.meta.dirname, '../renderer'), () => readAsset);
 
   const location = databaseLocation(app.getPath('userData'));
+  restorePendingBackup(location, pendingRestoreFile());
   database = await openAppDatabase(location, askAboutDamagedDatabase);
   if (!database) {
     app.quit();
@@ -124,6 +127,7 @@ void app.whenReady().then(async () => {
   readAsset = (id) => repos.assets.read(id);
   // Anyone left mid-send by a crash or forced quit becomes "uncertain" (never resent without asking).
   await repos.sends.recoverInterrupted();
+  const opened = database;
 
   const services = createMainServices({
     appInfo: { name: app.getName(), version: app.getVersion(), platform: platform() },
@@ -151,11 +155,29 @@ void app.whenReady().then(async () => {
         events,
       ),
     saveReport,
+    dataStore: {
+      list: () => listBackups(location.backupDir),
+      backupNow: () => basename(opened.backupNow('manual')),
+      restoreOnRestart: (fileName) => {
+        writeFileSync(pendingRestoreFile(), JSON.stringify({ fileName }));
+        // Let the answer reach the screen, then restart to restore.
+        setTimeout(() => {
+          app.relaunch();
+          app.exit(0);
+        }, 300);
+      },
+      openFolder: async () => {
+        await shell.openPath(app.getPath('userData'));
+      },
+    },
     notify: (title, body) => {
       if (Notification.isSupported()) new Notification({ title, body }).show();
     },
   });
   sendService = services.sends;
+  // History older than the person's setting is removed at start-up.
+  const preferences = await services.handlers['settings:get'](undefined);
+  await applyHistoryRetention(repos, preferences.historyDays);
   watchSleep(services.sends);
 
   registerIpcHandlers(ipcMain, services.handlers, {
@@ -169,6 +191,8 @@ void app.whenReady().then(async () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
   });
 });
+
+const pendingRestoreFile = () => join(app.getPath('userData'), 'restore-pending.json');
 
 /** The computer's own file picker, for PNG and JPEG pictures. */
 async function pickImageFile(): Promise<PickedFile | null> {

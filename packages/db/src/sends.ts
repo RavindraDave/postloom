@@ -356,6 +356,18 @@ export function createSendRepository(db: Kysely<Database>, now: () => string, ne
       return Number(result.numUpdatedRows);
     },
 
+    /**
+     * Deletes finished and stopped sends (and their people) created before
+     * `before`, or all of them when `before` is null. Sends still going,
+     * paused or waiting are never deleted.
+     */
+    async deleteFinished(before: string | null): Promise<number> {
+      let query = db.deleteFrom('sends').where('status', 'in', ['finished', 'stopped']);
+      if (before) query = query.where('created_at', '<', before);
+      const result = await query.executeTakeFirst();
+      return Number(result.numDeletedRows);
+    },
+
     /** "Retry failed": failed people go back in the queue. */
     async retryFailed(id: Id): Promise<number> {
       const result = await db
