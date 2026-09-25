@@ -67,6 +67,38 @@ function killApp(pid: number | undefined) {
   }
 }
 
+/** What's still running after the kill (Windows), to explain a failed relaunch. */
+function leftoverProcesses(): string {
+  if (process.platform !== 'win32') return '';
+  try {
+    return execFileSync('tasklist', ['/FI', 'IMAGENAME eq electron.exe', '/FO', 'CSV', '/NH'], {
+      encoding: 'utf8',
+    });
+  } catch {
+    return '(tasklist failed)';
+  }
+}
+
+/**
+ * Starts the app again after the kill. Windows can take a moment to tear the
+ * killed processes down; if the app still can't start after that, the error
+ * says what was left running.
+ */
+async function relaunch(userDataDir: string, env: Record<string, string>) {
+  const attempts: string[] = [];
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      return await launchApp(userDataDir, env);
+    } catch (error) {
+      attempts.push(
+        `attempt ${String(attempt)}: ${error instanceof Error ? (error.message.split('\n')[0] ?? '') : String(error)}\n${leftoverProcesses()}`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, 5_000));
+    }
+  }
+  throw new Error(`The app wouldn't start again after being killed:\n${attempts.join('\n')}`);
+}
+
 const receivedBy = (mail: TestMailServer) => mail.received.map((email) => email.to[0]);
 
 test('pauses and carries on, survives being killed mid-email, and never sends twice', async ({
@@ -108,7 +140,7 @@ test('pauses and carries on, survives being killed mid-email, and never sends tw
   expect(mail.received.length).toBe(3);
 
   // Back again: the interrupted send is waiting, and asks about the uncertain email.
-  app = await launchApp(userDataDir, env);
+  app = await relaunch(userDataDir, env);
   page = await firstPage(app);
   await page.getByRole('link', { name: 'Send emails' }).click();
   await expect(page.getByText("A send isn't finished")).toBeVisible();
