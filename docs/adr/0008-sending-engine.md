@@ -23,6 +23,7 @@ The sending process opens the same SQLite database (WAL mode lets both processes
    - up to 3 tries, with backoff and jitter.
 4. A connection lost part-way (a timeout or reset after the email started going out) marks the person **`uncertain`**. These are never retried automatically: the person chooses "Send them again" or "Skip them".
 5. After a crash or forced quit, anyone still `sending` becomes `uncertain`, and the send pauses as *interrupted*. The same happens if a sending process dies.
+6. A sending process never outlives the app: it checks every second that the app is still running, and exits at once if not. On Windows, killing the app doesn't end its child processes on its own.
 
 **Other failures.**
 - 5xx fails the person at once.

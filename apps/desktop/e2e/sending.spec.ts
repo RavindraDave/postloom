@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+import { execFileSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, firstPage, launchApp, test } from './fixtures';
@@ -53,6 +54,19 @@ async function startSend(page: Page) {
   await page.getByRole('button', { name: 'Send now' }).click();
 }
 
+/**
+ * Kills the app the way a crash or power cut would. On Windows, killing only
+ * the main process leaves its child processes running, so the whole tree goes.
+ */
+function killApp(pid: number | undefined) {
+  if (pid === undefined) throw new Error('The app has no process id');
+  if (process.platform === 'win32') {
+    execFileSync('taskkill', ['/PID', String(pid), '/T', '/F']);
+  } else {
+    process.kill(pid, 'SIGKILL');
+  }
+}
+
 const receivedBy = (mail: TestMailServer) => mail.received.map((email) => email.to[0]);
 
 test('pauses and carries on, survives being killed mid-email, and never sends twice', async ({
@@ -88,7 +102,7 @@ test('pauses and carries on, survives being killed mid-email, and never sends tw
   // hasn't said "accepted" yet: the app can't know whether it went.
   await page.getByRole('button', { name: 'Carry on sending' }).click();
   await expect.poll(() => mail.received.length, { timeout: 20_000 }).toBe(3);
-  app.process().kill('SIGKILL');
+  killApp(app.process().pid);
   // The sending process died with the app: nothing more arrives.
   await new Promise((resolve) => setTimeout(resolve, 5_000));
   expect(mail.received.length).toBe(3);

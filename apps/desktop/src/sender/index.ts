@@ -10,6 +10,18 @@ import type { FromSender, ToSender } from '../main/send-runner';
  */
 const port = process.parentPort;
 const control = createControl();
+
+// If the app itself dies (a crash, or Windows ending it without its children),
+// this process must not carry on sending on its own: exit at once. Anyone
+// mid-send is then marked "uncertain" when the app starts again.
+const appPid = process.ppid;
+setInterval(() => {
+  try {
+    process.kill(appPid, 0);
+  } catch {
+    process.exit(2);
+  }
+}, 1_000).unref();
 const post = (message: FromSender) => {
   port.postMessage(message);
 };
