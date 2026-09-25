@@ -22,6 +22,7 @@ export default tseslint.config(
       '**/release/**',
       '**/coverage/**',
       '**/playwright-report/**',
+      '**/storybook-static/**',
       '**/test-results/**',
       '**/*.cjs',
     ],
@@ -53,6 +54,17 @@ export default tseslint.config(
   {
     files: ['eslint.config.js'],
     ...tseslint.configs.disableTypeChecked,
+  },
+  {
+    // TypeScript's project service skips dot-folders, so point it at the config.
+    files: ['apps/desktop/.storybook/**/*.{ts,tsx}'],
+    languageOptions: {
+      parserOptions: {
+        projectService: false,
+        project: ['apps/desktop/.storybook/tsconfig.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
   },
   {
     files: ['**/*.test.ts', '**/*.test.tsx', '**/test/**'],

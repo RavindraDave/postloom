@@ -4,7 +4,13 @@ import { devContentSecurityPolicy } from './src/main/csp';
 
 // Workspace packages ship TypeScript source, so they are bundled rather than
 // externalized. Third-party runtime dependencies stay external (node_modules).
-const workspacePackages = ['@postloom/core', '@postloom/contracts', '@postloom/email'];
+const workspacePackages = [
+  '@postloom/core',
+  '@postloom/contracts',
+  '@postloom/db',
+  '@postloom/editor',
+  '@postloom/email',
+];
 
 export default defineConfig({
   main: {

@@ -220,7 +220,7 @@ Searchable in-app help articles (bundled Markdown), contextual ⓘ links from ev
 | Merge fields | **LiquidJS** (escape output by default, strict filters, no code execution) | Supports `{% if %}` for conditional blocks. |
 | HTML sanitizing | **sanitize-html** (main) / **DOMPurify** (renderer) | Strips scripts, event handlers and `javascript:` URLs from imported HTML. |
 | Excel/CSV | **ExcelJS** + **Papa Parse** | Streaming for large files. |
-| Database | **SQLite** via **better-sqlite3** + **Kysely** (type-safe query builder + migrator) | WAL mode, foreign keys on. |
+| Database | **SQLite** via Node's built-in **`node:sqlite`** + **Kysely** (type-safe query builder + migrator) | WAL mode, foreign keys on. No native modules ([ADR 0005](adr/0005-node-sqlite.md)). |
 | Sending | **Nodemailer** (SMTP), **googleapis** (Gmail API), **@azure/msal-node** (1.x) | |
 | Secrets | Electron **safeStorage** | Keychain / DPAPI / libsecret. |
 | Logging | **electron-log** + redaction layer | Rotating files in the app data folder. |
@@ -573,6 +573,21 @@ Estimates assume one developer working with AI assistance; they're rough and get
 | **5. History, polish & help** | 2-3 weeks | History & reports, retry failed, retention, backup/restore, EmailAutomation import, in-app help, diagnostics export, accessibility pass (NVDA/VoiceOver), performance budgets met | WCAG AA audit clean; budgets met |
 | **6. Release hardening** | 2 weeks | Code signing + notarization, auto-update channels, security review, SBOM/provenance, user guide + screenshots, beta program (5-10 real users) | Beta feedback triaged; no open high/critical issues |
 | **1.0 stable** | - | Public release | Release checklist (§14.3) complete |
+
+### Progress
+
+- **Phase 0 (done):** tooling, CI on 3 OSes, Electron hardening + security tests, MJML/Nodemailer pipeline, design prototype + council refinements, editor feasibility (ADR 0004), design tokens.
+- **Phase 1 (in progress):** done so far:
+  - domain entities and provider presets;
+  - the SQLite database (`node:sqlite`, ADR 0005) with migrations, automatic backups (before upgrades and daily, with passwords removed), restore and a damaged-file prompt;
+  - repositories;
+  - the IPC contract for settings and templates;
+  - Templates and Settings screens that save;
+  - shared components in Storybook;
+  - coverage gates (core ≥ 90%);
+  - per-screen error boundaries.
+  
+  Still open: the prototype usability round (run by the owner, `docs/research/usability-test-plan.md`) and the Storybook accessibility test run in CI.
 
 **Total:** roughly 19-23 weeks to 1.0 stable. Phases 2 and 3 can overlap once Phase 1 is done.
 

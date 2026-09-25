@@ -1,0 +1,6 @@
+{
+  "extends": "../src/renderer/tsconfig.json",
+  "compilerOptions": { "types": ["vite/client", "node"] },
+  "files": ["main.ts", "preview.tsx", "../src/renderer/src/env.d.ts"],
+  "include": []
+}

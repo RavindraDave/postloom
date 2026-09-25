@@ -28,14 +28,24 @@
   },
   "templates": {
     "title": "Templates",
-    "previewNotice": "Early preview: this screen checks that email designs turn into email-ready HTML. The drag-and-drop designer replaces it later.",
-    "sourceLabel": "Template source (MJML)",
-    "updatePreview": "Update preview",
-    "updating": "Updating…",
+    "intro": "Reusable emails you can send again and again.",
+    "new": "New template",
+    "newTitle": "Make a new template",
+    "nameLabel": "Name",
+    "nameHint": "Something you'll recognise, like “Payment reminder”.",
+    "nameMissing": "Give your template a name first.",
+    "create": "Make template",
+    "starterSubject": "A note from us",
+    "listLabel": "Your templates",
+    "emptyTitle": "No templates yet",
+    "emptyBody": "A template is an email you can reuse. Make one and Postloom fills in each person's details for you.",
+    "subject": "Subject",
+    "usesFields": "Details it uses from your list",
+    "delete": "Move to bin",
+    "deleted": "“{{name}}” moved to the bin",
     "previewTitle": "Preview",
-    "desktop": "Desktop",
+    "desktop": "Computer",
     "phone": "Phone",
-    "warningsTitle": "Things to check",
     "previewFrameTitle": "Email preview"
   },
   "errors": {
@@ -46,6 +56,34 @@
     "emailAuthFailed": "Your email provider didn't accept the password. Many providers, like Gmail, need an \"app password\" for apps like Postloom.",
     "emailConnectionFailed": "Postloom couldn't reach your email provider. Check your internet connection and the server details.",
     "emailSendFailed": "The email couldn't be sent. Please try again later.",
-    "headerLineBreak": "A subject, name or email address contains a line break. Remove it and try again."
+    "headerLineBreak": "A subject, name or email address contains a line break. Remove it and try again.",
+    "notFound": "We couldn't find that. It may have been deleted.",
+    "inUse": "This is still being used, so it can't be removed yet.",
+    "databaseDamaged": "Postloom couldn't read its saved information.",
+    "databaseUpgradeFailed": "Postloom couldn't update its saved information. Nothing was lost, and a backup was kept.",
+    "screenTitle": "Something went wrong on this screen",
+    "screenBody": "Your saved work is safe. Try again, and if it keeps happening, use Help → Export diagnostics.",
+    "screenRetry": "Try again"
+  },
+  "common": {
+    "loading": "Loading…",
+    "undo": "Undo",
+    "cancel": "Cancel",
+    "saved": "Saved"
+  },
+  "settings": {
+    "intro": "Make Postloom look and behave the way you like.",
+    "appearance": "How Postloom looks",
+    "colorScheme": "Colours",
+    "schemeAuto": "Same as my computer",
+    "schemeLight": "Light",
+    "schemeDark": "Dark",
+    "textSize": "Text size",
+    "textNormal": "Normal",
+    "textLarger": "Larger",
+    "textLargest": "Largest",
+    "sending": "Sending",
+    "confirmBeforeSend": "Always ask me before sending",
+    "confirmBeforeSendHint": "Shows a summary of who gets what, with 10 seconds to change your mind."
   }
 }

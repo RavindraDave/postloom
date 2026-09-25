@@ -11,6 +11,7 @@ import {
 import type { ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NavLink as RouterNavLink, Outlet, useLocation } from 'react-router';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { LoomMark } from '../components/LoomMark';
 import classes from './AppLayout.module.css';
 
@@ -70,7 +71,9 @@ export function AppLayout() {
         {SECONDARY_NAV_ITEMS.map(renderItem)}
       </AppShell.Navbar>
       <AppShell.Main className={classes.main}>
-        <Outlet />
+        <ErrorBoundary key={pathname}>
+          <Outlet />
+        </ErrorBoundary>
       </AppShell.Main>
     </AppShell>
   );
