@@ -5,6 +5,7 @@
   "private": true,
   "description": "Send beautiful, personalized emails from a spreadsheet.",
   "author": "Ravindra Dave",
+  "homepage": "https://github.com/RavindraDave/postloom",
   "license": "UNLICENSED",
   "type": "module",
   "main": "./out/main/index.js",
