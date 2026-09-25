@@ -38,6 +38,15 @@ jobs:
           --title "Postloom ${GITHUB_REF_NAME#v}"
           --notes-file docs/release-notes-template.md
           --prerelease=${{ contains(github.ref_name, '-') }}
+      # What went into this version: every package and its licence (SPDX), from
+      # GitHub's dependency graph of the tagged commit's lockfile.
+      - name: Attach the software bill of materials (SBOM)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/dependency-graph/sbom" --jq '.sbom' \
+            > "postloom-${GITHUB_REF_NAME}.spdx.json"
+          gh release upload "${GITHUB_REF_NAME}" "postloom-${GITHUB_REF_NAME}.spdx.json"
 
   build:
     name: Build (${{ matrix.os }})

@@ -677,6 +677,7 @@ Estimates assume one developer working with AI assistance; they're rough and get
 - **Phase 6 (in progress):** done so far:
   - Releases: pushing a version tag (`v1.2.3`) builds the installers on all three systems and attaches them, with `.sha256` checksums, to a draft GitHub Release that is published by hand. The tag must match the app's version.
   - macOS builds for Apple silicon and Intel, signed ad-hoc (D10), checked with `codesign --verify` in CI; the app icon; and [docs/install.md](install.md), which shows how to open the unsigned downloads on each system.
+  - Security review before beta ([security/review-1.0.md](security/review-1.0.md)): every threat-model control checked in code and tests, no high or critical findings; the threat model updated for D10; an SBOM (SPDX) attached to each release.
 
 **Total:** roughly 19-23 weeks to 1.0 stable. Phases 2 and 3 can overlap once Phase 1 is done.
 
