@@ -165,6 +165,24 @@ describe('sends', () => {
     expect(await repos.sends.recoverInterrupted()).toEqual([]);
   });
 
+  it('recovers one send whose sending process died, leaving others alone', async () => {
+    const input = await newSend(2);
+    const crashed = await repos.sends.create(input);
+    const other = await repos.sends.create(input);
+    for (const send of [crashed, other]) {
+      await repos.sends.setStatus(send.id, 'sending');
+      await repos.sends.claim((await repos.sends.nextPending(send.id))!.id);
+    }
+    await repos.sends.recoverSend(crashed.id);
+    expect(await repos.sends.get(crashed.id)).toMatchObject({
+      status: 'paused',
+      pauseReason: 'interrupted',
+    });
+    expect(await repos.sends.counts(crashed.id)).toMatchObject({ uncertain: 1, sending: 0 });
+    expect(await repos.sends.counts(other.id)).toMatchObject({ sending: 1 });
+    expect((await repos.sends.get(other.id)).status).toBe('sending');
+  });
+
   it('lets the person resend or skip uncertain emails, and retry failed ones', async () => {
     const send = await repos.sends.create(await newSend());
     const [a, b] = await repos.sends.recipients(send.id);

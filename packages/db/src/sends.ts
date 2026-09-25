@@ -316,6 +316,24 @@ export function createSendRepository(db: Kysely<Database>, now: () => string, ne
       });
     },
 
+    /** When one send's sending process died: same as after a crash, for that send only. */
+    async recoverSend(id: Id): Promise<void> {
+      await db.transaction().execute(async (trx) => {
+        await trx
+          .updateTable('send_recipients')
+          .set({ status: 'uncertain', error_code: 'interrupted', updated_at: now() })
+          .where('send_id', '=', id)
+          .where('status', '=', 'sending')
+          .execute();
+        await trx
+          .updateTable('sends')
+          .set({ status: 'paused', pause_reason: 'interrupted' })
+          .where('id', '=', id)
+          .where('status', '=', 'sending')
+          .execute();
+      });
+    },
+
     /** The person decides about emails that may or may not have gone out. */
     async resolveUncertain(id: Id, action: 'resend' | 'skip'): Promise<number> {
       const result = await db

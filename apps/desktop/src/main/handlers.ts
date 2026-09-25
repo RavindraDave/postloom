@@ -9,11 +9,13 @@ import {
 } from '@postloom/contracts';
 import type { Repositories } from '@postloom/db';
 import { collectFields, writeDocumentSchema, type WriteDocument } from '@postloom/editor';
-import { compileMjml, sendEmail } from '@postloom/email';
+import { compileMjml, openMailer, sendEmail } from '@postloom/email';
 import { createAccountHandlers, type AccountDeps } from './accounts';
 import { createAssetHandlers, type AssetDeps } from './assets';
 import { readDocument } from './documents';
-import { createRecipientHandlers, type RecipientDeps } from './recipients';
+import { createListService, type RecipientDeps } from './recipients';
+import { createInProcessRunner, type RunnerEvents, type SendRunner } from './send-runner';
+import { createSendService, type SendService } from './sends';
 import { createTemplateTestHandler } from './template-test';
 import type { IpcHandlers } from './ipc-router';
 
@@ -31,6 +33,12 @@ export interface HandlerDeps extends Omit<AccountDeps, 'repos'>, Partial<Omit<As
   /** Shows the computer's file picker for a spreadsheet; null if cancelled. */
   pickSpreadsheetFile?: RecipientDeps['pickSpreadsheetFile'];
   todayUtc?: RecipientDeps['todayUtc'];
+  /** Where sends run; defaults to this process (tests). The app uses the sending process. */
+  createSendRunner?: (events: RunnerEvents) => SendRunner;
+  /** Opens the connection an in-process send uses (tests fake it). */
+  openMailer?: typeof openMailer;
+  /** Shows a notification from the computer. */
+  notify?: (title: string, body: string) => void;
 }
 
 /** Without a real file picker (tests), picking a picture just cancels. */
@@ -39,7 +47,12 @@ const noPicker: Omit<AssetDeps, 'repos'> = {
   pickImageFile: () => Promise.resolve(null),
 };
 
-export function createHandlers({
+export function createHandlers(deps: HandlerDeps): IpcHandlers {
+  return createMainServices(deps).handlers;
+}
+
+/** Every IPC handler, plus the send service the app needs for sleep and quit. */
+export function createMainServices({
   appInfo,
   repos,
   codec,
@@ -47,8 +60,23 @@ export function createHandlers({
   pickHtmlFile = () => Promise.resolve(null),
   pickSpreadsheetFile = () => Promise.resolve(null),
   todayUtc,
+  createSendRunner,
+  openMailer: mailerFor = openMailer,
+  notify,
   ...accountDeps
-}: HandlerDeps): IpcHandlers {
+}: HandlerDeps): { handlers: IpcHandlers; sends: SendService } {
+  const lists = createListService({ repos, pickSpreadsheetFile, ...(todayUtc && { todayUtc }) });
+  const sends = createSendService({
+    repos,
+    vault: accountDeps.vault,
+    extraCa: accountDeps.extraCa,
+    lists,
+    createRunner:
+      createSendRunner ??
+      ((events) => createInProcessRunner({ repos, openMailer: mailerFor }, events)),
+    ...(notify && { notify }),
+  });
+
   const loadPreferences = async (): Promise<Preferences> => {
     const stored = await repos.settings.get<unknown>(PREFERENCES_KEY, {});
     // Merge over defaults and drop anything invalid (e.g. from an older version).
@@ -56,18 +84,15 @@ export function createHandlers({
     return merged.success ? merged.data : DEFAULT_PREFERENCES;
   };
 
-  return {
+  const handlers: IpcHandlers = {
     ...createAccountHandlers({ repos, ...accountDeps }),
     ...createAssetHandlers({
       repos,
       codec: codec ?? noPicker.codec,
       pickImageFile: pickImageFile ?? noPicker.pickImageFile,
     }),
-    ...createRecipientHandlers({
-      repos,
-      pickSpreadsheetFile,
-      ...(todayUtc && { todayUtc }),
-    }),
+    ...lists.handlers,
+    ...sends.handlers,
     ...createTemplateTestHandler({
       repos,
       vault: accountDeps.vault,
@@ -142,6 +167,7 @@ export function createHandlers({
     'templates:restoreVersion': async ({ id, versionNo }) =>
       toDetail(await repos.templates.restoreVersion(id, versionNo)),
   };
+  return { handlers, sends };
 }
 
 function toSummary(template: Template): TemplateSummary {
