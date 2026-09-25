@@ -1,4 +1,10 @@
-import type { BlockNode, InlineNode, ListItemNode, WriteDocument } from './document';
+import {
+  walkBlocks,
+  walkInline,
+  type AnyBlock,
+  type InlineNode,
+  type WriteDocument,
+} from './document';
 import { safeHref } from './to-mjml';
 
 /**
@@ -56,7 +62,9 @@ export function checkTemplate(input: {
   if (!hasContent(input.document)) problems.push({ id: 'letterEmpty', severity: 'mustFix' });
 
   let unnamedPictures = 0;
-  for (const block of input.document.content) {
+  const blocks: AnyBlock[] = [];
+  walkBlocks(input.document, (block) => blocks.push(block));
+  for (const block of blocks) {
     if (block.type === 'image' && !block.attrs.alt.trim()) unnamedPictures += 1;
     if (block.type === 'button') {
       const href = safeHref(block.attrs.href);
@@ -85,7 +93,7 @@ export function checkTemplate(input: {
   }
 
   const badLinks = new Set<string>();
-  forEachInline(input.document, (node) => {
+  walkInline(input.document, (node) => {
     if (node.type !== 'text') return;
     for (const mark of node.marks ?? []) {
       if (mark.type === 'link' && !safeHref(mark.attrs.href)) badLinks.add(node.text);
@@ -123,27 +131,11 @@ function isExampleLink(href: string): boolean {
 
 function hasContent(doc: WriteDocument): boolean {
   const inline: InlineNode[] = [];
-  forEachInline(doc, (node) => inline.push(node));
+  walkInline(doc, (node) => inline.push(node));
+  const blocks: AnyBlock[] = [];
+  walkBlocks(doc, (block) => blocks.push(block));
   return (
     inline.some((node) => node.type === 'field' || (node.type === 'text' && node.text.trim())) ||
-    doc.content.some((block) => block.type === 'button' || block.type === 'image')
+    blocks.some((block) => block.type === 'button' || block.type === 'image')
   );
-}
-
-function forEachInline(doc: WriteDocument, visit: (node: InlineNode) => void): void {
-  const visitBlock = (block: BlockNode | ListItemNode['content'][number]) => {
-    switch (block.type) {
-      case 'paragraph':
-      case 'heading':
-        (block.content ?? []).forEach(visit);
-        break;
-      case 'bulletList':
-      case 'orderedList':
-        for (const item of block.content) item.content.forEach(visitBlock);
-        break;
-      default:
-        break;
-    }
-  };
-  doc.content.forEach(visitBlock);
 }

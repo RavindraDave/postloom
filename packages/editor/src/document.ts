@@ -141,13 +141,92 @@ const imageSchema = z.object({
   }),
 });
 
-export const blockNodeSchema = z.union([
+/** Blank space between parts of the email (Design mode). */
+const spacerSchema = z.object({
+  type: z.literal('spacer'),
+  attrs: z.object({ height: z.number().int().min(8).max(80) }),
+});
+
+/** Small, quiet text at the bottom (address, "why you got this email"). */
+const footerSchema = z.object({ type: z.literal('footer'), content: inlineContent });
+
+/** Blocks that can go anywhere: in the letter, a column, or a "show only if" part. */
+const simpleBlockSchema = z.union([
   paragraphSchema,
   headingSchema,
   listSchema(1),
   buttonSchema,
   dividerSchema,
   imageSchema,
+  spacerSchema,
+]);
+
+const cellAttrsSchema = z
+  .object({
+    colspan: z.number().int().min(1).max(6).optional(),
+    rowspan: z.number().int().min(1).max(50).optional(),
+  })
+  .optional();
+
+const cellSchema = z.object({
+  type: z.enum(['tableCell', 'tableHeader']),
+  attrs: cellAttrsSchema,
+  content: z.array(paragraphSchema).min(1).max(5),
+});
+
+/** A simple table (Design mode): rows of text, an optional header row, optional stripes. */
+const tableSchema = z.object({
+  type: z.literal('table'),
+  attrs: z.object({ striped: z.boolean().optional() }).optional(),
+  content: z
+    .array(z.object({ type: z.literal('tableRow'), content: z.array(cellSchema).min(1).max(6) }))
+    .min(1)
+    .max(100),
+});
+
+/** Side-by-side columns (Design mode). On phones they stack. */
+const columnsSchema = z.object({
+  type: z.literal('columns'),
+  content: z
+    .array(
+      z.object({ type: z.literal('column'), content: z.array(simpleBlockSchema).min(1).max(100) }),
+    )
+    .min(2)
+    .max(4),
+});
+
+/** How a "show only if" part decides. */
+export const conditionOpSchema = z.enum(['notEmpty', 'isEmpty', 'equals', 'notEquals']);
+
+/**
+ * A part of the email shown only to some people (Design mode), e.g. "only if
+ * Discount is not empty". The field and value use the same safe characters
+ * as detail names, so they can never break out of the Liquid condition.
+ */
+const conditionalSchema = z.object({
+  type: z.literal('conditional'),
+  attrs: z
+    .object({
+      field: fieldNameSchema,
+      op: conditionOpSchema,
+      value: fieldNameSchema.or(z.literal('')).optional(),
+    })
+    .refine(
+      (attrs) => !(attrs.op === 'equals' || attrs.op === 'notEquals') || Boolean(attrs.value),
+      'This rule needs a value to compare with',
+    ),
+  content: z
+    .array(z.union([simpleBlockSchema, tableSchema]))
+    .min(1)
+    .max(200),
+});
+
+export const blockNodeSchema = z.union([
+  simpleBlockSchema,
+  columnsSchema,
+  tableSchema,
+  conditionalSchema,
+  footerSchema,
 ]);
 
 export const writeDocumentSchema = z.object({
@@ -158,41 +237,88 @@ export const writeDocumentSchema = z.object({
 export type Mark = z.infer<typeof markSchema>;
 export type InlineNode = z.infer<typeof inlineNodeSchema>;
 export type BlockNode = z.infer<typeof blockNodeSchema>;
+export type SimpleBlockNode = z.infer<typeof simpleBlockSchema>;
+export type TableNode = z.infer<typeof tableSchema>;
+export type ColumnsNode = z.infer<typeof columnsSchema>;
+export type ConditionalNode = z.infer<typeof conditionalSchema>;
+export type ConditionOp = z.infer<typeof conditionOpSchema>;
 export type WriteDocument = z.infer<typeof writeDocumentSchema>;
 export type ImageNode = z.infer<typeof imageSchema>;
+
+/** Any block, wherever it sits (inside lists, columns, tables or "show only if" parts). */
+export type AnyBlock =
+  | BlockNode
+  | ParagraphNode
+  | ListNode
+  | ColumnsNode['content'][number]
+  | TableNode['content'][number]
+  | TableNode['content'][number]['content'][number];
+
+/** Visits every block in the document, depth first, in reading order. */
+export function walkBlocks(doc: WriteDocument, visit: (block: AnyBlock) => void): void {
+  const walk = (block: AnyBlock) => {
+    visit(block);
+    switch (block.type) {
+      case 'bulletList':
+      case 'orderedList':
+        for (const item of block.content) item.content.forEach(walk);
+        break;
+      case 'columns':
+      case 'column':
+      case 'table':
+      case 'tableRow':
+      case 'tableCell':
+      case 'tableHeader':
+      case 'conditional':
+        (block.content as AnyBlock[]).forEach(walk);
+        break;
+      default:
+        break;
+    }
+  };
+  doc.content.forEach(walk);
+}
+
+/** Every inline node (text, details, line breaks), in reading order. */
+export function walkInline(doc: WriteDocument, visit: (node: InlineNode) => void): void {
+  walkBlocks(doc, (block) => {
+    if (block.type === 'paragraph' || block.type === 'heading' || block.type === 'footer') {
+      (block.content ?? []).forEach(visit);
+    }
+  });
+}
+
+/** Blocks only Design mode can show. A template using them can't switch back to Write mode. */
+export const DESIGN_ONLY_BLOCKS = ['columns', 'table', 'conditional', 'spacer', 'footer'] as const;
+
+export function usesDesignBlocks(doc: WriteDocument): boolean {
+  let found = false;
+  walkBlocks(doc, (block) => {
+    if ((DESIGN_ONLY_BLOCKS as readonly string[]).includes(block.type)) found = true;
+  });
+  return found;
+}
 
 /** Every stored picture the document shows, in order of first use. */
 export function collectAssetIds(doc: WriteDocument): string[] {
   const ids = new Set<string>();
-  for (const block of doc.content) {
+  walkBlocks(doc, (block) => {
     if (block.type === 'image') ids.add(block.attrs.assetId);
-  }
+  });
   return [...ids];
 }
 
 /** Every spreadsheet column the document uses, in order of first use. */
 export function collectFields(doc: WriteDocument): string[] {
   const names = new Set<string>();
-  const visitInline = (nodes: InlineNode[] | undefined) => {
-    for (const node of nodes ?? []) {
-      if (node.type === 'field') names.add(node.attrs.name);
+  walkBlocks(doc, (block) => {
+    if (block.type === 'conditional') names.add(block.attrs.field);
+    if (block.type === 'paragraph' || block.type === 'heading' || block.type === 'footer') {
+      for (const node of block.content ?? []) {
+        if (node.type === 'field') names.add(node.attrs.name);
+      }
     }
-  };
-  const visitBlock = (block: BlockNode | ListItemNode['content'][number]) => {
-    switch (block.type) {
-      case 'bulletList':
-      case 'orderedList':
-        for (const item of block.content) item.content.forEach(visitBlock);
-        break;
-      case 'paragraph':
-      case 'heading':
-        visitInline(block.content);
-        break;
-      default:
-        break;
-    }
-  };
-  doc.content.forEach(visitBlock);
+  });
   return [...names];
 }
 
@@ -210,7 +336,7 @@ function dropDefaults(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(dropDefaults);
   if (!value || typeof value !== 'object') return value;
   const entries = Object.entries(value as Record<string, unknown>)
-    .filter(([key, v]) => v !== null && !(key === 'fallback' && v === ''))
+    .filter(([key, v]) => v !== null && !((key === 'fallback' || key === 'value') && v === ''))
     .map(([key, v]) => [key, dropDefaults(v)] as const)
     .filter(
       ([key, v]) => !(key === 'attrs' && v && typeof v === 'object' && Object.keys(v).length === 0),

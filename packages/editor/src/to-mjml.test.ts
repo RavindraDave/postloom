@@ -4,11 +4,12 @@ import { describe, expect, it } from 'vitest';
 import {
   collectAssetIds,
   collectFields,
+  usesDesignBlocks,
   writeDocumentSchema,
   type WriteDocument,
 } from './document';
 import { paymentReminder } from './fixtures';
-import { DEFAULT_BRAND, safeHref, writeDocumentToMjml } from './to-mjml';
+import { conditionHolds, DEFAULT_BRAND, safeHref, writeDocumentToMjml } from './to-mjml';
 
 // Mirrors the personalisation settings planned for the sending engine:
 // every output is HTML-escaped and unknown filters are errors.
@@ -360,5 +361,147 @@ describe('pictures and logo', () => {
       logo: { assetId: '"><x', width: 10, alt: '' },
     });
     expect(mjml).not.toContain('"><x');
+  });
+});
+
+describe('Design mode blocks', () => {
+  const para = (text: string) => ({
+    type: 'paragraph' as const,
+    content: [{ type: 'text' as const, text }],
+  });
+  const design = writeDocumentSchema.parse({
+    type: 'doc',
+    content: [
+      para('Hello'),
+      {
+        type: 'columns',
+        content: [
+          { type: 'column', content: [para('Left side')] },
+          {
+            type: 'column',
+            content: [
+              { type: 'button', attrs: { label: 'Book', href: 'https://example.org/book' } },
+            ],
+          },
+        ],
+      },
+      {
+        type: 'table',
+        attrs: { striped: true },
+        content: [
+          {
+            type: 'tableRow',
+            content: [
+              { type: 'tableHeader', content: [para('Item')] },
+              { type: 'tableHeader', content: [para('Price')] },
+            ],
+          },
+          {
+            type: 'tableRow',
+            content: [
+              { type: 'tableCell', content: [para('Tea')] },
+              {
+                type: 'tableCell',
+                content: [
+                  { type: 'paragraph', content: [{ type: 'field', attrs: { name: 'Price' } }] },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'tableRow',
+            content: [{ type: 'tableCell', attrs: { colspan: 2 }, content: [para('Thank you')] }],
+          },
+        ],
+      },
+      {
+        type: 'conditional',
+        attrs: { field: 'Discount', op: 'notEmpty' },
+        content: [
+          {
+            type: 'paragraph',
+            content: [
+              { type: 'text', text: 'Your discount: ' },
+              { type: 'field', attrs: { name: 'Discount' } },
+            ],
+          },
+        ],
+      },
+      {
+        type: 'conditional',
+        attrs: { field: 'Plan', op: 'equals', value: 'Gold' },
+        content: [para('Gold members get free delivery.')],
+      },
+      { type: 'spacer', attrs: { height: 24 } },
+      { type: 'footer', content: [{ type: 'text', text: '12 High Street, Pune' }] },
+    ],
+  });
+
+  it('compiles cleanly, with columns in their own section', async () => {
+    const mjml = writeDocumentToMjml(design);
+    expect(mjml.match(/<mj-section/g)).toHaveLength(3);
+    expect(mjml).toContain('<mj-column padding="0 8px">');
+    expect(mjml).toContain('<mj-table');
+    expect(mjml).toContain('colspan="2"');
+    expect(mjml).toContain('background-color:#F6F7F9');
+    expect(mjml).toContain('<mj-spacer height="24px" />');
+    const { warnings } = await compileMjml(mjml);
+    expect(warnings).toEqual([]);
+  });
+
+  it('shows "show only if" parts only to the right people when sending', async () => {
+    const { html } = await compileMjml(writeDocumentToMjml(design));
+    const engine = new Liquid({
+      outputEscape: 'escape',
+      strictFilters: true,
+      ownPropertyOnly: true,
+    });
+    const render = (row: Record<string, string>) =>
+      engine.parseAndRender(html, { row }) as Promise<string>;
+
+    const gold = await render({ Price: '2', Discount: '10%', Plan: ' gold ' });
+    expect(gold).toContain('Your discount: 10%');
+    expect(gold).toContain('Gold members get free delivery.');
+
+    const plain = await render({ Price: '2', Discount: '', Plan: 'Silver' });
+    expect(plain).not.toContain('Your discount');
+    expect(plain).not.toContain('Gold members');
+  });
+
+  it('decides the same way with example values in the preview', () => {
+    const preview = writeDocumentToMjml(design, DEFAULT_BRAND, {
+      values: { Price: '2', Discount: '', Plan: 'GOLD' },
+    });
+    expect(preview).not.toContain('Your discount');
+    expect(preview).toContain('Gold members get free delivery.');
+    expect(preview).not.toContain('{%');
+    expect(
+      conditionHolds({ field: 'Plan', op: 'notEquals', value: 'Gold' }, { Plan: 'gold' }),
+    ).toBe(false);
+    expect(conditionHolds({ field: 'X', op: 'isEmpty' }, {})).toBe(true);
+  });
+
+  it('shows every part in placeholder previews and tests', () => {
+    const mjml = writeDocumentToMjml(design, DEFAULT_BRAND, 'placeholder');
+    expect(mjml).toContain('Your discount: [Discount]');
+    expect(mjml).toContain('Gold members');
+    expect(mjml).not.toContain('{%');
+  });
+
+  it('knows which details and blocks the design uses', () => {
+    expect(collectFields(design)).toEqual(['Price', 'Discount', 'Plan']);
+    expect(usesDesignBlocks(design)).toBe(true);
+    expect(usesDesignBlocks(paymentReminder)).toBe(false);
+  });
+
+  it('needs a value for "is exactly" rules, and refuses unsafe values', () => {
+    const rule = (attrs: object) =>
+      writeDocumentSchema.safeParse({
+        type: 'doc',
+        content: [{ type: 'conditional', attrs, content: [para('x')] }],
+      }).success;
+    expect(rule({ field: 'Plan', op: 'equals' })).toBe(false);
+    expect(rule({ field: 'Plan', op: 'equals', value: 'Gold" or 1' })).toBe(false);
+    expect(rule({ field: 'Plan', op: 'equals', value: 'Gold' })).toBe(true);
   });
 });
