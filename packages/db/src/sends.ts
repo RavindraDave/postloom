@@ -214,7 +214,7 @@ export function createSendRepository(db: Kysely<Database>, now: () => string, ne
     async counts(id: Id): Promise<RecipientCounts> {
       const rows = await db
         .selectFrom('send_recipients')
-        .select(['status', (eb) => eb.fn.countAll<number>().as('n')])
+        .select(['status', (eb) => eb.fn.countAll<number | bigint>().as('n')])
         .where('send_id', '=', id)
         .groupBy('status')
         .execute();
