@@ -1,6 +1,17 @@
 import { AppError } from '@postloom/core';
 import { createRepositories, type OpenedDatabase } from '@postloom/db';
-import { app, BrowserWindow, dialog, ipcMain, nativeImage, safeStorage, session } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  nativeImage,
+  Notification,
+  powerMonitor,
+  safeStorage,
+  session,
+  utilityProcess,
+} from 'electron';
 import { readFileSync } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import { basename } from 'node:path';
@@ -10,9 +21,11 @@ import type { PickedFile } from './assets';
 import { MAX_IMAGE_FILE_BYTES } from './images';
 import { MAX_SPREADSHEET_BYTES } from '@postloom/recipients';
 import { databaseLocation, openAppDatabase } from './database';
-import { createHandlers } from './handlers';
+import { createMainServices } from './handlers';
 import { registerIpcHandlers } from './ipc-router';
 import { createSecretVault } from './secrets';
+import { createProcessRunner } from './send-runner';
+import type { SendService } from './sends';
 import {
   APP_ORIGIN,
   hardenAllWebContents,
@@ -32,6 +45,8 @@ const userDataOverride = app.isPackaged ? undefined : process.env['POSTLOOM_USER
 if (userDataOverride) app.setPath('userData', userDataOverride);
 
 let database: OpenedDatabase | null = null;
+let sendService: SendService | null = null;
+let quittingAfterSend = false;
 
 // Only one Postloom may run at a time: two instances sending from the same
 // database could send the same email twice.
@@ -98,10 +113,8 @@ void app.whenReady().then(async () => {
   let readAsset: AssetReader | null = null;
   serveAppProtocol(join(import.meta.dirname, '../renderer'), () => readAsset);
 
-  database = await openAppDatabase(
-    databaseLocation(app.getPath('userData')),
-    askAboutDamagedDatabase,
-  );
+  const location = databaseLocation(app.getPath('userData'));
+  database = await openAppDatabase(location, askAboutDamagedDatabase);
   if (!database) {
     app.quit();
     return;
@@ -109,29 +122,45 @@ void app.whenReady().then(async () => {
 
   const repos = createRepositories(database.db);
   readAsset = (id) => repos.assets.read(id);
+  // Anyone left mid-send by a crash or forced quit becomes "uncertain" (never resent without asking).
+  await repos.sends.recoverInterrupted();
 
-  registerIpcHandlers(
-    ipcMain,
-    createHandlers({
-      appInfo: { name: app.getName(), version: app.getVersion(), platform: platform() },
-      repos,
-      vault: createSecretVault(safeStorage, process.platform),
-      extraCa: testExtraCa(),
-      codec: {
-        decode: (bytes) => {
-          const image = nativeImage.createFromBuffer(Buffer.from(bytes));
-          return image.isEmpty() ? null : image;
-        },
+  const services = createMainServices({
+    appInfo: { name: app.getName(), version: app.getVersion(), platform: platform() },
+    repos,
+    vault: createSecretVault(safeStorage, process.platform),
+    extraCa: testExtraCa(),
+    codec: {
+      decode: (bytes) => {
+        const image = nativeImage.createFromBuffer(Buffer.from(bytes));
+        return image.isEmpty() ? null : image;
       },
-      pickImageFile,
-      pickHtmlFile,
-      pickSpreadsheetFile,
-    }),
-    {
-      isTrustedUrl: (url) => isAppUrl(url, devServerUrl),
-      onError: (channel, error) => console.error(`[ipc] ${channel} failed`, error),
     },
-  );
+    pickImageFile,
+    pickHtmlFile,
+    pickSpreadsheetFile,
+    createSendRunner: (events) =>
+      createProcessRunner(
+        {
+          fork: () =>
+            utilityProcess.fork(join(import.meta.dirname, 'sender.js'), [], {
+              serviceName: 'Postloom sending',
+            }),
+          dbFile: location.file,
+        },
+        events,
+      ),
+    notify: (title, body) => {
+      if (Notification.isSupported()) new Notification({ title, body }).show();
+    },
+  });
+  sendService = services.sends;
+  watchSleep(services.sends);
+
+  registerIpcHandlers(ipcMain, services.handlers, {
+    isTrustedUrl: (url) => isAppUrl(url, devServerUrl),
+    onError: (channel, error) => console.error(`[ipc] ${channel} failed`, error),
+  });
 
   createMainWindow();
 
@@ -226,6 +255,42 @@ function testExtraCa(): string | undefined {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
+});
+
+/** Sending pauses when the computer sleeps and carries on when it wakes (PLAN.md §9). */
+function watchSleep(sends: SendService) {
+  powerMonitor.on('suspend', () => {
+    sends.pauseAll('sleep');
+  });
+  powerMonitor.on('resume', () => {
+    void sends.wake();
+  });
+}
+
+// Quitting while emails are going out: ask, then stop after the current email.
+app.on('before-quit', (event) => {
+  const sends = sendService;
+  if (!sends?.isSending() || quittingAfterSend) return;
+  event.preventDefault();
+  const choice = dialog.showMessageBoxSync({
+    type: 'question',
+    title: 'Postloom',
+    message: 'Emails are still being sent.',
+    detail: 'Stop after the current email and quit? You can carry on sending the rest later.',
+    buttons: ['Stop and quit', 'Keep sending'],
+    defaultId: 1,
+    cancelId: 1,
+  });
+  if (choice !== 0) return;
+  quittingAfterSend = true;
+  sends.stopAll();
+  const started = Date.now();
+  const wait = setInterval(() => {
+    if (!sends.isSending() || Date.now() - started > 60_000) {
+      clearInterval(wait);
+      app.quit();
+    }
+  }, 200);
 });
 
 app.on('will-quit', () => {

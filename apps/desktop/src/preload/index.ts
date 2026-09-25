@@ -37,6 +37,17 @@ const api: PostloomApi = {
     check: (input) => invoke('recipients:check', input),
     row: (input) => invoke('recipients:row', input),
   },
+  sends: {
+    start: (input) => invoke('sends:start', input),
+    get: (input) => invoke('sends:get', input),
+    list: () => invoke('sends:list'),
+    pause: (input) => invoke('sends:pause', input),
+    resume: (input) => invoke('sends:resume', input),
+    stop: (input) => invoke('sends:stop', input),
+    retryFailed: (input) => invoke('sends:retryFailed', input),
+    resolveUncertain: (input) => invoke('sends:resolveUncertain', input),
+    problems: (input) => invoke('sends:problems', input),
+  },
   assets: {
     pickImage: () => invoke('assets:pickImage'),
     totalSize: (input) => invoke('assets:totalSize', input),

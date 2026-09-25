@@ -112,6 +112,7 @@ export default tseslint.config(
                 '@postloom/email',
                 '@postloom/db',
                 '@postloom/recipients',
+                '@postloom/sending',
                 '**/main/**',
                 '**/preload/**',
               ],
@@ -128,8 +129,10 @@ export default tseslint.config(
     files: [
       'apps/desktop/src/main/**/*.ts',
       'apps/desktop/src/preload/**/*.ts',
+      'apps/desktop/src/sender/**/*.ts',
       'packages/email/**/*.ts',
       'packages/recipients/**/*.ts',
+      'packages/sending/**/*.ts',
     ],
     languageOptions: { globals: globals.node },
   },

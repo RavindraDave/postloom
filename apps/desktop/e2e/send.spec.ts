@@ -97,9 +97,24 @@ test('checks a list, previews each person and sends a test with their details', 
   expect(raw).toContain('INV-1003');
   expect(raw).not.toContain('[Invoice No]');
 
-  // 4. The confirmation.
+  // 4. Send for real, from the separate sending process.
   await page.getByRole('button', { name: 'Continue' }).first().click();
   await expect(page.getByText(/^Send 2 emails from .+ as .+\?$/)).toBeVisible();
+  await page.getByRole('button', { name: 'Send now' }).click();
+  await expect(page.getByText('Done! 2 emails sent.')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('count-sent')).toHaveText('2');
+  await expect(page.getByTestId('count-left-out')).toHaveText('1');
+
+  const sent = mail.received.slice(1);
+  expect(sent.map((email) => email.to)).toEqual([['ben@example.com'], ['dan@example.com']]);
+  expect(sent[0]?.raw).toContain('INV-1001');
+  expect(sent[0]?.raw).not.toContain('INV-1003');
+  expect(sent[1]?.raw).toContain('INV-1003');
+  expect(sent[1]?.raw).not.toContain('[Test]');
+  // The person left out shows in the report, with the reason.
+  await expect(page.getByRole('table', { name: 'People not emailed' })).toContainText(
+    'You left this row out.',
+  );
 
   await app.close();
   await mail.close();

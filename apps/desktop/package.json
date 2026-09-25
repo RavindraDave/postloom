@@ -40,6 +40,7 @@
     "@postloom/db": "workspace:*",
     "@postloom/editor": "workspace:*",
     "@postloom/email": "workspace:*",
+    "@postloom/sending": "workspace:*",
     "@storybook/addon-a11y": "10.6.0",
     "@storybook/react-vite": "10.6.0",
     "@tabler/icons-react": "3.48.0",

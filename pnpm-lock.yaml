@@ -105,6 +105,9 @@ importers:
       '@postloom/email':
         specifier: workspace:*
         version: link:../../packages/email
+      '@postloom/sending':
+        specifier: workspace:*
+        version: link:../../packages/sending
       '@storybook/addon-a11y':
         specifier: 10.6.0
         version: 10.6.0(storybook@10.6.0(@types/react@19.3.0)(prettier@3.9.9)(react@19.3.0))
@@ -291,6 +294,24 @@ importers:
       fflate:
         specifier: 0.8.3
         version: 0.8.3
+
+  packages/sending:
+    dependencies:
+      '@postloom/core':
+        specifier: workspace:*
+        version: link:../core
+      '@postloom/db':
+        specifier: workspace:*
+        version: link:../db
+      '@postloom/editor':
+        specifier: workspace:*
+        version: link:../editor
+      '@postloom/email':
+        specifier: workspace:*
+        version: link:../email
+      liquidjs:
+        specifier: 10.29.0
+        version: 10.29.0
 
 packages:
 

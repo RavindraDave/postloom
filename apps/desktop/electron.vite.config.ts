@@ -11,12 +11,17 @@ const workspacePackages = [
   '@postloom/editor',
   '@postloom/email',
   '@postloom/recipients',
+  '@postloom/sending',
 ];
 
 export default defineConfig({
   main: {
     build: {
       externalizeDeps: { exclude: workspacePackages },
+      rollupOptions: {
+        // The sending engine runs in its own utility process (PLAN.md §9).
+        input: { index: 'src/main/index.ts', sender: 'src/sender/index.ts' },
+      },
     },
   },
   preload: {

@@ -639,7 +639,16 @@ Estimates assume one developer working with AI assistance; they're rough and get
   - a preview steps through each person's email exactly as they'll get it, and "Send this person's email to me" sends a test with their real details;
   - the Send step shows the confirmation and time estimate. Sending itself comes with the sending engine (next increment).
 
-  Still to do in Phase 4: the sending engine in a utility process (throttle, retries, crash-safe resume, pause/resume/stop, progress and result screen), then attachments and history. Reading very large spreadsheets moves off the main process with the engine.
+  Second increment, sending ([ADR 0008](adr/0008-sending-engine.md)):
+  - each send runs in its own utility process with a pooled SMTP connection, a gap between emails and the account's daily limit (across all sends);
+  - never twice: each person is claimed before the server is contacted; only "nothing was sent" failures are retried (4xx, couldn't connect: 3 tries with backoff); 5xx fails at once; a lost connection mid-email marks the person uncertain, and the user decides whether to send again or skip;
+  - a password that stops working, an unreachable server or repeated uncertain emails pause the send, with a plain-words reason;
+  - live progress (sent, couldn't send, left, left out; who's being emailed now; time left), Pause, Carry on and Stop;
+  - the result lists everyone not emailed and why, with "Try the failed ones again";
+  - after a crash or forced quit, the interrupted send waits on the Send emails page; the computer sleeping pauses sending; quitting mid-send asks first; a notification says when a send finishes or pauses on its own;
+  - a send keeps the exact template version it used.
+
+  Still to do in Phase 4: attachments (with folder safety) and history with reports. Reading very large spreadsheets still happens in the main process, within the 25 MB / 20,000-row limits.
 
 **Total:** roughly 19-23 weeks to 1.0 stable. Phases 2 and 3 can overlap once Phase 1 is done.
 

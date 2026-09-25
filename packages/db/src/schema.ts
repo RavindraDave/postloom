@@ -112,6 +112,7 @@ export interface SendsTable {
   created_at: string;
   started_at: string | null;
   finished_at: string | null;
+  pause_reason: string | null;
 }
 
 export interface SendRecipientsTable {

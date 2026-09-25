@@ -16,15 +16,22 @@ export interface TestMailServer {
   close(): Promise<void>;
 }
 
+export interface MailServerOptions {
+  /** Waits this long before accepting each email (a slow provider). */
+  acceptDelayMs?: number;
+  /** Addresses refused with "550 no such user". */
+  rejectRecipients?: string[];
+}
+
 /**
  * A real SMTP server on localhost that requires STARTTLS and a password,
  * with a certificate from a throwaway CA. The app trusts that CA only
  * through POSTLOOM_TEST_EXTRA_CA_FILE, which packaged builds ignore.
  */
-export async function startTestMailServer(credentials: {
-  username: string;
-  password: string;
-}): Promise<TestMailServer> {
+export async function startTestMailServer(
+  credentials: { username: string; password: string },
+  options: MailServerOptions = {},
+): Promise<TestMailServer> {
   const ca = await generate([{ name: 'commonName', value: 'Postloom Test CA' }], {
     keySize: 2048,
     algorithm: 'sha256',
@@ -53,6 +60,7 @@ export async function startTestMailServer(credentials: {
   });
 
   const received: ReceivedEmail[] = [];
+
   const server = new SMTPServer({
     secure: false,
     key: leaf.private,
@@ -69,6 +77,13 @@ export async function startTestMailServer(credentials: {
         callback(new Error('Invalid username or password'));
       }
     },
+    onRcptTo(address, _session, callback) {
+      if (options.rejectRecipients?.includes(address.address)) {
+        callback(Object.assign(new Error('No such user here'), { responseCode: 550 }));
+        return;
+      }
+      callback();
+    },
     onData(stream, session, callback) {
       const chunks: Buffer[] = [];
       stream.on('data', (chunk: Buffer) => chunks.push(chunk));
@@ -79,7 +94,9 @@ export async function startTestMailServer(credentials: {
           to: session.envelope.rcptTo.map((rcpt) => rcpt.address),
           raw: Buffer.concat(chunks).toString('utf8'),
         });
-        callback();
+        setTimeout(() => {
+          callback();
+        }, options.acceptDelayMs ?? 0);
       });
     },
   });

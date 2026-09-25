@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import {
   AppError,
   DEFAULT_DAILY_LIMIT,
@@ -38,7 +38,21 @@ const KEPT_LISTS = 3;
 
 interface PickedList {
   fileName: string;
+  /** A fingerprint of the file, kept with each send (never the file or its path). */
+  sha256: string;
   sheets: Map<string, RecipientTable>;
+}
+
+/** The choices made in the send wizard, as checked before sending. */
+export interface ListChoices {
+  token: string;
+  sheet: string;
+  templateId: string;
+  senderId: string;
+  mapping: ColumnMapping;
+  fieldMap: FieldMap;
+  skipRows: number[];
+  sendDuplicatesOnce: boolean;
 }
 
 /** The address columns chosen last time (lists usually look the same). */
@@ -52,15 +66,15 @@ type RecipientHandlers = Pick<
 >;
 
 /**
- * The spreadsheet is picked and read here in the main process and kept here.
- * The screen only gets a token, a sample of rows and check results: never
- * the file's path, and never the whole file.
+ * Picked lists, kept in the main process: the spreadsheet is picked and read
+ * here, and the screen only gets a token, a sample of rows and check
+ * results, never the file's path or the whole file.
  */
-export function createRecipientHandlers({
+export function createListService({
   repos,
   pickSpreadsheetFile,
   todayUtc = () => new Date().toISOString().slice(0, 10),
-}: RecipientDeps): RecipientHandlers {
+}: RecipientDeps) {
   const lists = new Map<string, PickedList>();
 
   const sheetFor = (token: string, sheet: string): RecipientTable => {
@@ -84,11 +98,47 @@ export function createRecipientHandlers({
     fieldMap: FieldMap;
   }) => buildRecipients(sheetFor(input.token, input.sheet), input.mapping, input.fieldMap);
 
-  return {
+  /** Checks everyone with the given choices (and remembers the column choices). */
+  const check = async (input: ListChoices) => {
+    const recipients = recipientsFor(input);
+    const sender = await repos.senders.get(input.senderId);
+    const account = await repos.accounts.get(sender.emailAccountId);
+    const dailyLimit = resolveDailyLimitWithSource({
+      appDefault: DEFAULT_DAILY_LIMIT,
+      accountLimit: account.dailyLimit ?? undefined,
+      providerLimit: PROVIDER_PRESETS[account.provider].dailyLimit ?? undefined,
+    }).value;
+    const remainingToday = Math.max(
+      0,
+      dailyLimit - (await repos.usage.sentOn(account.id, todayUtc())),
+    );
+    const doNotEmail = new Set((await repos.suppression.list()).map((entry) => entry.email));
+
+    const result = checkRecipients({
+      recipients,
+      fields: await fieldsFor(input.templateId),
+      fieldMap: input.fieldMap,
+      doNotEmail,
+      remainingToday,
+      skipRows: new Set(input.skipRows),
+      sendDuplicatesOnce: input.sendDuplicatesOnce,
+    });
+    await repos.settings.set(MAPPING_KEY, input.mapping);
+    await repos.settings.set(fieldMapKey(input.templateId), input.fieldMap);
+    return { ...result, recipients, account, sender, dailyLimit, remainingToday };
+  };
+
+  const file = (token: string) => {
+    const list = lists.get(token);
+    if (!list) throw new AppError({ code: 'NOT_FOUND', messageKey: 'errors.listGone' });
+    return { fileName: list.fileName, sha256: list.sha256 };
+  };
+
+  const handlers: RecipientHandlers = {
     'recipients:pick': async () => {
-      const file = await pickSpreadsheetFile();
-      if (!file) return null;
-      const sheets = (await readSpreadsheet(file.bytes, file.name))
+      const picked = await pickSpreadsheetFile();
+      if (!picked) return null;
+      const sheets = (await readSpreadsheet(picked.bytes, picked.name))
         .map((sheet) => ({ name: sheet.name, table: toRecipientTable(sheet.rows) }))
         .filter((sheet) => sheet.table.headers.length > 0);
       if (sheets.length === 0) {
@@ -96,14 +146,15 @@ export function createRecipientHandlers({
       }
       const token = randomUUID();
       lists.set(token, {
-        fileName: file.name,
+        fileName: picked.name,
+        sha256: createHash('sha256').update(picked.bytes).digest('hex'),
         sheets: new Map(sheets.map((sheet) => [sheet.name, sheet.table])),
       });
       // Keep only the last few lists: a big spreadsheet takes real memory.
       for (const old of [...lists.keys()].slice(0, -KEPT_LISTS)) lists.delete(old);
       return {
         token,
-        fileName: file.name.slice(0, 200),
+        fileName: picked.name.slice(0, 200),
         sheets: sheets.map((sheet) => ({ name: sheet.name, rowCount: sheet.table.rows.length })),
       };
     },
@@ -130,44 +181,6 @@ export function createRecipientHandlers({
       };
     },
 
-    'recipients:check': async (input) => {
-      const recipients = recipientsFor(input);
-      const sender = await repos.senders.get(input.senderId);
-      const account = await repos.accounts.get(sender.emailAccountId);
-      const dailyLimit = resolveDailyLimitWithSource({
-        appDefault: DEFAULT_DAILY_LIMIT,
-        accountLimit: account.dailyLimit ?? undefined,
-        providerLimit: PROVIDER_PRESETS[account.provider].dailyLimit ?? undefined,
-      }).value;
-      const remainingToday = Math.max(
-        0,
-        dailyLimit - (await repos.usage.sentOn(account.id, todayUtc())),
-      );
-      const doNotEmail = new Set((await repos.suppression.list()).map((entry) => entry.email));
-
-      const result = checkRecipients({
-        recipients,
-        fields: await fieldsFor(input.templateId),
-        fieldMap: input.fieldMap,
-        doNotEmail,
-        remainingToday,
-        skipRows: new Set(input.skipRows),
-        sendDuplicatesOnce: input.sendDuplicatesOnce,
-      });
-      await repos.settings.set(MAPPING_KEY, input.mapping);
-      await repos.settings.set(fieldMapKey(input.templateId), input.fieldMap);
-
-      const leftOut = { skipped: 0, disabled: 0, doNotEmail: 0, duplicate: 0 };
-      for (const row of result.leftOut) leftOut[row.reason] += 1;
-      return {
-        problems: result.problems,
-        toSendRows: result.toSend.map((recipient) => recipient.rowNo),
-        leftOut,
-        dailyLimit,
-        remainingToday,
-      };
-    },
-
     // Runs inside a promise so a missing row rejects rather than throws.
     'recipients:row': ({ rowNo, ...input }) =>
       Promise.resolve().then(() => {
@@ -183,5 +196,22 @@ export function createRecipientHandlers({
           values: recipient.values,
         };
       }),
+
+    'recipients:check': async (input) => {
+      const result = await check(input);
+      const leftOut = { skipped: 0, disabled: 0, doNotEmail: 0, duplicate: 0 };
+      for (const row of result.leftOut) leftOut[row.reason] += 1;
+      return {
+        problems: result.problems,
+        toSendRows: result.toSend.map((recipient) => recipient.rowNo),
+        leftOut,
+        dailyLimit: result.dailyLimit,
+        remainingToday: result.remainingToday,
+      };
+    },
   };
+
+  return { handlers, check, file };
 }
+
+export type ListService = ReturnType<typeof createListService>;

@@ -9,6 +9,7 @@
     "vitest.renderer.config.ts",
     "playwright.config.ts",
     "src/main",
-    "src/preload"
+    "src/preload",
+    "src/sender"
   ]
 }

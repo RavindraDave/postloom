@@ -284,6 +284,61 @@ export const listCheckSchema = z.object({
   remainingToday: z.number().int(),
 });
 
+export const checkListInputSchema = listChoicesSchema.extend({
+  templateId: idSchema,
+  senderId: idSchema,
+  skipRows: z.array(z.number().int()).max(25_000),
+  sendDuplicatesOnce: z.boolean(),
+});
+
+// ------------------------------------------------------------------ Sends
+
+export const pauseReasonSchema = z.enum([
+  'user',
+  'dailyLimit',
+  'auth',
+  'connection',
+  'interrupted',
+  'sleep',
+]);
+
+const countSchema = z.number().int().min(0);
+
+export const sendSummarySchema = z.object({
+  id: idSchema,
+  status: z.enum(['draft', 'ready', 'sending', 'paused', 'stopped', 'finished']),
+  pauseReason: pauseReasonSchema.nullable(),
+  /** True while emails are actually going out (the sending process is running). */
+  running: z.boolean(),
+  templateName: z.string(),
+  senderName: z.string(),
+  accountName: z.string(),
+  fileName: z.string(),
+  counts: z.object({
+    pending: countSchema,
+    sending: countSchema,
+    sent: countSchema,
+    failed: countSchema,
+    skipped: countSchema,
+    uncertain: countSchema,
+  }),
+  /** Who's being emailed right now. */
+  current: z.object({ rowNo: z.number().int(), to: z.string() }).nullable(),
+  /** Rough time left, in milliseconds. */
+  etaMs: z.number().min(0),
+  createdAt: z.string(),
+  startedAt: z.string().nullable(),
+  finishedAt: z.string().nullable(),
+});
+
+export const sendProblemSchema = z.object({
+  rowNo: z.number().int(),
+  to: z.string(),
+  status: z.enum(['failed', 'uncertain', 'skipped']),
+  /** A short reason code, shown in plain words (e.g. `rejected:550`). */
+  errorCode: z.string().nullable(),
+});
+
 export const secretProtectionSchema = z.enum(['keychain', 'weak', 'unavailable']);
 
 // ------------------------------------------------------------------- Contract
@@ -355,15 +410,26 @@ export const ipcContract = {
     }),
   },
   /** Checks everyone before sending (and remembers the column choices). */
-  'recipients:check': {
-    input: listChoicesSchema.extend({
-      templateId: idSchema,
-      senderId: idSchema,
-      skipRows: z.array(z.number().int()).max(25_000),
-      sendDuplicatesOnce: z.boolean(),
-    }),
-    output: listCheckSchema,
+  'recipients:check': { input: checkListInputSchema, output: listCheckSchema },
+  /** Starts sending to everyone who passed the check. */
+  'sends:start': { input: checkListInputSchema, output: sendSummarySchema },
+  'sends:get': { input: byId, output: sendSummarySchema },
+  /** Recent sends, newest first. */
+  'sends:list': { input: z.undefined(), output: z.array(sendSummarySchema) },
+  /** Pause after the email going out now. */
+  'sends:pause': { input: byId, output: sendSummarySchema },
+  'sends:resume': { input: byId, output: sendSummarySchema },
+  /** Stop after the email going out now (can be resumed later). */
+  'sends:stop': { input: byId, output: sendSummarySchema },
+  /** Puts people whose email failed back in the queue and carries on. */
+  'sends:retryFailed': { input: byId, output: sendSummarySchema },
+  /** Emails that may or may not have gone out: send them again, or skip them. */
+  'sends:resolveUncertain': {
+    input: z.object({ id: idSchema, action: z.enum(['resend', 'skip']) }),
+    output: sendSummarySchema,
   },
+  /** People not emailed, and why (failed, uncertain, left out). */
+  'sends:problems': { input: byId, output: z.array(sendProblemSchema) },
   /** One person's addresses and details, for the preview. */
   'recipients:row': {
     input: listChoicesSchema.extend({ rowNo: z.number().int().min(1) }),
@@ -421,6 +487,10 @@ export type ColumnMappingInfo = z.infer<typeof columnMappingSchema>;
 export type FieldMapInfo = z.infer<typeof fieldMapSchema>;
 export type RecipientProblemInfo = z.infer<typeof recipientProblemSchema>;
 export type ListCheck = z.infer<typeof listCheckSchema>;
+export type CheckListInput = z.infer<typeof checkListInputSchema>;
+export type SendSummary = z.infer<typeof sendSummarySchema>;
+export type SendProblem = z.infer<typeof sendProblemSchema>;
+export type PauseReasonInfo = z.infer<typeof pauseReasonSchema>;
 export type Brand = z.infer<typeof brandSchema>;
 export type BrandInput = z.infer<typeof brandInputSchema>;
 export type SecretProtection = z.infer<typeof secretProtectionSchema>;
@@ -457,6 +527,17 @@ export interface PostloomApi {
     inspect: Call<'recipients:inspect'>;
     check: Call<'recipients:check'>;
     row: Call<'recipients:row'>;
+  };
+  sends: {
+    start: Call<'sends:start'>;
+    get: Call<'sends:get'>;
+    list: Call<'sends:list'>;
+    pause: Call<'sends:pause'>;
+    resume: Call<'sends:resume'>;
+    stop: Call<'sends:stop'>;
+    retryFailed: Call<'sends:retryFailed'>;
+    resolveUncertain: Call<'sends:resolveUncertain'>;
+    problems: Call<'sends:problems'>;
   };
   assets: {
     pickImage: Call<'assets:pickImage'>;
