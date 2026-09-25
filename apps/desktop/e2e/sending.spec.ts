@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { ElectronApplication, Page } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -55,16 +55,23 @@ async function startSend(page: Page) {
 }
 
 /**
- * Kills the app the way a crash or power cut would. On Windows, killing only
- * the main process leaves its child processes running, so the whole tree goes.
+ * Ends the app abruptly, the way a crash would: no quit handling, no clean
+ * database close, an email in flight. On Linux and macOS the process is
+ * killed outright. On Windows a forced kill also cuts the test runner's own
+ * connection to the app, so the app exits itself at once instead.
  */
-function killApp(pid: number | undefined) {
-  if (pid === undefined) throw new Error('The app has no process id');
+async function crashApp(app: ElectronApplication) {
   if (process.platform === 'win32') {
-    execFileSync('taskkill', ['/PID', String(pid), '/T', '/F']);
-  } else {
-    process.kill(pid, 'SIGKILL');
+    await app
+      .evaluate(() => {
+        process.exit(1);
+      })
+      .catch(() => undefined);
+    return;
   }
+  const pid = app.process().pid;
+  if (pid === undefined) throw new Error('The app has no process id');
+  process.kill(pid, 'SIGKILL');
 }
 
 /** What's still running after the kill (Windows), to explain a failed relaunch. */
@@ -134,7 +141,7 @@ test('pauses and carries on, survives being killed mid-email, and never sends tw
   // hasn't said "accepted" yet: the app can't know whether it went.
   await page.getByRole('button', { name: 'Carry on sending' }).click();
   await expect.poll(() => mail.received.length, { timeout: 20_000 }).toBe(3);
-  killApp(app.process().pid);
+  await crashApp(app);
   // The sending process died with the app: nothing more arrives.
   await new Promise((resolve) => setTimeout(resolve, 5_000));
   expect(mail.received.length).toBe(3);
