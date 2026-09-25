@@ -25,6 +25,8 @@ export const BLANK_LETTER: WriteDocument = { type: 'doc', content: [{ type: 'par
 export interface HandlerDeps extends Omit<AccountDeps, 'repos'>, Partial<Omit<AssetDeps, 'repos'>> {
   appInfo: AppInfo;
   repos: Repositories;
+  /** Shows the computer's file picker for an HTML file; null if cancelled. */
+  pickHtmlFile?: () => Promise<{ name: string; html: string } | null>;
 }
 
 /** Without a real file picker (tests), picking a picture just cancels. */
@@ -38,6 +40,7 @@ export function createHandlers({
   repos,
   codec,
   pickImageFile,
+  pickHtmlFile = () => Promise.resolve(null),
   ...accountDeps
 }: HandlerDeps): IpcHandlers {
   const loadPreferences = async (): Promise<Preferences> => {
@@ -72,21 +75,31 @@ export function createHandlers({
 
     'templates:renderPreview': async ({ mjml }) => compileMjml(mjml),
 
+    'templates:pickHtml': () => pickHtmlFile(),
+
     'templates:list': async () => (await repos.templates.list()).map(toSummary),
     'templates:get': async ({ id }) => toDetail(await repos.templates.get(id)),
-    'templates:create': async ({ name, subject, category, document }) =>
+    'templates:create': async ({ name, subject, category, document, editorMode }) =>
       toDetail(
         await repos.templates.create({
           name,
           subject,
           category: category ?? null,
-          editorMode: 'write',
+          editorMode: editorMode ?? 'write',
           document: document ?? BLANK_LETTER,
           documentVersion: WRITE_DOCUMENT_VERSION,
           defaultSenderProfileId: null,
         }),
       ),
-    'templates:save': async ({ id, name, subject, document, defaultSenderProfileId, snapshot }) =>
+    'templates:save': async ({
+      id,
+      name,
+      subject,
+      document,
+      defaultSenderProfileId,
+      editorMode,
+      snapshot,
+    }) =>
       toDetail(
         await repos.templates.update(
           id,
@@ -95,6 +108,7 @@ export function createHandlers({
             ...(subject !== undefined && { subject }),
             ...(document !== undefined && { document }),
             ...(defaultSenderProfileId !== undefined && { defaultSenderProfileId }),
+            ...(editorMode !== undefined && { editorMode }),
           },
           { snapshot: snapshot ?? false },
         ),

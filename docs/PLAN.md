@@ -622,7 +622,14 @@ Estimates assume one developer working with AI assistance; they're rough and get
   - each sender can have a brand look (logo, colour, email-safe font) that the editor, preview and test emails use;
   - personal details can go in the subject line, as chips.
 
-  Still open: Design mode (the GrapesJS trial in ADR 0004), conditional blocks (Design mode), HTML import, and preview with real data (needs Phase 4's spreadsheet import).
+  Third increment: Design mode, HTML import and example details:
+  - Design mode on the same editor as Write mode ([ADR 0007](adr/0007-design-mode-on-tiptap.md)): columns (stacking on phones), tables, show-only-if parts (has a value / is empty / is exactly / is not), spacers and a footer. A template goes back to Write mode only when it has no Design blocks, and the app says why;
+  - import an HTML email: its words, headings, lists, links and data tables become blocks; scripts, forms and web pictures are left out;
+  - preview with example details, which also decides show-only-if parts exactly as sending will.
+
+  Phase 3 is complete. Still to do:
+  - run the Design-mode trial with 2–3 users (`docs/research/design-mode-trial.md`, owner);
+  - preview with rows from a real spreadsheet, which comes with Phase 4's import.
 
 **Total:** roughly 19-23 weeks to 1.0 stable. Phases 2 and 3 can overlap once Phase 1 is done.
 
@@ -641,7 +648,7 @@ Decided on 2026-09-24 (owner accepted the recommendations). Revisit only with a 
 | D3 | Recipients source | Files only / + saved contact lists | **Decided:** files only in 1.0, lists in 1.x | Phase 4 |
 | D4 | Code-signing budget | Apple Developer ID ($99/yr); Windows OV cert or Azure Trusted Signing (~$10/mo) | **Decided:** both, before public release | Phase 6 |
 | D5 | UI component library | Mantine / shadcn/ui (Radix + Tailwind) | **Decided:** Mantine ([ADR 0003](adr/0003-mantine-ui-library.md)) | Phase 0 |
-| D6 | Email editor | GrapesJS + MJML / EmailBuilder.js / commercial (Unlayer, Beefree) | **Decided for Write mode:** TipTap letter editor, the default ([ADR 0004](adr/0004-email-editor-strategy.md)). **Design mode:** GrapesJS + MJML is the lead candidate, confirmed by a short hands-on trial at the start of Phase 3 | Phase 3 |
+| D6 | Email editor | GrapesJS + MJML / EmailBuilder.js / commercial (Unlayer, Beefree) | **Decided:** TipTap for Write mode ([ADR 0004](adr/0004-email-editor-strategy.md)) and Design mode on the same editor and schema ([ADR 0007](adr/0007-design-mode-on-tiptap.md)); usability confirmed by the Design-mode trial | Phase 3 |
 | D7 | Crash reporting | None / opt-in Sentry | **Decided:** opt-in Sentry | Phase 5 |
 | D8 | License of the app | Private / open source (MIT/GPL) | **Decided for now:** private, all rights reserved; can be opened later. Only permissively licensed dependencies (MIT/BSD/Apache-2.0/ISC) are accepted, so every option stays available | Phase 0 |
 | D9 | Second UI language | Hindi / other / none | **Open:** decide after beta | 1.x |

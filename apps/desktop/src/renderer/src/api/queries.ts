@@ -26,8 +26,11 @@ export const queryKeys = {
   templates: ['templates'] as const,
   template: (id: string) => ['templates', id] as const,
   versions: (id: string) => ['templates', id, 'versions'] as const,
-  preview: (document: WriteDocument | undefined, look: BrandLook) =>
-    ['preview', document, look] as const,
+  preview: (
+    document: WriteDocument | undefined,
+    look: BrandLook,
+    values: Record<string, string> | null,
+  ) => ['preview', document, look, values] as const,
   security: ['security'] as const,
   accounts: ['accounts'] as const,
   senders: ['senders'] as const,
@@ -141,13 +144,20 @@ const appImageSource = (assetId: string) => `${APP_ASSET_URL_PREFIX}${assetId}`;
 export function useEmailPreview(
   document: WriteDocument | undefined,
   look: BrandLook = DEFAULT_BRAND,
+  /** Example values; without them details show as "[First Name]". */
+  values: Record<string, string> | null = null,
 ) {
   return useQuery({
-    queryKey: queryKeys.preview(document, look),
+    queryKey: queryKeys.preview(document, look, values),
     queryFn: () => {
       if (!document) throw new Error('No document to preview');
-      // Previews show "[First Name]" rather than personalisation code.
-      const mjml = writeDocumentToMjml(document, look, 'placeholder', appImageSource);
+      // Previews never contain personalisation code.
+      const mjml = writeDocumentToMjml(
+        document,
+        look,
+        values ? { values } : 'placeholder',
+        appImageSource,
+      );
       return unwrap(window.postloom.templates.renderPreview({ mjml }));
     },
     enabled: document !== undefined,
@@ -286,4 +296,9 @@ export function useSetBrand() {
       unwrap(window.postloom.senders.setBrand(input)),
     onSuccess: () => client.invalidateQueries({ queryKey: queryKeys.senders }),
   });
+}
+
+/** Opens the computer's file picker for an HTML email; resolves to null when cancelled. */
+export function usePickHtml() {
+  return useMutation({ mutationFn: () => unwrap(window.postloom.templates.pickHtml()) });
 }

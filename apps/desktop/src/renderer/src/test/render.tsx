@@ -123,6 +123,7 @@ export function mockApi(overrides: DeepPartial<PostloomApi> = {}): PostloomApi {
       versions: vi.fn(() => ok([])),
       restoreVersion: vi.fn(() => ok(sampleTemplate)),
       sendTest: vi.fn(() => ok({ sentTo: 'asha@example.com' })),
+      pickHtml: vi.fn(() => ok(null)),
       ...overrides.templates,
     },
   };
