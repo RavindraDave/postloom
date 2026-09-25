@@ -388,6 +388,31 @@ export function createRepositories(db: Kysely<Database>, options: RepositoryOpti
     },
   };
 
+  /** Emails sent per account per UTC day, across every send (daily limits). */
+  const usage = {
+    async sentOn(accountId: Id, dateUtc: string): Promise<number> {
+      const row = await db
+        .selectFrom('daily_usage')
+        .select('count')
+        .where('email_account_id', '=', accountId)
+        .where('date_utc', '=', dateUtc)
+        .executeTakeFirst();
+      return row?.count ?? 0;
+    },
+    async add(accountId: Id, dateUtc: string, count = 1): Promise<number> {
+      await db
+        .insertInto('daily_usage')
+        .values({ email_account_id: accountId, date_utc: dateUtc, count })
+        .onConflict((conflict) =>
+          conflict
+            .columns(['email_account_id', 'date_utc'])
+            .doUpdateSet((eb) => ({ count: eb('daily_usage.count', '+', count) })),
+        )
+        .execute();
+      return usage.sentOn(accountId, dateUtc);
+    },
+  };
+
   const templates = {
     /** Templates not in the bin, most recently changed first. */
     async list(): Promise<Template[]> {
@@ -568,7 +593,7 @@ export function createRepositories(db: Kysely<Database>, options: RepositoryOpti
     },
   };
 
-  return { settings, accounts, senders, brandKits, assets, templates, suppression };
+  return { settings, accounts, senders, brandKits, assets, usage, templates, suppression };
 }
 
 export type Repositories = ReturnType<typeof createRepositories>;

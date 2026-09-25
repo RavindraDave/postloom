@@ -13,6 +13,7 @@ import { compileMjml, sendEmail } from '@postloom/email';
 import { createAccountHandlers, type AccountDeps } from './accounts';
 import { createAssetHandlers, type AssetDeps } from './assets';
 import { readDocument } from './documents';
+import { createRecipientHandlers, type RecipientDeps } from './recipients';
 import { createTemplateTestHandler } from './template-test';
 import type { IpcHandlers } from './ipc-router';
 
@@ -27,6 +28,9 @@ export interface HandlerDeps extends Omit<AccountDeps, 'repos'>, Partial<Omit<As
   repos: Repositories;
   /** Shows the computer's file picker for an HTML file; null if cancelled. */
   pickHtmlFile?: () => Promise<{ name: string; html: string } | null>;
+  /** Shows the computer's file picker for a spreadsheet; null if cancelled. */
+  pickSpreadsheetFile?: RecipientDeps['pickSpreadsheetFile'];
+  todayUtc?: RecipientDeps['todayUtc'];
 }
 
 /** Without a real file picker (tests), picking a picture just cancels. */
@@ -41,6 +45,8 @@ export function createHandlers({
   codec,
   pickImageFile,
   pickHtmlFile = () => Promise.resolve(null),
+  pickSpreadsheetFile = () => Promise.resolve(null),
+  todayUtc,
   ...accountDeps
 }: HandlerDeps): IpcHandlers {
   const loadPreferences = async (): Promise<Preferences> => {
@@ -56,6 +62,11 @@ export function createHandlers({
       repos,
       codec: codec ?? noPicker.codec,
       pickImageFile: pickImageFile ?? noPicker.pickImageFile,
+    }),
+    ...createRecipientHandlers({
+      repos,
+      pickSpreadsheetFile,
+      ...(todayUtc && { todayUtc }),
     }),
     ...createTemplateTestHandler({
       repos,

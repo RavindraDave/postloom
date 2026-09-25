@@ -34,19 +34,22 @@ test('the preload exposes only the typed Postloom API', async ({ page }) => {
       window.postloom.accounts,
       window.postloom.senders,
       window.postloom.assets,
+      window.postloom.recipients,
     ]
       .flatMap((group): unknown[] => Object.values(group))
       .every((value) => typeof value === 'function'),
     hasIpcRenderer: 'ipcRenderer' in window || 'electron' in window,
   }));
   expect(api).toEqual({
-    top: ['accounts', 'app', 'assets', 'senders', 'settings', 'templates'],
+    top: ['accounts', 'app', 'assets', 'recipients', 'senders', 'settings', 'templates'],
     app: ['getInfo', 'getSecurity'],
     settings: ['get', 'update'],
     // No channel ever returns a saved password.
     accounts: ['create', 'delete', 'list', 'sendTestEmail', 'test', 'testConnection', 'update'],
     senders: ['create', 'delete', 'list', 'setBrand', 'update'],
     assets: ['pickImage', 'totalSize'],
+    // The screen never gets a file path, only a token for the picked list.
+    recipients: ['check', 'inspect', 'pick', 'row'],
     templates: [
       'create',
       'delete',

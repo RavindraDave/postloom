@@ -1,7 +1,13 @@
 import { getSchema } from '@tiptap/core';
 import { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { describe, expect, it } from 'vitest';
-import { formatSubject, parseSubject, renderSubject, subjectFields } from './subject';
+import {
+  formatSubject,
+  parseSubject,
+  renderSubject,
+  subjectFields,
+  templateFields,
+} from './subject';
 import { subjectExtensions, subjectFromEditorJson, subjectToEditorContent } from './tiptap';
 
 describe('subject line with personal details', () => {
@@ -47,5 +53,33 @@ describe('subject line with personal details', () => {
     node.check();
     expect(subjectFromEditorJson(node.toJSON() as never)).toBe(subject);
     expect(subjectFromEditorJson(subjectToEditorContent(''))).toBe('');
+  });
+});
+
+describe('the details a template needs', () => {
+  it('lists subject and letter details, and which may be empty', () => {
+    const doc = {
+      type: 'doc' as const,
+      content: [
+        {
+          type: 'paragraph' as const,
+          content: [
+            { type: 'field' as const, attrs: { name: 'First Name', fallback: 'there' } },
+            { type: 'field' as const, attrs: { name: 'Amount' } },
+          ],
+        },
+        {
+          type: 'conditional' as const,
+          attrs: { field: 'Discount', op: 'notEmpty' as const },
+          content: [{ type: 'paragraph' as const }],
+        },
+      ],
+    };
+    expect(templateFields('Invoice {{Invoice No}}', doc)).toEqual([
+      { name: 'Invoice No', hasFallback: false },
+      { name: 'Discount', hasFallback: true },
+      { name: 'First Name', hasFallback: true },
+      { name: 'Amount', hasFallback: false },
+    ]);
   });
 });

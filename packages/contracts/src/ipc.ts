@@ -223,6 +223,65 @@ export const sendTemplateTestInputSchema = z.object({
   senderId: idSchema,
   /** Defaults to the sender's email account address. */
   to: emailSchema.optional(),
+  /** One person's details from the list; without them details show as [First Name]. */
+  values: z.record(z.string().max(200), z.string().max(10_000)).optional(),
+});
+
+// ------------------------------------------------------------- Recipients
+
+const columnNameSchema = z.string().min(1).max(200);
+
+export const columnMappingSchema = z.object({
+  to: columnNameSchema.nullable(),
+  cc: columnNameSchema.nullable(),
+  bcc: columnNameSchema.nullable(),
+  enabled: columnNameSchema.nullable(),
+});
+
+export const fieldMapSchema = z.record(z.string().max(64), columnNameSchema.nullable());
+
+/** A spreadsheet the person picked, kept in the main process (never its path). */
+const listRefSchema = z.object({
+  token: z.uuid(),
+  sheet: z.string().max(200),
+  /** Once a template is chosen, its personal details are matched to columns too. */
+  templateId: idSchema.optional(),
+});
+
+const listChoicesSchema = listRefSchema.extend({
+  mapping: columnMappingSchema,
+  fieldMap: fieldMapSchema,
+});
+
+export const recipientProblemSchema = z.object({
+  id: z.enum([
+    'missingColumn',
+    'noAddress',
+    'invalidAddress',
+    'overDailyLimit',
+    'emptyDetail',
+    'duplicate',
+    'doNotEmail',
+    'disabled',
+    'largeSend',
+  ]),
+  severity: z.enum(['mustFix', 'worthALook', 'info']),
+  rows: z.array(z.number().int()),
+  values: z.record(z.string(), z.union([z.string(), z.number()])).optional(),
+});
+
+export const listCheckSchema = z.object({
+  problems: z.array(recipientProblemSchema),
+  /** Row numbers of the people who will get an email, in order. */
+  toSendRows: z.array(z.number().int()),
+  leftOut: z.object({
+    skipped: z.number().int(),
+    disabled: z.number().int(),
+    doNotEmail: z.number().int(),
+    duplicate: z.number().int(),
+  }),
+  dailyLimit: z.number().int(),
+  remainingToday: z.number().int(),
 });
 
 export const secretProtectionSchema = z.enum(['keychain', 'weak', 'unavailable']);
@@ -272,6 +331,50 @@ export const ipcContract = {
   'templates:delete': { input: byId, output: ok },
   'templates:restore': { input: byId, output: ok },
   'templates:versions': { input: byId, output: z.array(templateVersionSchema) },
+  /** Opens the computer's file picker for a spreadsheet; null if cancelled. */
+  'recipients:pick': {
+    input: z.undefined(),
+    output: z
+      .object({
+        token: z.uuid(),
+        fileName: z.string(),
+        sheets: z.array(z.object({ name: z.string(), rowCount: z.number().int() })),
+      })
+      .nullable(),
+  },
+  /** The sheet's columns, a sample of rows and the best guess at matching them. */
+  'recipients:inspect': {
+    input: listRefSchema,
+    output: z.object({
+      headers: z.array(z.string()),
+      sample: z.array(z.object({ rowNo: z.number().int(), cells: z.array(z.string()) })),
+      rowCount: z.number().int(),
+      mapping: columnMappingSchema,
+      fields: z.array(z.object({ name: z.string(), hasFallback: z.boolean() })),
+      fieldMap: fieldMapSchema,
+    }),
+  },
+  /** Checks everyone before sending (and remembers the column choices). */
+  'recipients:check': {
+    input: listChoicesSchema.extend({
+      templateId: idSchema,
+      senderId: idSchema,
+      skipRows: z.array(z.number().int()).max(25_000),
+      sendDuplicatesOnce: z.boolean(),
+    }),
+    output: listCheckSchema,
+  },
+  /** One person's addresses and details, for the preview. */
+  'recipients:row': {
+    input: listChoicesSchema.extend({ rowNo: z.number().int().min(1) }),
+    output: z.object({
+      rowNo: z.number().int(),
+      to: z.array(z.string()),
+      cc: z.array(z.string()),
+      bcc: z.array(z.string()),
+      values: z.record(z.string(), z.string()),
+    }),
+  },
   /** Opens the computer's file picker for an .html file; null if cancelled. */
   'templates:pickHtml': {
     input: z.undefined(),
@@ -314,6 +417,10 @@ export type SenderInfo = z.infer<typeof senderSchema>;
 export type CreateSenderInput = z.infer<typeof createSenderInputSchema>;
 export type UpdateSenderInput = z.infer<typeof updateSenderInputSchema>;
 export type AssetInfo = z.infer<typeof assetSchema>;
+export type ColumnMappingInfo = z.infer<typeof columnMappingSchema>;
+export type FieldMapInfo = z.infer<typeof fieldMapSchema>;
+export type RecipientProblemInfo = z.infer<typeof recipientProblemSchema>;
+export type ListCheck = z.infer<typeof listCheckSchema>;
 export type Brand = z.infer<typeof brandSchema>;
 export type BrandInput = z.infer<typeof brandInputSchema>;
 export type SecretProtection = z.infer<typeof secretProtectionSchema>;
@@ -344,6 +451,12 @@ export interface PostloomApi {
     update: Call<'senders:update'>;
     delete: Call<'senders:delete'>;
     setBrand: Call<'senders:setBrand'>;
+  };
+  recipients: {
+    pick: Call<'recipients:pick'>;
+    inspect: Call<'recipients:inspect'>;
+    check: Call<'recipients:check'>;
+    row: Call<'recipients:row'>;
   };
   assets: {
     pickImage: Call<'assets:pickImage'>;

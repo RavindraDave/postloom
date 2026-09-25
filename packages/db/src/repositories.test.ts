@@ -328,3 +328,13 @@ describe('assets', () => {
     await expect(repos.assets.get('nope')).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 });
+
+describe('daily usage', () => {
+  it('counts emails per account per day', async () => {
+    const account = await repos.accounts.create(gmail);
+    expect(await repos.usage.sentOn(account.id, '2026-09-25')).toBe(0);
+    await repos.usage.add(account.id, '2026-09-25');
+    expect(await repos.usage.add(account.id, '2026-09-25', 4)).toBe(5);
+    expect(await repos.usage.sentOn(account.id, '2026-09-26')).toBe(0);
+  });
+});

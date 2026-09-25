@@ -31,6 +31,12 @@ const api: PostloomApi = {
     delete: (input) => invoke('senders:delete', input),
     setBrand: (input) => invoke('senders:setBrand', input),
   },
+  recipients: {
+    pick: () => invoke('recipients:pick'),
+    inspect: (input) => invoke('recipients:inspect', input),
+    check: (input) => invoke('recipients:check', input),
+    row: (input) => invoke('recipients:row', input),
+  },
   assets: {
     pickImage: () => invoke('assets:pickImage'),
     totalSize: (input) => invoke('assets:totalSize', input),
