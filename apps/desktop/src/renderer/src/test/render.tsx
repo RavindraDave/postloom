@@ -102,6 +102,7 @@ export function mockApi(overrides: DeepPartial<PostloomApi> = {}): PostloomApi {
           name: 'shop.png',
         }),
       ),
+      totalSize: vi.fn(() => ok({ bytes: 0 })),
       ...overrides.assets,
     },
     settings: {

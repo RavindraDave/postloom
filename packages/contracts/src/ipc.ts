@@ -255,6 +255,11 @@ export const ipcContract = {
   },
   /** Opens the computer's file picker; null if the person cancels. */
   'assets:pickImage': { input: z.undefined(), output: assetSchema.nullable() },
+  /** Total bytes of the given pictures (for the checklist's "heavy pictures" warning). */
+  'assets:totalSize': {
+    input: z.object({ ids: z.array(assetIdSchema).max(100) }),
+    output: z.object({ bytes: z.number().int() }),
+  },
   'settings:get': { input: z.undefined(), output: preferencesSchema },
   'settings:update': { input: preferencesSchema.partial(), output: preferencesSchema },
   'templates:renderPreview': { input: renderPreviewInputSchema, output: renderPreviewOutputSchema },
@@ -335,6 +340,7 @@ export interface PostloomApi {
   };
   assets: {
     pickImage: Call<'assets:pickImage'>;
+    totalSize: Call<'assets:totalSize'>;
   };
   settings: {
     get: Call<'settings:get'>;

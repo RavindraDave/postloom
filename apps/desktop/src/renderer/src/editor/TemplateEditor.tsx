@@ -20,10 +20,18 @@ import {
   checkTemplate,
   collectFields,
   fromEditorJson,
-  SUBJECT_SOFT_LIMIT,
+  collectAssetIds,
+  lookFromBrand,
+  MAX_IMAGE_WIDTH,
+  MAX_LOGO_WIDTH,
+  subjectFields,
   type WriteDocument,
 } from '@postloom/editor';
-import { toEditorContent, writeModeExtensions } from '@postloom/editor/tiptap';
+import {
+  APP_ASSET_URL_PREFIX,
+  toEditorContent,
+  writeModeExtensions,
+} from '@postloom/editor/tiptap';
 import {
   IconAlertTriangle,
   IconArrowLeft,
@@ -33,23 +41,39 @@ import {
   IconSend,
 } from '@tabler/icons-react';
 import { EditorContent, useEditor } from '@tiptap/react';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link as RouterLink } from 'react-router';
 import { errorKey } from '../api/ipc';
-import { useEmailPreview, useSaveTemplate, useSenders, useSendTemplateTest } from '../api/queries';
+import {
+  useEmailPreview,
+  useImagesSize,
+  usePickImage,
+  useSaveTemplate,
+  useSenders,
+  useSendTemplateTest,
+} from '../api/queries';
 import { EmailPreview, type PreviewDevice } from '../components/EmailPreview';
 import { ChecklistPanel } from './ChecklistPanel';
-import { ButtonDialog, DetailDialog, LinkDialog, type ButtonValue } from './EditorDialogs';
+import {
+  ButtonDialog,
+  DetailDialog,
+  LinkDialog,
+  PictureDialog,
+  type ButtonValue,
+  type PictureValue,
+} from './EditorDialogs';
 import { EditorToolbar } from './EditorToolbar';
 import { InsertDetailMenu } from './InsertDetailMenu';
+import { SubjectInput } from './SubjectInput';
 import classes from './TemplateEditor.module.css';
 import { VersionsDrawer } from './VersionsDrawer';
 
 /** Autosave waits this long after the last change. */
 export const AUTOSAVE_DELAY_MS = 800;
 
-type Dialog = 'link' | 'button' | 'editButton' | 'detail' | 'editDetail' | null;
+type Dialog =
+  'link' | 'button' | 'editButton' | 'detail' | 'editDetail' | 'picture' | 'editPicture' | null;
 
 /** Write mode (design: DesignerWrite): a letter-like editor that saves as you type. */
 export function TemplateEditor({ template }: { template: TemplateDetail }) {
@@ -72,6 +96,8 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
   const [historyOpen, history] = useDisclosure(false);
   const [device, setDevice] = useState<PreviewDevice>('desktop');
 
+  // Until the person has clicked into the letter, new things go at the end.
+  const bodyTouched = useRef(false);
   const editor = useEditor({
     extensions: writeModeExtensions,
     content: toEditorContent(template.document),
@@ -91,6 +117,9 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
       } catch {
         setInvalid(true);
       }
+    },
+    onFocus: () => {
+      bodyTouched.current = true;
     },
   });
 
@@ -145,19 +174,36 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
     [],
   );
 
+  // The chosen sender's brand look shapes the preview and the letter.
+  const sender = senders.data?.find((candidate) => candidate.id === senderId);
+  const look = useMemo(
+    () => lookFromBrand(sender?.brand, sender?.fromName ?? ''),
+    [sender?.brand, sender?.fromName],
+  );
   const [previewDocument] = useDebouncedValue(document, 400);
-  const previewResult = useEmailPreview(previewDocument);
+  const previewResult = useEmailPreview(previewDocument, look);
   const htmlBytes = previewResult.data
     ? new TextEncoder().encode(previewResult.data.html).length
     : undefined;
+  const pictureIds = useMemo(
+    () => [...(look.logo ? [look.logo.assetId] : []), ...collectAssetIds(document)],
+    [look, document],
+  );
+  const picturesSize = useImagesSize(pictureIds);
+  const imageBytes = pictureIds.length === 0 ? 0 : picturesSize.data?.bytes;
   const problems = useMemo(
-    () => checkTemplate({ subject, document, htmlBytes }),
-    [subject, document, htmlBytes],
+    () => checkTemplate({ subject, document, htmlBytes, imageBytes }),
+    [subject, document, htmlBytes, imageBytes],
   );
   const fields = useMemo(
-    () => [...new Set([...collectFields(document), ...extraFields])],
-    [document, extraFields],
+    () => [...new Set([...collectFields(document), ...subjectFields(subject), ...extraFields])],
+    [document, subject, extraFields],
   );
+  const pickImage = usePickImage();
+  const [newPicture, setNewPicture] = useState<{ assetId: string; width: number } | null>(null);
+  const [detailTarget, setDetailTarget] = useState<'body' | 'subject'>('body');
+  const subjectInsert = useRef<((name: string) => void) | null>(null);
+  const [subjectKey, setSubjectKey] = useState(0);
 
   const status: 'saved' | 'saving' | 'unsaved' | 'error' | 'invalid' = invalid
     ? 'invalid'
@@ -172,15 +218,27 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
   const insertField = (fieldName: string, fallback = '') => {
     editor
       .chain()
-      .focus()
+      .focus(bodyTouched.current ? null : 'end')
       .insertContent({ type: 'field', attrs: { name: fieldName, fallback } })
       .run();
   };
 
-  const selectedAttrs = (type: 'button' | 'field') =>
-    editor.isActive(type) ? (editor.getAttributes(type) as Record<string, string>) : undefined;
+  const selectedAttrs = (type: 'button' | 'field' | 'image') =>
+    editor.isActive(type) ? (editor.getAttributes(type) as Record<string, unknown>) : undefined;
   const selectedButton = selectedAttrs('button');
   const selectedField = selectedAttrs('field');
+  const selectedPicture = selectedAttrs('image');
+  const text = (value: unknown) => (typeof value === 'string' ? value : '');
+
+  const choosePicture = () => {
+    pickImage.mutate(undefined, {
+      onSuccess: (asset) => {
+        if (!asset) return;
+        setNewPicture({ assetId: asset.id, width: Math.min(asset.width ?? 300, MAX_IMAGE_WIDTH) });
+        setDialog('picture');
+      },
+    });
+  };
 
   const closeDialog = () => {
     setDialog(null);
@@ -274,19 +332,25 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
 
       <div className={classes.layout}>
         <Stack gap="md" className={classes.writing}>
-          <TextInput
-            label={t('editor.subjectLabel')}
-            description={t('editor.subjectHint', {
-              count: subject.length,
-              limit: SUBJECT_SOFT_LIMIT,
-            })}
+          <SubjectInput
+            key={subjectKey}
             value={subject}
-            maxLength={200}
-            onChange={(event) => {
-              setSubject(event.currentTarget.value);
+            onChange={(value) => {
+              setSubject(value);
               changed();
             }}
+            fields={fields}
+            onNewDetail={() => {
+              setDetailTarget('subject');
+              setDialog('detail');
+            }}
+            insertRef={subjectInsert}
           />
+          {pickImage.error && (
+            <Alert color="red" icon={<IconAlertTriangle />} role="alert">
+              {t(errorKey(pickImage.error))}
+            </Alert>
+          )}
           <EditorToolbar
             editor={editor}
             onLink={() => {
@@ -301,6 +365,10 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
             onEditDetail={() => {
               setDialog('editDetail');
             }}
+            onPicture={choosePicture}
+            onEditPicture={() => {
+              setDialog('editPicture');
+            }}
             insertDetail={
               <InsertDetailMenu
                 fields={fields}
@@ -308,13 +376,30 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
                   insertField(fieldName);
                 }}
                 onNew={() => {
+                  setDetailTarget('body');
                   setDialog('detail');
                 }}
               />
             }
           />
           {/* Not a themed Paper: the letter always looks like the (light) email. */}
-          <div className={classes.paper}>
+          <div
+            className={classes.paper}
+            style={
+              {
+                '--pl-letter-accent': look.primaryColor,
+                '--pl-letter-font': look.fontFamily,
+              } as CSSProperties
+            }
+          >
+            {look.logo && (
+              <img
+                className={classes.logo}
+                src={`${APP_ASSET_URL_PREFIX}${look.logo.assetId}`}
+                alt={look.logo.alt}
+                width={Math.min(look.logo.width, MAX_LOGO_WIDTH)}
+              />
+            )}
             <EditorContent editor={editor} />
           </div>
         </Stack>
@@ -371,8 +456,8 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
         initial={
           dialog === 'editButton' && selectedButton
             ? ({
-                label: selectedButton['label'] ?? '',
-                href: selectedButton['href'] ?? '',
+                label: text(selectedButton['label']),
+                href: text(selectedButton['href']),
               } satisfies ButtonValue)
             : undefined
         }
@@ -380,7 +465,11 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
           if (dialog === 'editButton') {
             editor.chain().focus().updateAttributes('button', value).run();
           } else {
-            editor.chain().focus().insertContent({ type: 'button', attrs: value }).run();
+            editor
+              .chain()
+              .focus(bodyTouched.current ? null : 'end')
+              .insertContent({ type: 'button', attrs: value })
+              .run();
           }
           closeDialog();
         }}
@@ -390,7 +479,7 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
         onClose={closeDialog}
         initial={
           dialog === 'editDetail' && selectedField
-            ? { name: selectedField['name'] ?? '', fallback: selectedField['fallback'] ?? '' }
+            ? { name: text(selectedField['name']), fallback: text(selectedField['fallback']) }
             : undefined
         }
         onSave={(value) => {
@@ -398,7 +487,40 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
             editor.chain().focus().updateAttributes('field', { fallback: value.fallback }).run();
           } else {
             setExtraFields((current) => [...current, value.name]);
-            insertField(value.name, value.fallback);
+            if (detailTarget === 'subject') subjectInsert.current?.(value.name);
+            else insertField(value.name, value.fallback);
+          }
+          closeDialog();
+        }}
+      />
+      <PictureDialog
+        opened={dialog === 'picture' || dialog === 'editPicture'}
+        onClose={closeDialog}
+        isEdit={dialog === 'editPicture'}
+        maxWidth={MAX_IMAGE_WIDTH}
+        initial={
+          dialog === 'editPicture' && selectedPicture
+            ? {
+                alt: text(selectedPicture['alt']),
+                width: Number(selectedPicture['width']) || 300,
+                align: (text(selectedPicture['align']) || 'center') as PictureValue['align'],
+                href: text(selectedPicture['href']),
+              }
+            : newPicture
+              ? { alt: '', width: newPicture.width, align: 'center', href: '' }
+              : undefined
+        }
+        onSave={(value) => {
+          const attrs = { ...value, href: value.href || null };
+          if (dialog === 'editPicture') {
+            editor.chain().focus().updateAttributes('image', attrs).run();
+          } else if (newPicture) {
+            editor
+              .chain()
+              .focus(bodyTouched.current ? null : 'end')
+              .insertContent({ type: 'image', attrs: { assetId: newPicture.assetId, ...attrs } })
+              .run();
+            setNewPicture(null);
           }
           closeDialog();
         }}
@@ -453,6 +575,7 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
           editor.commands.setContent(toEditorContent(restored.document), { emitUpdate: false });
           setDocument(restored.document);
           setSubject(restored.subject);
+          setSubjectKey((key) => key + 1);
           setName(restored.name);
           setSavedRevision(revision);
         }}

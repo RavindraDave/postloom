@@ -33,6 +33,7 @@ const api: PostloomApi = {
   },
   assets: {
     pickImage: () => invoke('assets:pickImage'),
+    totalSize: (input) => invoke('assets:totalSize', input),
   },
   templates: {
     renderPreview: (input) => invoke('templates:renderPreview', input),

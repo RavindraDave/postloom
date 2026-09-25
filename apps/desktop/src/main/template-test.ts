@@ -1,7 +1,12 @@
-import { collectAssetIds, renderSubject, writeDocumentToMjml } from '@postloom/editor';
+import {
+  collectAssetIds,
+  lookFromBrand,
+  renderSubject,
+  writeDocumentToMjml,
+} from '@postloom/editor';
 import { compileMjml } from '@postloom/email';
 import { loadSmtpConfig, type AccountDeps } from './accounts';
-import { brandLook, inlineImagesFor, senderBrand } from './brand';
+import { inlineImagesFor, senderBrand } from './brand';
 import { readDocument } from './documents';
 import type { IpcHandlers } from './ipc-router';
 
@@ -30,7 +35,7 @@ export function createTemplateTestHandler({
       const recipient = to ?? account.username;
 
       const brand = await senderBrand(repos, sender);
-      const look = brandLook(brand, sender.fromName);
+      const look = lookFromBrand(brand, sender.fromName);
       const { html, text } = await compileMjml(writeDocumentToMjml(document, look, 'placeholder'));
       const assetIds = [...(look.logo ? [look.logo.assetId] : []), ...collectAssetIds(document)];
       await send(await loadSmtpConfig(account, { repos, vault, extraCa }), {

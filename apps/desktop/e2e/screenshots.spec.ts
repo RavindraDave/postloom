@@ -2,6 +2,7 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { firstPage, launchApp, test } from './fixtures';
 import { startTestMailServer } from './mail-server';
+import { makePng } from './png';
 
 // Not part of the regular suite: run with SCREENSHOTS=1 to refresh docs/images.
 test.skip(!process.env['SCREENSHOTS'], 'screenshots only on demand');
@@ -47,7 +48,12 @@ test('capture setup and senders screens', async ({ userDataDir }) => {
   const mail = await startTestMailServer({ username: 'asha@brightlane.example', password: 'pw' });
   const caFile = join(userDataDir, 'test-ca.pem');
   writeFileSync(caFile, mail.caPem);
-  const app = await launchApp(userDataDir, { POSTLOOM_TEST_EXTRA_CA_FILE: caFile });
+  const logoFile = join(userDataDir, 'logo.png');
+  writeFileSync(logoFile, makePng(240, 72, [14, 107, 102]));
+  const app = await launchApp(userDataDir, {
+    POSTLOOM_TEST_EXTRA_CA_FILE: caFile,
+    POSTLOOM_TEST_PICK_IMAGE: logoFile,
+  });
   const page = await firstPage(app);
   await app.evaluate(({ BrowserWindow }) => {
     BrowserWindow.getAllWindows()[0]?.setSize(1280, 820);
@@ -86,6 +92,19 @@ test('capture setup and senders screens', async ({ userDataDir }) => {
     await page.screenshot({ path: `${out}/accounts-${scheme}.png` });
   }
 
+  // A brand look with a logo.
+  await page.emulateMedia({ colorScheme: 'light' });
+  await page.getByRole('link', { name: 'Senders & accounts' }).click();
+  await page.getByRole('tab', { name: /Senders/ }).click();
+  const brand = page.getByRole('region', { name: 'Brand look' });
+  await brand.getByRole('button', { name: 'Add a brand look' }).click();
+  await brand.getByRole('button', { name: 'Choose logo' }).click();
+  await brand.getByRole('button', { name: 'Save brand look' }).click();
+  await page.getByText('Brand look saved').waitFor();
+  await brand.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${out}/brand-look-light.png` });
+
   // The Write-mode editor.
   await page.emulateMedia({ colorScheme: 'light' });
   await page.getByRole('link', { name: 'Templates' }).click();
@@ -96,6 +115,8 @@ test('capture setup and senders screens', async ({ userDataDir }) => {
   await page.getByRole('button', { name: 'Make template' }).click();
   await page.getByRole('combobox', { name: 'From' }).click();
   await page.getByRole('option', { name: /Asha Kapoor/ }).click();
+  await page.getByRole('button', { name: 'Insert detail in the subject' }).click();
+  await page.getByRole('menuitem', { name: 'First Name' }).click();
   await page.getByTestId('save-status').filter({ hasText: 'Saved' }).waitFor();
   await page.waitForTimeout(600);
   for (const scheme of ['light', 'dark'] as const) {

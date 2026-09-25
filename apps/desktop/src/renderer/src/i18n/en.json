@@ -110,6 +110,10 @@
     "emailConnectionFailed": "Postloom couldn't reach your email provider. Check your internet connection and the server details.",
     "emailSendFailed": "The email couldn't be sent. Please try again later.",
     "headerLineBreak": "A subject, name or email address contains a line break. Remove it and try again.",
+    "imageTooBig": "That picture file is too big (over 20 MB). Choose a smaller one.",
+    "imageType": "Postloom can use PNG and JPEG pictures. Choose a .png or .jpg file.",
+    "imageUnreadable": "That picture couldn't be opened. It may be damaged. Try another one.",
+    "imageMissing": "A picture in this template is missing. Remove it and add it again.",
     "notFound": "We couldn't find that. It may have been deleted.",
     "inUse": "This is still being used, so it can't be removed yet.",
     "databaseDamaged": "Postloom couldn't read its saved information.",
@@ -275,7 +279,22 @@
     "limitFromApp": "Postloom's safe standard limit",
     "changeDelay": "Change for this sender",
     "useInherited": "Use the account's pace",
-    "delayInputLabel": "Seconds between emails"
+    "delayInputLabel": "Seconds between emails",
+    "brand": "Brand look",
+    "brandHint": "The logo, colour and font used in emails from this sender.",
+    "brandNone": "Emails use Postloom's plain look.",
+    "brandAdd": "Add a brand look",
+    "brandRemove": "Use the plain look",
+    "logo": "Logo",
+    "logoNone": "No logo yet",
+    "logoChoose": "Choose logo",
+    "logoChange": "Change logo",
+    "logoRemove": "Remove logo",
+    "colour": "Button and accent colour",
+    "font": "Font",
+    "fontHint": "Fonts that look the same in almost every email app.",
+    "brandSave": "Save brand look",
+    "brandSaved": "Brand look saved"
   },
   "setup": {
     "title": "Set up Postloom",
@@ -332,7 +351,7 @@
     "more": "More",
     "history": "Version history",
     "subjectLabel": "Subject",
-    "subjectHint": "{{count}} of about {{limit}} characters that most inboxes show.",
+    "subjectHint": "{{count}} of about {{limit}} characters that most inboxes show. Details count as their name.",
     "bodyLabel": "Email text",
     "toolbarLabel": "Formatting",
     "styles": {
@@ -410,7 +429,26 @@
     "version": "Version {{number}}",
     "restore": "Restore",
     "restored": "Version {{number}} restored",
-    "loadFailed": "This template couldn't be opened."
+    "loadFailed": "This template couldn't be opened.",
+    "picture": "Picture",
+    "editPicture": "Edit picture",
+    "pictureModal": {
+      "title": "Add a picture",
+      "editTitle": "Edit picture",
+      "alt": "Describe the picture",
+      "altHint": "Read out to people who can't see pictures, and shown if the picture doesn't load, e.g. “Our new shop front”.",
+      "altMissing": "Describe the picture in a few words.",
+      "width": "Size",
+      "align": "Position",
+      "alignLeft": "Left",
+      "alignCenter": "Centre",
+      "alignRight": "Right",
+      "link": "Opens this address when clicked (optional)",
+      "save": "Add picture",
+      "saveEdit": "Save picture",
+      "inside": "The picture travels inside each email, so it shows even if you don't have a website."
+    },
+    "subjectInsertDetail": "Insert detail in the subject"
   },
   "checks": {
     "subjectMissing": "Add a subject so people know what the email is about.",
@@ -419,6 +457,9 @@
     "linkInvalid": "The link on “{{text}}” doesn't go anywhere. Use a full address starting with https://.",
     "buttonLinkInvalid": "The “{{label}}” button doesn't go anywhere yet. Add a full web address.",
     "buttonLinkExample": "The “{{label}}” button still points to the example address. Change it to your own link.",
-    "tooLarge": "This email is {{size}} KB. Gmail hides the end of emails over about 102 KB."
+    "tooLarge": "This email is {{size}} KB. Gmail hides the end of emails over about 102 KB.",
+    "imageAltMissing": "{{count}} picture needs a description for people who can't see pictures.",
+    "imageAltMissing_other": "{{count}} pictures need a description for people who can't see pictures.",
+    "imagesHeavy": "Pictures add {{size}} KB to every email. Smaller pictures send faster and are less likely to look like spam."
   }
 }

@@ -22,7 +22,7 @@ export function createAssetHandlers({
   repos,
   codec,
   pickImageFile,
-}: AssetDeps): Pick<IpcHandlers, 'assets:pickImage'> {
+}: AssetDeps): Pick<IpcHandlers, 'assets:pickImage' | 'assets:totalSize'> {
   return {
     'assets:pickImage': async () => {
       const file = await pickImageFile();
@@ -37,6 +37,16 @@ export function createAssetHandlers({
         height: asset.height,
         name: asset.name,
       };
+    },
+    'assets:totalSize': async ({ ids }) => {
+      let bytes = 0;
+      for (const id of new Set(ids)) {
+        bytes += await repos.assets
+          .get(id)
+          .then((asset) => asset.size)
+          .catch(() => 0);
+      }
+      return { bytes };
     },
   };
 }

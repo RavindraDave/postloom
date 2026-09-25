@@ -14,7 +14,9 @@ describe('TemplateEditor (Write mode)', () => {
     renderEditor();
 
     expect(screen.getByRole('textbox', { name: 'Template name' })).toHaveValue('Payment reminder');
-    expect(screen.getByLabelText(/^Subject/)).toHaveValue('Your invoice is due');
+    expect(screen.getByRole('textbox', { name: 'Subject' })).toHaveTextContent(
+      'Your invoice is due',
+    );
     const letter = screen.getByRole('textbox', { name: 'Email text' });
     expect(within(letter).getByText('First Name')).toHaveClass('pl-field');
     expect(await screen.findByText('Everything looks good')).toBeInTheDocument();
@@ -148,6 +150,100 @@ describe('TemplateEditor (Write mode)', () => {
     expect(await screen.findByText(/Test sent to asha@example.com/)).toBeInTheDocument();
   });
 
+  it('adds a picture that travels inside the email, and asks for a description', async () => {
+    const api = mockApi();
+    renderEditor();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Picture' }));
+    expect(api.assets.pickImage).toHaveBeenCalled();
+    const dialog = await screen.findByRole('dialog', { name: 'Add a picture' });
+    expect(within(dialog).getByText(/travels inside each email/)).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Add picture' }));
+    expect(within(dialog).getByText('Describe the picture in a few words.')).toBeInTheDocument();
+
+    await userEvent.type(within(dialog).getByLabelText(/Describe the picture/), 'Our shop');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Add picture' }));
+
+    const letter = screen.getByRole('textbox', { name: 'Email text' });
+    const picture = await within(letter).findByRole('img', { name: 'Our shop' });
+    expect(picture).toHaveAttribute('src', 'app://postloom/assets/img1');
+    await waitFor(
+      () => {
+        expect(api.templates.save).toHaveBeenCalledWith(
+          expect.objectContaining({
+            document: expect.objectContaining({
+              content: expect.arrayContaining([
+                {
+                  type: 'image',
+                  attrs: { assetId: 'img1', alt: 'Our shop', width: 600, align: 'center' },
+                },
+              ]) as unknown,
+            }) as unknown,
+          }),
+        );
+      },
+      { timeout: 3000 },
+    );
+  });
+
+  it('does nothing when no picture is chosen', async () => {
+    mockApi({ assets: { pickImage: vi.fn(() => ok(null)) } });
+    renderEditor();
+    await userEvent.click(screen.getByRole('button', { name: 'Picture' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('puts a personal detail in the subject as a chip', async () => {
+    const api = mockApi();
+    renderEditor();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Insert detail in the subject' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'First Name' }));
+
+    const subject = screen.getByRole('textbox', { name: 'Subject' });
+    expect(within(subject).getByText('First Name')).toHaveClass('pl-field');
+    await waitFor(
+      () => {
+        expect(api.templates.save).toHaveBeenCalledWith(
+          expect.objectContaining({ subject: expect.stringContaining('{{First Name}}') as string }),
+        );
+      },
+      { timeout: 3000 },
+    );
+  });
+
+  it('previews in the chosen sender’s brand look', async () => {
+    const api = mockApi({
+      senders: {
+        list: vi.fn(() =>
+          ok([
+            {
+              ...sampleSender,
+              brand: {
+                primaryColor: '#7A3E9D',
+                fontFamily: 'Georgia, Times, serif',
+                logo: { assetId: 'logo9', width: 300, height: 90 },
+              },
+            },
+          ]),
+        ),
+      },
+    });
+    renderEditor({ ...sampleTemplate, defaultSenderProfileId: 's1' });
+
+    const letter = screen.getByRole('textbox', { name: 'Email text' });
+    expect(await screen.findByRole('img', { name: sampleSender.fromName })).toHaveAttribute(
+      'src',
+      'app://postloom/assets/logo9',
+    );
+    expect(letter).toBeInTheDocument();
+    await waitFor(() => {
+      expect(api.templates.renderPreview).toHaveBeenCalledWith({
+        mjml: expect.stringContaining('app://postloom/assets/logo9') as string,
+      });
+    });
+  });
+
   it('restores an earlier version', async () => {
     const restored = { ...sampleTemplate, subject: 'Old subject' };
     const api = mockApi({
@@ -172,7 +268,7 @@ describe('TemplateEditor (Write mode)', () => {
       expect(api.templates.restoreVersion).toHaveBeenCalledWith({ id: 't1', versionNo: 2 });
     });
     await waitFor(() => {
-      expect(screen.getByLabelText(/^Subject/)).toHaveValue('Old subject');
+      expect(screen.getByRole('textbox', { name: 'Subject' })).toHaveTextContent('Old subject');
     });
   });
 });

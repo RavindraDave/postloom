@@ -37,6 +37,7 @@ import {
   useUpdateSender,
 } from '../api/queries';
 import { ConnectAccountForm } from '../components/ConnectAccountForm';
+import { BrandLookCard } from '../components/BrandLookCard';
 import { EmptyState } from '../components/EmptyState';
 import { FixPasswordForm } from '../components/FixPasswordForm';
 import { InheritedField } from '../components/InheritedField';
@@ -333,6 +334,8 @@ function SenderDetails({ sender, accounts }: { sender: SenderInfo; accounts: Ema
           value={String(dailyLimit.value)}
         />
       </Paper>
+
+      <BrandLookCard key={JSON.stringify(sender.brand)} sender={sender} />
 
       <Group gap="sm">
         <Button

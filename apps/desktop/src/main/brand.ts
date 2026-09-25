@@ -1,7 +1,7 @@
 import { AppError, type SenderProfile } from '@postloom/core';
 import type { Brand, BrandInput } from '@postloom/contracts';
 import type { Repositories } from '@postloom/db';
-import { DEFAULT_BRAND, imageContentId, type BrandLook } from '@postloom/editor';
+import { imageContentId } from '@postloom/editor';
 import type { InlineImage } from '@postloom/email';
 
 /** The sender's brand look as the screen shows it, or null if it has none. */
@@ -46,19 +46,6 @@ export async function saveSenderBrand(
     });
     await repos.senders.update(sender.id, { brandKitId: kit.id });
   }
-}
-
-/** How an email from this sender looks. */
-export function brandLook(brand: Brand | null, logoAlt: string): BrandLook {
-  if (!brand) return DEFAULT_BRAND;
-  return {
-    ...DEFAULT_BRAND,
-    primaryColor: brand.primaryColor,
-    fontFamily: brand.fontFamily,
-    logo: brand.logo
-      ? { assetId: brand.logo.assetId, width: brand.logo.width, alt: logoAlt }
-      : null,
-  };
 }
 
 /** The pictures an email shows, ready to travel inside it. */

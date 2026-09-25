@@ -11,6 +11,26 @@ export interface BrandLook {
   logo?: { assetId: string; width: number; alt: string } | null | undefined;
 }
 
+/** A sender's saved brand look (see the contracts' `brandSchema`). */
+export interface SavedBrand {
+  primaryColor: string;
+  fontFamily: string;
+  logo: { assetId: string; width: number } | null;
+}
+
+/** How emails from a sender look; the plain look when it has no brand. */
+export function lookFromBrand(brand: SavedBrand | null | undefined, logoAlt: string): BrandLook {
+  if (!brand) return DEFAULT_BRAND;
+  return {
+    ...DEFAULT_BRAND,
+    primaryColor: brand.primaryColor,
+    fontFamily: brand.fontFamily,
+    logo: brand.logo
+      ? { assetId: brand.logo.assetId, width: brand.logo.width, alt: logoAlt }
+      : null,
+  };
+}
+
 /** Widest a logo is shown at the top of the email. */
 export const MAX_LOGO_WIDTH = 200;
 

@@ -5,12 +5,19 @@ import type {
   TestConnectionInput,
   UpdateAccountInput,
   UpdateSenderInput,
+  BrandInput,
   Preferences,
   SaveTemplateInput,
   SendTemplateTestInput,
   TemplateDetail,
 } from '@postloom/contracts';
-import { writeDocumentToMjml, type WriteDocument } from '@postloom/editor';
+import {
+  DEFAULT_BRAND,
+  writeDocumentToMjml,
+  type BrandLook,
+  type WriteDocument,
+} from '@postloom/editor';
+import { APP_ASSET_URL_PREFIX } from '@postloom/editor/tiptap';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { unwrap } from './ipc';
 
@@ -19,7 +26,8 @@ export const queryKeys = {
   templates: ['templates'] as const,
   template: (id: string) => ['templates', id] as const,
   versions: (id: string) => ['templates', id, 'versions'] as const,
-  preview: (document: WriteDocument | undefined) => ['preview', document] as const,
+  preview: (document: WriteDocument | undefined, look: BrandLook) =>
+    ['preview', document, look] as const,
   security: ['security'] as const,
   accounts: ['accounts'] as const,
   senders: ['senders'] as const,
@@ -123,14 +131,23 @@ export function useSendTemplateTest() {
   });
 }
 
-/** Compiles a Write-mode document to email HTML (in the main process) for the preview. */
-export function useEmailPreview(document: WriteDocument | undefined) {
+/** Where the preview loads stored pictures from (the app serves them). */
+const appImageSource = (assetId: string) => `${APP_ASSET_URL_PREFIX}${assetId}`;
+
+/**
+ * Compiles a Write-mode document to email HTML (in the main process) for the
+ * preview, in the sender's brand look when there is one.
+ */
+export function useEmailPreview(
+  document: WriteDocument | undefined,
+  look: BrandLook = DEFAULT_BRAND,
+) {
   return useQuery({
-    queryKey: queryKeys.preview(document),
+    queryKey: queryKeys.preview(document, look),
     queryFn: () => {
       if (!document) throw new Error('No document to preview');
       // Previews show "[First Name]" rather than personalisation code.
-      const mjml = writeDocumentToMjml(document, undefined, 'placeholder');
+      const mjml = writeDocumentToMjml(document, look, 'placeholder', appImageSource);
       return unwrap(window.postloom.templates.renderPreview({ mjml }));
     },
     enabled: document !== undefined,
@@ -243,5 +260,30 @@ export function useDeleteSender() {
   return useMutation({
     mutationFn: (id: string) => unwrap(window.postloom.senders.delete({ id })),
     onSuccess: refresh,
+  });
+}
+
+// --------------------------------------------------------- Pictures and brand
+
+/** Opens the computer's file picker; resolves to null when cancelled. */
+export function usePickImage() {
+  return useMutation({ mutationFn: () => unwrap(window.postloom.assets.pickImage()) });
+}
+
+export function useImagesSize(ids: string[]) {
+  return useQuery({
+    queryKey: ['assets', 'size', ids] as const,
+    queryFn: () => unwrap(window.postloom.assets.totalSize({ ids })),
+    enabled: ids.length > 0,
+    staleTime: Infinity,
+  });
+}
+
+export function useSetBrand() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: string; brand: BrandInput | null }) =>
+      unwrap(window.postloom.senders.setBrand(input)),
+    onSuccess: () => client.invalidateQueries({ queryKey: queryKeys.senders }),
   });
 }

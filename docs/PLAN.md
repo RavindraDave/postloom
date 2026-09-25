@@ -617,7 +617,12 @@ Estimates assume one developer working with AI assistance; they're rough and get
   - the template's usual sender, and "Send me a test" through that sender, marked [Test];
   - a starter gallery of eight tested letters in "New template".
 
-  Still open: Design mode (the GrapesJS trial in ADR 0004), images and logo, brand kits, conditional blocks, HTML import, preview with real data (needs Phase 4's spreadsheet import), and personal details in the subject line.
+  Second increment: pictures, brand looks and details in the subject:
+  - pictures travel inside each email ([ADR 0006](adr/0006-images-inside-emails.md)); they're picked with the computer's file picker, checked, re-encoded, shrunk when very wide, and need a description;
+  - each sender can have a brand look (logo, colour, email-safe font) that the editor, preview and test emails use;
+  - personal details can go in the subject line, as chips.
+
+  Still open: Design mode (the GrapesJS trial in ADR 0004), conditional blocks (Design mode), HTML import, and preview with real data (needs Phase 4's spreadsheet import).
 
 **Total:** roughly 19-23 weeks to 1.0 stable. Phases 2 and 3 can overlap once Phase 1 is done.
 

@@ -121,6 +121,13 @@ describe('pictures and brand looks', () => {
     expect(JSON.stringify(asset)).not.toContain('bytes');
   });
 
+  it('adds up picture sizes for the checklist', async () => {
+    const asset = await handlers['assets:pickImage'](undefined);
+    expect(
+      await handlers['assets:totalSize']({ ids: [asset?.id ?? '', asset?.id ?? '', 'gone'] }),
+    ).toEqual({ bytes: PNG.byteLength });
+  });
+
   it('does nothing when the person cancels the file picker', async () => {
     picked = null;
     expect(await handlers['assets:pickImage'](undefined)).toBeNull();
