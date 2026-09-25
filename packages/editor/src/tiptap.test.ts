@@ -68,6 +68,55 @@ describe('Write mode editor schema', () => {
     expect(fromEditorJson(node.toJSON())).toEqual(extras);
   });
 
+  it('round-trips Design-mode blocks: columns, tables, show-only-if, spacer, footer', () => {
+    const para = (text: string) => ({ type: 'paragraph', content: [{ type: 'text', text }] });
+    const design = {
+      type: 'doc',
+      content: [
+        {
+          type: 'columns',
+          content: [
+            { type: 'column', content: [para('Left')] },
+            { type: 'column', content: [para('Right'), { type: 'spacer', attrs: { height: 16 } }] },
+          ],
+        },
+        {
+          type: 'table',
+          attrs: { striped: true },
+          content: [
+            {
+              type: 'tableRow',
+              content: [
+                { type: 'tableHeader', attrs: { colspan: 1, rowspan: 1 }, content: [para('Item')] },
+                {
+                  type: 'tableHeader',
+                  attrs: { colspan: 1, rowspan: 1 },
+                  content: [para('Price')],
+                },
+              ],
+            },
+            {
+              type: 'tableRow',
+              content: [
+                { type: 'tableCell', attrs: { colspan: 1, rowspan: 1 }, content: [para('Tea')] },
+                { type: 'tableCell', attrs: { colspan: 1, rowspan: 1 }, content: [para('2')] },
+              ],
+            },
+          ],
+        },
+        {
+          type: 'conditional',
+          attrs: { field: 'Discount', op: 'notEmpty' },
+          content: [para('You get a discount!')],
+        },
+        { type: 'footer', content: [{ type: 'text', text: '12 High Street' }] },
+      ],
+    };
+    const node = ProseMirrorNode.fromJSON(schema, design);
+    node.check();
+    expect(fromEditorJson(node.toJSON())).toEqual(design);
+  });
+
   it('keeps only the link address from the editor', () => {
     const doc = fromEditorJson({
       type: 'doc',

@@ -98,6 +98,25 @@ describe('template checklist', () => {
     ]);
   });
 
+  it('checks buttons and pictures inside columns and "show only if" parts', () => {
+    const problems = checkTemplate({
+      subject: 'Hi',
+      document: letter([
+        {
+          type: 'columns',
+          content: [
+            {
+              type: 'column',
+              content: [{ type: 'image', attrs: { assetId: 'a1', alt: '', width: 200 } }],
+            },
+            { type: 'column', content: [{ type: 'button', attrs: { label: 'Go', href: 'nope' } }] },
+          ],
+        },
+      ]),
+    });
+    expect(problems.map((problem) => problem.id)).toEqual(['buttonLinkInvalid', 'imageAltMissing']);
+  });
+
   it('asks people to replace the example links in starters that have them', () => {
     const invoice = STARTER_GALLERY.find((starter) => starter.id === 'invoice');
     const ids = checkTemplate({

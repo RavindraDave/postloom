@@ -82,6 +82,7 @@ export const createTemplateInputSchema = z.object({
   subject: subjectSchema,
   category: z.string().trim().max(60).nullable().optional(),
   document: writeDocumentSchema.optional(),
+  editorMode: z.enum(['write', 'design']).optional(),
 });
 
 export const saveTemplateInputSchema = z.object({
@@ -90,6 +91,7 @@ export const saveTemplateInputSchema = z.object({
   subject: subjectSchema.optional(),
   document: writeDocumentSchema.optional(),
   defaultSenderProfileId: idSchema.nullable().optional(),
+  editorMode: z.enum(['write', 'design']).optional(),
   /** True for a manual save: also keeps a version to restore later. */
   snapshot: z.boolean().optional(),
 });
@@ -270,6 +272,11 @@ export const ipcContract = {
   'templates:delete': { input: byId, output: ok },
   'templates:restore': { input: byId, output: ok },
   'templates:versions': { input: byId, output: z.array(templateVersionSchema) },
+  /** Opens the computer's file picker for an .html file; null if cancelled. */
+  'templates:pickHtml': {
+    input: z.undefined(),
+    output: z.object({ name: z.string(), html: z.string() }).nullable(),
+  },
   'templates:sendTest': {
     input: sendTemplateTestInputSchema,
     output: z.object({ sentTo: z.string() }),
@@ -356,6 +363,7 @@ export interface PostloomApi {
     restore: Call<'templates:restore'>;
     versions: Call<'templates:versions'>;
     sendTest: Call<'templates:sendTest'>;
+    pickHtml: Call<'templates:pickHtml'>;
     restoreVersion: Call<'templates:restoreVersion'>;
   };
 }

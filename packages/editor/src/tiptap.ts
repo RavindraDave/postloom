@@ -1,5 +1,6 @@
 import { mergeAttributes, Node, type JSONContent } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
+import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table';
 import TextAlign from '@tiptap/extension-text-align';
 import type { WriteDocument } from './document';
 import { formatSubject, parseSubject, type SubjectPart } from './subject';
@@ -134,6 +135,129 @@ export const ImageNode = Node.create({
   },
 });
 
+// ------------------------------------------------------------ Design mode
+
+/** Blocks that can sit in a column or a "show only if" part. */
+const SIMPLE_BLOCKS =
+  'paragraph | heading | bulletList | orderedList | button | image | horizontalRule | spacer';
+
+/** Blank space between parts of the email. */
+export const SpacerNode = Node.create({
+  name: 'spacer',
+  group: 'block',
+  atom: true,
+  selectable: true,
+  addAttributes: () => ({ height: { default: 24 } }),
+  parseHTML: () => [{ tag: 'div[data-spacer]' }],
+  renderHTML: ({ node }) => [
+    'div',
+    {
+      'data-spacer': '',
+      class: 'pl-spacer',
+      style: `height:${String(Number(node.attrs['height']) || 24)}px`,
+    },
+  ],
+});
+
+/** Small, quiet text at the bottom of the email. */
+export const FooterNode = Node.create({
+  name: 'footer',
+  group: 'block',
+  content: 'inline*',
+  defining: true,
+  parseHTML: () => [{ tag: 'div[data-footer]' }, { tag: 'footer' }],
+  renderHTML: () => ['div', { 'data-footer': '', class: 'pl-footer' }, 0],
+});
+
+/** Side-by-side columns; on phones they stack. */
+export const ColumnsNode = Node.create({
+  name: 'columns',
+  group: 'block',
+  content: 'column{2,4}',
+  isolating: true,
+  parseHTML: () => [{ tag: 'div[data-columns]' }],
+  renderHTML: ({ node }) => [
+    'div',
+    { 'data-columns': String(node.childCount), class: 'pl-columns' },
+    0,
+  ],
+});
+
+export const ColumnNode = Node.create({
+  name: 'column',
+  content: `(${SIMPLE_BLOCKS})+`,
+  isolating: true,
+  parseHTML: () => [{ tag: 'div[data-column]' }],
+  renderHTML: () => ['div', { 'data-column': '', class: 'pl-column' }, 0],
+});
+
+/** A part of the email shown only to some people ("show only if"). */
+export const ConditionalNode = Node.create({
+  name: 'conditional',
+  group: 'block',
+  content: `(${SIMPLE_BLOCKS} | table)+`,
+  isolating: true,
+  defining: true,
+  addAttributes: () => ({
+    field: { default: '' },
+    op: { default: 'notEmpty' },
+    value: { default: '' },
+  }),
+  parseHTML: () => [
+    {
+      tag: 'div[data-conditional]',
+      getAttrs: (element) => ({
+        field: element.getAttribute('data-field') ?? '',
+        op: element.getAttribute('data-op') ?? 'notEmpty',
+        value: element.getAttribute('data-value') ?? '',
+      }),
+    },
+  ],
+  renderHTML: ({ node }) => [
+    'div',
+    {
+      'data-conditional': '',
+      'data-field': String(node.attrs['field']),
+      'data-op': String(node.attrs['op']),
+      'data-value': String(node.attrs['value']),
+      class: 'pl-conditional',
+    },
+    0,
+  ],
+});
+
+/** Tables hold plain paragraphs in each cell, which every email app can show. */
+export const EmailTable = Table.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      striped: {
+        default: false,
+        parseHTML: (element) => element.getAttribute('data-striped') === 'true',
+        renderHTML: (attributes) => ({ 'data-striped': String(Boolean(attributes['striped'])) }),
+      },
+    };
+  },
+}).configure({ resizable: false });
+export const EmailTableCell = TableCell.extend({ content: 'paragraph+' });
+export const EmailTableHeader = TableHeader.extend({ content: 'paragraph+' });
+
+export const designExtensions = [
+  SpacerNode,
+  FooterNode,
+  ColumnsNode,
+  ColumnNode,
+  ConditionalNode,
+  EmailTable,
+  TableRow,
+  EmailTableCell,
+  EmailTableHeader,
+];
+
+/**
+ * Everything the editor understands. Write and Design mode share one schema,
+ * so a document always opens; Design mode only adds tools for more blocks.
+ */
 export const writeModeExtensions = [
   StarterKit.configure({
     // Keep Write mode to what email clients render reliably.
@@ -153,6 +277,7 @@ export const writeModeExtensions = [
   FieldNode,
   ButtonNode,
   ImageNode,
+  ...designExtensions,
 ];
 
 /**

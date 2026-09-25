@@ -45,6 +45,7 @@ const api: PostloomApi = {
     restore: (input) => invoke('templates:restore', input),
     versions: (input) => invoke('templates:versions', input),
     sendTest: (input) => invoke('templates:sendTest', input),
+    pickHtml: () => invoke('templates:pickHtml'),
     restoreVersion: (input) => invoke('templates:restoreVersion', input),
   },
 };

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@tiptap/core": "3.31.3",
+    "@tiptap/extension-table": "3.31.3",
     "@tiptap/extension-text-align": "3.31.3",
     "@tiptap/pm": "3.31.3",
     "@tiptap/starter-kit": "3.31.3",
@@ -21,6 +22,7 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./tiptap": "./src/tiptap.ts"
+    "./tiptap": "./src/tiptap.ts",
+    "./import-html": "./src/import-html.ts"
   }
 }

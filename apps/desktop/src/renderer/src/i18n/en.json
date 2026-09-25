@@ -96,7 +96,13 @@
         "name": "Event invite",
         "description": "Invite people to an event and ask them to reply."
       }
-    }
+    },
+    "more": "More template options",
+    "importHtml": "Import an HTML email…",
+    "imported": "“{{name}}” imported. Check it over before sending.",
+    "importedPictures": "{{count}} picture from the file wasn't brought in. Add it again with Picture.",
+    "importedPictures_other": "{{count}} pictures from the file weren't brought in. Add them again with Picture.",
+    "importedTextOnly": "The layout couldn't be kept, so only the words were imported."
   },
   "errors": {
     "unexpected": "Something went wrong. Please try again.",
@@ -114,6 +120,7 @@
     "imageType": "Postloom can use PNG and JPEG pictures. Choose a .png or .jpg file.",
     "imageUnreadable": "That picture couldn't be opened. It may be damaged. Try another one.",
     "imageMissing": "A picture in this template is missing. Remove it and add it again.",
+    "htmlTooBig": "That file is too big to be an email (over 2 MB).",
     "notFound": "We couldn't find that. It may have been deleted.",
     "inUse": "This is still being used, so it can't be removed yet.",
     "databaseDamaged": "Postloom couldn't read its saved information.",
@@ -419,7 +426,7 @@
     "fromPlaceholder": "Choose a sender",
     "noSenders": "Add a sender in Senders & accounts to send tests.",
     "designTitle": "Need columns, a table or a newsletter layout?",
-    "designBody": "Design mode will let you arrange blocks, add tables and show parts only to some people. Your words stay as they are.",
+    "designBody": "Design mode lets you arrange blocks, add tables and show parts only to some people. Your words stay as they are.",
     "designSoon": "Design mode is coming soon",
     "historyTitle": "Version history",
     "historyHint": "Postloom keeps your last 50 saved versions.",
@@ -448,7 +455,64 @@
       "saveEdit": "Save picture",
       "inside": "The picture travels inside each email, so it shows even if you don't have a website."
     },
-    "subjectInsertDetail": "Insert detail in the subject"
+    "subjectInsertDetail": "Insert detail in the subject",
+    "modeLabel": "Editing mode",
+    "modeWrite": "Write",
+    "modeDesign": "Design",
+    "writeBlocked": "This template uses Design blocks (columns, tables, spacers, footers or show-only-if parts). Remove them to go back to Write mode.",
+    "designSwitch": "Switch to Design",
+    "designHelpTitle": "Design mode",
+    "designHelpBody": "Use “Add block” for columns, tables, spacers, a footer, and parts shown only to some people. On phones, columns stack one under the other.",
+    "addBlock": "Add block",
+    "blocks": {
+      "columns2": "Two columns",
+      "columns3": "Three columns",
+      "table": "Table",
+      "conditional": "Show only if…",
+      "spacer": "Space",
+      "footer": "Footer"
+    },
+    "removeColumns": "Remove columns",
+    "table": {
+      "addRow": "Add row",
+      "addColumn": "Add column",
+      "deleteRow": "Remove row",
+      "deleteColumn": "Remove column",
+      "headerRow": "Header row",
+      "striped": "Stripes",
+      "delete": "Remove table"
+    },
+    "editRule": "Edit rule",
+    "removeRule": "Show to everyone",
+    "rule": {
+      "shownIf": "Shown only if {{field}} {{condition}}",
+      "notEmpty": "has a value",
+      "isEmpty": "is empty",
+      "equals": "is exactly “{{value}}”",
+      "notEquals": "is not “{{value}}”",
+      "title": "Show this part only to some people",
+      "editTitle": "Change who sees this part",
+      "field": "Detail",
+      "fieldHint": "A column in your list, e.g. Discount.",
+      "op": "Show it when the detail…",
+      "opNotEmpty": "has a value",
+      "opIsEmpty": "is empty",
+      "opEquals": "is exactly",
+      "opNotEquals": "is not",
+      "value": "Value",
+      "valueHint": "Upper and lower case don't matter.",
+      "valueMissing": "Enter the value to compare with.",
+      "save": "Add part",
+      "saveEdit": "Save rule"
+    },
+    "examples": {
+      "title": "Try with example details",
+      "hint": "Type example details to see how one person's email will look, including the parts shown only to some people.",
+      "none": "This template doesn't use any details yet.",
+      "clear": "Clear example details",
+      "showing": "Showing the email one person with these details would get.",
+      "subject": "Subject: {{subject}}"
+    }
   },
   "checks": {
     "subjectMissing": "Add a subject so people know what the email is about.",

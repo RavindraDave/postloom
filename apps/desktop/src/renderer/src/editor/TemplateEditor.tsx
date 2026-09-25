@@ -24,14 +24,12 @@ import {
   lookFromBrand,
   MAX_IMAGE_WIDTH,
   MAX_LOGO_WIDTH,
+  renderSubject,
   subjectFields,
+  usesDesignBlocks,
   type WriteDocument,
 } from '@postloom/editor';
-import {
-  APP_ASSET_URL_PREFIX,
-  toEditorContent,
-  writeModeExtensions,
-} from '@postloom/editor/tiptap';
+import { APP_ASSET_URL_PREFIX, toEditorContent } from '@postloom/editor/tiptap';
 import {
   IconAlertTriangle,
   IconArrowLeft,
@@ -64,7 +62,11 @@ import {
   type PictureValue,
 } from './EditorDialogs';
 import { EditorToolbar } from './EditorToolbar';
+import { editorExtensions } from './ConditionView';
+import { DesignTools } from './DesignTools';
+import { insertBlock } from './insertBlock';
 import { InsertDetailMenu } from './InsertDetailMenu';
+import { RuleDialog, type RuleValue } from './RuleDialog';
 import { SubjectInput } from './SubjectInput';
 import classes from './TemplateEditor.module.css';
 import { VersionsDrawer } from './VersionsDrawer';
@@ -73,7 +75,16 @@ import { VersionsDrawer } from './VersionsDrawer';
 export const AUTOSAVE_DELAY_MS = 800;
 
 type Dialog =
-  'link' | 'button' | 'editButton' | 'detail' | 'editDetail' | 'picture' | 'editPicture' | null;
+  | 'link'
+  | 'button'
+  | 'editButton'
+  | 'detail'
+  | 'editDetail'
+  | 'picture'
+  | 'editPicture'
+  | 'rule'
+  | 'editRule'
+  | null;
 
 /** Write mode (design: DesignerWrite): a letter-like editor that saves as you type. */
 export function TemplateEditor({ template }: { template: TemplateDetail }) {
@@ -86,6 +97,8 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
   const [subject, setSubject] = useState(template.subject);
   const [document, setDocument] = useState<WriteDocument>(template.document);
   const [senderId, setSenderId] = useState(template.defaultSenderProfileId);
+  const [mode, setMode] = useState(template.editorMode);
+  const [writeBlocked, setWriteBlocked] = useState(false);
   const [invalid, setInvalid] = useState(false);
   const [extraFields, setExtraFields] = useState<string[]>([]);
   // Each change bumps `revision`; autosave catches `savedRevision` up to it.
@@ -99,7 +112,7 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
   // Until the person has clicked into the letter, new things go at the end.
   const bodyTouched = useRef(false);
   const editor = useEditor({
-    extensions: writeModeExtensions,
+    extensions: editorExtensions,
     content: toEditorContent(template.document),
     editorProps: {
       attributes: {
@@ -181,10 +194,20 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
     [sender?.brand, sender?.fromName],
   );
   const [previewDocument] = useDebouncedValue(document, 400);
+  const [exampleValues, setExampleValues] = useState<Record<string, string>>({});
+  const [debouncedExamples] = useDebouncedValue(exampleValues, 300);
+  const usingExamples = Object.values(exampleValues).some((value) => value.trim() !== '');
   const previewResult = useEmailPreview(previewDocument, look);
   const htmlBytes = previewResult.data
     ? new TextEncoder().encode(previewResult.data.html).length
     : undefined;
+  const modalPreview = useEmailPreview(
+    previewOpen ? previewDocument : undefined,
+    look,
+    Object.values(debouncedExamples).some((value) => value.trim() !== '')
+      ? debouncedExamples
+      : null,
+  );
   const pictureIds = useMemo(
     () => [...(look.logo ? [look.logo.assetId] : []), ...collectAssetIds(document)],
     [look, document],
@@ -223,11 +246,22 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
       .run();
   };
 
-  const selectedAttrs = (type: 'button' | 'field' | 'image') =>
+  const selectedAttrs = (type: 'button' | 'field' | 'image' | 'conditional') =>
     editor.isActive(type) ? (editor.getAttributes(type) as Record<string, unknown>) : undefined;
   const selectedButton = selectedAttrs('button');
   const selectedField = selectedAttrs('field');
   const selectedPicture = selectedAttrs('image');
+  const selectedRule = selectedAttrs('conditional');
+
+  const changeMode = (next: 'write' | 'design') => {
+    if (next === 'write' && usesDesignBlocks(latest.current.document)) {
+      setWriteBlocked(true);
+      return;
+    }
+    setWriteBlocked(false);
+    setMode(next);
+    save.mutate({ id: template.id, editorMode: next });
+  };
   const text = (value: unknown) => (typeof value === 'string' ? value : '');
 
   const choosePicture = () => {
@@ -283,6 +317,17 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
           </Text>
         </Group>
         <Group gap="sm" wrap="nowrap">
+          <SegmentedControl
+            aria-label={t('editor.modeLabel')}
+            value={mode}
+            onChange={(value) => {
+              changeMode(value);
+            }}
+            data={[
+              { value: 'write', label: t('editor.modeWrite') },
+              { value: 'design', label: t('editor.modeDesign') },
+            ]}
+          />
           <Button variant="default" leftSection={<IconEye size={18} />} onClick={preview.open}>
             {t('editor.preview')}
           </Button>
@@ -323,6 +368,19 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
         <Text size="sm" c="var(--pl-muted)" ta="right" mt={-8}>
           {t('editor.chooseSenderFirst')}
         </Text>
+      )}
+      {writeBlocked && (
+        <Alert
+          color="yellow"
+          icon={<IconAlertTriangle />}
+          role="status"
+          withCloseButton
+          onClose={() => {
+            setWriteBlocked(false);
+          }}
+        >
+          {t('editor.writeBlocked')}
+        </Alert>
       )}
       {sendTest.error && (
         <Alert color="red" icon={<IconAlertTriangle />} role="alert">
@@ -382,6 +440,17 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
               />
             }
           />
+          {mode === 'design' && (
+            <DesignTools
+              editor={editor}
+              onAddRule={() => {
+                setDialog('rule');
+              }}
+              onEditRule={() => {
+                setDialog('editRule');
+              }}
+            />
+          )}
           {/* Not a themed Paper: the letter always looks like the (light) email. */}
           <div
             className={classes.paper}
@@ -430,14 +499,23 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
           </Paper>
           <Paper p="md" radius="lg" bg="var(--pl-accent-soft)" component="section">
             <Text fw={700} size="sm">
-              {t('editor.designTitle')}
+              {mode === 'design' ? t('editor.designHelpTitle') : t('editor.designTitle')}
             </Text>
             <Text size="sm" mt={4}>
-              {t('editor.designBody')}
+              {mode === 'design' ? t('editor.designHelpBody') : t('editor.designBody')}
             </Text>
-            <Text size="sm" mt="xs" fw={600} c="var(--pl-accent-ink)">
-              {t('editor.designSoon')}
-            </Text>
+            {mode === 'write' && (
+              <Button
+                mt="sm"
+                size="xs"
+                variant="light"
+                onClick={() => {
+                  changeMode('design');
+                }}
+              >
+                {t('editor.designSwitch')}
+              </Button>
+            )}
           </Paper>
         </Stack>
       </div>
@@ -465,11 +543,7 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
           if (dialog === 'editButton') {
             editor.chain().focus().updateAttributes('button', value).run();
           } else {
-            editor
-              .chain()
-              .focus(bodyTouched.current ? null : 'end')
-              .insertContent({ type: 'button', attrs: value })
-              .run();
+            insertBlock(editor, { type: 'button', attrs: value }, !bodyTouched.current);
           }
           closeDialog();
         }}
@@ -489,6 +563,33 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
             setExtraFields((current) => [...current, value.name]);
             if (detailTarget === 'subject') subjectInsert.current?.(value.name);
             else insertField(value.name, value.fallback);
+          }
+          closeDialog();
+        }}
+      />
+      <RuleDialog
+        opened={dialog === 'rule' || dialog === 'editRule'}
+        onClose={closeDialog}
+        fields={fields}
+        initial={
+          dialog === 'editRule' && selectedRule
+            ? ({
+                field: text(selectedRule['field']),
+                op: (text(selectedRule['op']) || 'notEmpty') as RuleValue['op'],
+                value: text(selectedRule['value']),
+              } satisfies RuleValue)
+            : undefined
+        }
+        onSave={(rule) => {
+          if (dialog === 'editRule') {
+            editor.chain().focus().updateAttributes('conditional', rule).run();
+          } else {
+            setExtraFields((current) => [...current, rule.field]);
+            insertBlock(
+              editor,
+              { type: 'conditional', attrs: rule, content: [{ type: 'paragraph' }] },
+              !bodyTouched.current,
+            );
           }
           closeDialog();
         }}
@@ -515,11 +616,11 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
           if (dialog === 'editPicture') {
             editor.chain().focus().updateAttributes('image', attrs).run();
           } else if (newPicture) {
-            editor
-              .chain()
-              .focus(bodyTouched.current ? null : 'end')
-              .insertContent({ type: 'image', attrs: { assetId: newPicture.assetId, ...attrs } })
-              .run();
+            insertBlock(
+              editor,
+              { type: 'image', attrs: { assetId: newPicture.assetId, ...attrs } },
+              !bodyTouched.current,
+            );
             setNewPicture(null);
           }
           closeDialog();
@@ -532,30 +633,75 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
         title={t('editor.previewTitle')}
         size="auto"
       >
-        <Stack gap="sm">
-          <Group justify="space-between">
-            <Text size="sm" c="var(--pl-muted)">
-              {t('editor.previewHint')}
+        <div className={classes.previewLayout}>
+          <Stack gap="sm" className={classes.exampleValues}>
+            <Text fw={700} size="sm">
+              {t('editor.examples.title')}
             </Text>
-            <SegmentedControl
-              value={device}
-              onChange={(value) => {
-                setDevice(value);
-              }}
-              data={[
-                { value: 'desktop', label: t('templates.desktop') },
-                { value: 'phone', label: t('templates.phone') },
-              ]}
-            />
-          </Group>
-          {previewResult.data && (
-            <EmailPreview
-              html={previewResult.data.html}
-              device={device}
-              title={t('templates.previewFrameTitle')}
-            />
-          )}
-        </Stack>
+            <Text size="xs" c="var(--pl-muted)">
+              {t('editor.examples.hint')}
+            </Text>
+            {fields.length === 0 && (
+              <Text size="sm" c="var(--pl-muted)">
+                {t('editor.examples.none')}
+              </Text>
+            )}
+            {fields.map((field) => (
+              <TextInput
+                key={field}
+                size="sm"
+                label={field}
+                value={exampleValues[field] ?? ''}
+                onChange={(event) => {
+                  const value = event.currentTarget.value;
+                  setExampleValues((current) => ({ ...current, [field]: value }));
+                }}
+              />
+            ))}
+            {usingExamples && (
+              <Button
+                variant="subtle"
+                size="xs"
+                onClick={() => {
+                  setExampleValues({});
+                }}
+              >
+                {t('editor.examples.clear')}
+              </Button>
+            )}
+          </Stack>
+          <Stack gap="sm">
+            <Group justify="space-between">
+              <Text size="sm" c="var(--pl-muted)">
+                {usingExamples ? t('editor.examples.showing') : t('editor.previewHint')}
+              </Text>
+              <SegmentedControl
+                value={device}
+                onChange={(value) => {
+                  setDevice(value);
+                }}
+                data={[
+                  { value: 'desktop', label: t('templates.desktop') },
+                  { value: 'phone', label: t('templates.phone') },
+                ]}
+              />
+            </Group>
+            {modalPreview.data && (
+              <>
+                <Text size="sm" fw={600} data-testid="preview-subject">
+                  {t('editor.examples.subject', {
+                    subject: renderSubject(subject, usingExamples ? exampleValues : undefined),
+                  })}
+                </Text>
+                <EmailPreview
+                  html={modalPreview.data.html}
+                  device={device}
+                  title={t('templates.previewFrameTitle')}
+                />
+              </>
+            )}
+          </Stack>
+        </div>
       </Modal>
 
       <VersionsDrawer

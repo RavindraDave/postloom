@@ -1,8 +1,10 @@
 import {
+  ActionIcon,
   Alert,
   Button,
   Group,
   Loader,
+  Menu,
   Modal,
   Paper,
   Radio,
@@ -16,7 +18,15 @@ import {
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { STARTER_GALLERY } from '@postloom/editor';
-import { IconAlertTriangle, IconPencil, IconPlus, IconTrash } from '@tabler/icons-react';
+import { importHtml } from '@postloom/editor/import-html';
+import {
+  IconAlertTriangle,
+  IconDots,
+  IconFileImport,
+  IconPencil,
+  IconPlus,
+  IconTrash,
+} from '@tabler/icons-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -25,6 +35,7 @@ import {
   useCreateTemplate,
   useDeleteTemplate,
   useEmailPreview,
+  usePickHtml,
   useRestoreTemplate,
   useTemplate,
   useTemplates,
@@ -52,14 +63,75 @@ export function TemplatesPage() {
       {t('templates.new')}
     </Button>
   );
+  const pickHtml = usePickHtml();
+  const createTemplate = useCreateTemplate();
+  const importError = pickHtml.error ?? createTemplate.error;
+
+  const importFromHtml = async () => {
+    try {
+      const file = await pickHtml.mutateAsync();
+      if (!file) return;
+      const result = importHtml(file.html);
+      const name = (result.title ?? file.name.replace(/\.html?$/i, '')).slice(0, 120) || file.name;
+      const template = await createTemplate.mutateAsync({
+        name,
+        subject: (result.title ?? name).slice(0, 200),
+        document: result.document,
+        editorMode: result.needsDesign ? 'design' : 'write',
+      });
+      const notes = [
+        t('templates.imported', { name }),
+        ...(result.picturesLeftOut > 0
+          ? [t('templates.importedPictures', { count: result.picturesLeftOut })]
+          : []),
+        ...(result.textOnly ? [t('templates.importedTextOnly')] : []),
+      ];
+      notifications.show({ message: notes.join(' '), autoClose: 10_000 });
+      void navigate(`/templates/${template.id}`);
+    } catch {
+      // Shown below from the mutation state.
+    }
+  };
+
+  const headerActions = (
+    <Group gap="xs" wrap="nowrap">
+      <Menu position="bottom-end">
+        <Menu.Target>
+          <ActionIcon
+            variant="default"
+            size="lg"
+            aria-label={t('templates.more')}
+            loading={pickHtml.isPending || createTemplate.isPending}
+          >
+            <IconDots size={18} />
+          </ActionIcon>
+        </Menu.Target>
+        <Menu.Dropdown>
+          <Menu.Item
+            leftSection={<IconFileImport size={16} />}
+            onClick={() => void importFromHtml()}
+          >
+            {t('templates.importHtml')}
+          </Menu.Item>
+        </Menu.Dropdown>
+      </Menu>
+      {newButton}
+    </Group>
+  );
 
   return (
     <Stack gap="lg">
       <PageHeader
         title={t('templates.title')}
         description={t('templates.intro')}
-        action={newButton}
+        action={headerActions}
       />
+
+      {importError && (
+        <Alert color="red" icon={<IconAlertTriangle />} role="alert">
+          {t(errorKey(importError))}
+        </Alert>
+      )}
 
       {templates.isPending && (
         <Stack gap="sm" aria-busy="true" aria-label={t('common.loading')}>

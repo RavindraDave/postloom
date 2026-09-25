@@ -1,0 +1,71 @@
+// @vitest-environment jsdom
+import { describe, expect, it } from 'vitest';
+import { importHtml } from './import-html';
+
+describe('importing an HTML email', () => {
+  it('keeps text, headings, lists and links, and reads the title', () => {
+    const result = importHtml(`
+      <html><head><title>Spring news</title><style>p{color:red}</style></head>
+      <body>
+        <h1>Hello</h1>
+        <p>Read <a href="https://shop.example.org">our shop</a>.</p>
+        <ul><li>One</li><li>Two</li></ul>
+      </body></html>`);
+    expect(result.title).toBe('Spring news');
+    expect(result.textOnly).toBe(false);
+    expect(result.document.content.map((block) => block.type)).toEqual([
+      'heading',
+      'paragraph',
+      'bulletList',
+    ]);
+    expect(JSON.stringify(result.document)).toContain('https://shop.example.org');
+    expect(JSON.stringify(result.document)).not.toContain('color:red');
+  });
+
+  it('never keeps scripts, event handlers, forms or dangerous links', () => {
+    const result = importHtml(`
+      <p onclick="steal()">Hi <a href="javascript:alert(1)">click</a></p>
+      <script>alert(1)</script>
+      <form action="https://evil.example"><input name="password"></form>
+      <iframe src="https://evil.example"></iframe>`);
+    const json = JSON.stringify(result.document);
+    expect(json).not.toMatch(/steal|alert|evil|password/);
+    expect(json).toContain('Hi');
+  });
+
+  it('counts web pictures it leaves out', () => {
+    const result = importHtml('<p>Logo:</p><img src="https://tracker.example/pixel.gif" alt="">');
+    expect(result.picturesLeftOut).toBe(1);
+    expect(JSON.stringify(result.document)).not.toContain('tracker');
+  });
+
+  it('unwraps layout tables but keeps real data tables', () => {
+    const result = importHtml(`
+      <table width="600"><tr><td>
+        <h2>Invoice</h2>
+        <table><tr><th>Item</th><th>Price</th></tr><tr><td>Tea</td><td>2</td></tr></table>
+        <p>Thanks!</p>
+      </td></tr></table>`);
+    expect(result.document.content.map((block) => block.type)).toEqual([
+      'heading',
+      'table',
+      'paragraph',
+    ]);
+    expect(result.needsDesign).toBe(true);
+  });
+
+  it('keeps personal details that use Postloom markers, but typed braces stay text', () => {
+    const result = importHtml(
+      '<p>Dear <span data-field="First Name">First Name</span>, {{ row.secret }}</p>',
+    );
+    const paragraph = result.document.content[0];
+    expect(paragraph).toMatchObject({
+      type: 'paragraph',
+      content: [
+        { type: 'text', text: 'Dear ' },
+        { type: 'field', attrs: { name: 'First Name' } },
+        { type: 'text', text: ', {{ row.secret }}' },
+      ],
+    });
+  });
+});

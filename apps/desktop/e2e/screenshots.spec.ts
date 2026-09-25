@@ -130,6 +130,45 @@ test('capture setup and senders screens', async ({ userDataDir }) => {
   await page.waitForTimeout(600);
   await page.screenshot({ path: `${out}/editor-preview-light.png` });
 
+  // Design mode with columns and a show-only-if part, then example details.
+  await page.keyboard.press('Escape');
+  await page
+    .getByRole('navigation', { name: 'Main' })
+    .getByRole('link', { name: 'Templates' })
+    .click();
+  await page.getByRole('button', { name: 'New template' }).first().click();
+  await page.getByRole('radio', { name: /Newsletter/ }).check();
+  await page.getByRole('button', { name: 'Make template' }).click();
+  await page.getByRole('button', { name: 'Switch to Design' }).click();
+  const letter = page.getByRole('textbox', { name: 'Email text' });
+  await letter.locator(':scope > p').first().click();
+  await page.getByRole('button', { name: 'Add block' }).click();
+  await page.getByRole('menuitem', { name: 'Two columns' }).click();
+  await letter.locator('.pl-column').nth(0).click();
+  await page.keyboard.type('Open Monday to Saturday, 9 to 6');
+  await letter.locator('.pl-column').nth(1).click();
+  await page.keyboard.type('12 High Street, Pune');
+  await letter.locator(':scope > p').last().click();
+  await page.getByRole('button', { name: 'Add block' }).click();
+  await page.getByRole('menuitem', { name: 'Show only if…' }).click();
+  await page.getByRole('combobox', { name: /^Detail/ }).fill('Discount');
+  await page.getByRole('button', { name: 'Add part' }).click();
+  await letter.locator('[data-conditional] p').click();
+  await page.keyboard.type('Your discount this month: ');
+  await page.getByTestId('save-status').filter({ hasText: 'Saved' }).waitFor();
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `${out}/design-mode-light.png` });
+
+  await page.getByRole('button', { name: 'Preview' }).click();
+  await page.getByLabel('First Name').fill('Rahul');
+  await page.getByLabel('Discount').fill('10%');
+  await page
+    .frameLocator('iframe[title="Email preview"]')
+    .getByText('Your discount this month:')
+    .waitFor();
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: `${out}/preview-examples-light.png` });
+
   await app.close();
   await mail.close();
 });

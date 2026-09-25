@@ -52,6 +52,7 @@ test('the preload exposes only the typed Postloom API', async ({ page }) => {
       'delete',
       'get',
       'list',
+      'pickHtml',
       'renderPreview',
       'restore',
       'restoreVersion',
