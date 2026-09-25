@@ -6,6 +6,12 @@ async function createTemplate(page: Page, name: string) {
   await page.getByRole('button', { name: 'New template' }).first().click();
   await page.getByLabel('Name').fill(name);
   await page.getByRole('button', { name: 'Make template' }).click();
+  // A new template opens in the editor; go back to the list.
+  await expect(page.getByRole('textbox', { name: 'Template name' })).toHaveValue(name);
+  await page
+    .getByRole('navigation', { name: 'Main' })
+    .getByRole('link', { name: 'Templates' })
+    .click();
   await expect(page.getByRole('button', { name: new RegExp(name) })).toBeVisible();
 }
 

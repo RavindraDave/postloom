@@ -19,6 +19,8 @@ export interface SmtpAccountConfig {
 export interface OutgoingEmail {
   from: { name?: string | undefined; address: string };
   to: string[];
+  /** Where replies go, if not the From address. */
+  replyTo?: string | undefined;
   subject: string;
   html: string;
   text: string;
@@ -76,6 +78,7 @@ export async function sendEmail(
         ? { name: email.from.name, address: email.from.address }
         : email.from.address,
       to: email.to,
+      ...(email.replyTo ? { replyTo: email.replyTo } : {}),
       subject: email.subject,
       html: email.html,
       text: email.text,
@@ -94,7 +97,13 @@ export async function sendEmail(
 
 /** Values that end up in email headers must never contain line breaks (PLAN.md §10.4). */
 export function assertNoHeaderInjection(email: OutgoingEmail): void {
-  const headerValues = [email.subject, email.from.name ?? '', email.from.address, ...email.to];
+  const headerValues = [
+    email.subject,
+    email.from.name ?? '',
+    email.from.address,
+    email.replyTo ?? '',
+    ...email.to,
+  ];
   if (headerValues.some((value) => HEADER_BREAK.test(value))) {
     throw new AppError({
       code: 'VALIDATION_FAILED',

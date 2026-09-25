@@ -229,3 +229,65 @@ describe('preview mode', () => {
     expect(mjml).not.toContain('{{');
   });
 });
+
+describe('alignment, numbered lists and dividers', () => {
+  it('renders them as email-safe MJML', async () => {
+    const doc = writeDocumentSchema.parse({
+      type: 'doc',
+      content: [
+        {
+          type: 'heading',
+          attrs: { level: 1, textAlign: 'center' },
+          content: [{ type: 'text', text: 'Hello' }],
+        },
+        {
+          type: 'paragraph',
+          attrs: { textAlign: 'right' },
+          content: [{ type: 'text', text: 'Right' }],
+        },
+        {
+          type: 'orderedList',
+          attrs: { start: 2 },
+          content: [
+            {
+              type: 'listItem',
+              content: [
+                { type: 'paragraph', content: [{ type: 'field', attrs: { name: 'Item' } }] },
+                {
+                  type: 'bulletList',
+                  content: [
+                    {
+                      type: 'listItem',
+                      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Sub' }] }],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        { type: 'horizontalRule' },
+      ],
+    });
+    const mjml = writeDocumentToMjml(doc);
+    expect(mjml).toContain('align="center"');
+    expect(mjml).toContain('align="right"');
+    expect(mjml).toContain('<ol start="2"');
+    expect(mjml).toContain('<ul');
+    expect(mjml).toContain('<mj-divider');
+    expect(collectFields(doc)).toEqual(['Item']);
+    const { warnings } = await compileMjml(mjml);
+    expect(warnings).toEqual([]);
+  });
+
+  it('refuses lists nested too deeply', () => {
+    let list: unknown = { type: 'paragraph', content: [{ type: 'text', text: 'x' }] };
+    for (let depth = 0; depth < 6; depth++) {
+      list = {
+        type: 'bulletList',
+        content: [{ type: 'listItem', content: [{ type: 'paragraph' }, list] }],
+      };
+    }
+    expect(writeDocumentSchema.safeParse({ type: 'doc', content: [list] }).success).toBe(false);
+  });
+});

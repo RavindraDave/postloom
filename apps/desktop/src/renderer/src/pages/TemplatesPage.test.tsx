@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { Route, Routes } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import { mockApi, ok, renderWithProviders, sampleTemplate } from '../test/render';
 import { TemplatesPage } from './TemplatesPage';
@@ -32,24 +33,34 @@ describe('TemplatesPage', () => {
     });
   });
 
-  it('asks for a name before making a template', async () => {
+  it('starts a new template from the gallery and opens it for editing', async () => {
     const api = mockApi();
-    renderWithProviders(<TemplatesPage />);
+    renderWithProviders(
+      <Routes>
+        <Route path="/templates" element={<TemplatesPage />} />
+        <Route path="/templates/:id" element={<p>Editing {'template'}</p>} />
+      </Routes>,
+      { route: '/templates' },
+    );
 
     await userEvent.click((await screen.findAllByRole('button', { name: 'New template' }))[0]!);
-    await userEvent.click(await screen.findByRole('button', { name: 'Make template' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Make a new template' });
+    expect(within(dialog).getAllByRole('radio')).toHaveLength(8);
+    expect(within(dialog).getByRole('radio', { name: /Plain letter/ })).toBeChecked();
 
-    expect(await screen.findByText('Give your template a name first.')).toBeInTheDocument();
-    expect(api.templates.create).not.toHaveBeenCalled();
-
-    await userEvent.type(screen.getByLabelText(/Name/), 'Thank you note');
-    await userEvent.click(screen.getByRole('button', { name: 'Make template' }));
+    await userEvent.click(within(dialog).getByRole('radio', { name: /Payment reminder/ }));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Make template' }));
 
     await waitFor(() => {
       expect(api.templates.create).toHaveBeenCalledWith(
-        expect.objectContaining({ name: 'Thank you note', subject: 'A note from us' }),
+        expect.objectContaining({
+          name: 'Payment reminder',
+          subject: 'A friendly reminder about your invoice',
+          category: 'Money',
+        }),
       );
     });
+    expect(await screen.findByText('Editing template')).toBeInTheDocument();
   });
 
   it('moves a template to the bin with an undo', async () => {

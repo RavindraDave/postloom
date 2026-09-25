@@ -9,6 +9,7 @@ import { PlaceholderPage } from './pages/PlaceholderPage';
 import { SendersPage } from './pages/SendersPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { SetupPage } from './pages/SetupPage';
+import { TemplateEditorPage } from './pages/TemplateEditorPage';
 import { TemplatesPage } from './pages/TemplatesPage';
 import { PreferencesEffects } from './PreferencesEffects';
 import { cssVariablesResolver, theme } from './theme/theme';
@@ -50,6 +51,7 @@ export function AppRoutes() {
         <Route index element={<HomePage />} />
         <Route path="send" element={<PlaceholderPage titleKey="nav.send" />} />
         <Route path="templates" element={<TemplatesPage />} />
+        <Route path="templates/:id" element={<TemplateEditorPage />} />
         <Route path="senders" element={<SendersPage />} />
         <Route path="history" element={<PlaceholderPage titleKey="nav.history" />} />
         <Route path="settings" element={<SettingsPage />} />

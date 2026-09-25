@@ -5,6 +5,7 @@ import {
   Loader,
   Modal,
   Paper,
+  Radio,
   SegmentedControl,
   Skeleton,
   Stack,
@@ -14,10 +15,11 @@ import {
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
-import { STARTER_LETTER } from '@postloom/editor';
-import { IconAlertTriangle, IconPlus, IconTrash } from '@tabler/icons-react';
+import { STARTER_GALLERY } from '@postloom/editor';
+import { IconAlertTriangle, IconPencil, IconPlus, IconTrash } from '@tabler/icons-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router';
 import { errorKey } from '../api/ipc';
 import {
   useCreateTemplate,
@@ -38,6 +40,7 @@ export function TemplatesPage() {
   const templates = useTemplates();
   const [chosenId, setChosenId] = useState<string | null>(null);
   const [creating, { open: openCreate, close: closeCreate }] = useDisclosure(false);
+  const navigate = useNavigate();
 
   // Show the chosen template, or the most recent one.
   const selectedId = templates.data?.some((tpl) => tpl.id === chosenId)
@@ -107,8 +110,8 @@ export function TemplatesPage() {
         opened={creating}
         onClose={closeCreate}
         onCreated={(id) => {
-          setChosenId(id);
           closeCreate();
+          void navigate(`/templates/${id}`);
         }}
       />
     </Stack>
@@ -121,6 +124,7 @@ function TemplateDetails({ id }: { id: string }) {
   const preview = useEmailPreview(template.data?.document);
   const [device, setDevice] = useState<PreviewDevice>('desktop');
   const remove = useDeleteTemplate();
+  const navigate = useNavigate();
   const restore = useRestoreTemplate();
 
   if (template.isPending) return <Loader aria-label={t('common.loading')} />;
@@ -176,15 +180,23 @@ function TemplateDetails({ id }: { id: string }) {
               {subject}
             </Text>
           </Stack>
-          <Button
-            variant="subtle"
-            color="red"
-            leftSection={<IconTrash size={18} />}
-            onClick={moveToBin}
-            loading={remove.isPending}
-          >
-            {t('templates.delete')}
-          </Button>
+          <Group gap="sm" wrap="nowrap">
+            <Button
+              variant="subtle"
+              color="red"
+              leftSection={<IconTrash size={18} />}
+              onClick={moveToBin}
+              loading={remove.isPending}
+            >
+              {t('templates.delete')}
+            </Button>
+            <Button
+              leftSection={<IconPencil size={18} />}
+              onClick={() => void navigate(`/templates/${id}`)}
+            >
+              {t('templates.edit')}
+            </Button>
+          </Group>
         </Group>
 
         {fields.length > 0 && (
@@ -234,20 +246,24 @@ function NewTemplateModal({
 }) {
   const { t } = useTranslation();
   const create = useCreateTemplate();
+  const [starterId, setStarterId] = useState(STARTER_GALLERY[0]?.id ?? 'plainLetter');
   const [name, setName] = useState('');
-  const [touched, setTouched] = useState(false);
-  const missing = name.trim().length === 0;
+  const starter = STARTER_GALLERY.find((item) => item.id === starterId) ?? STARTER_GALLERY[0];
+  const starterName = starter ? t(`templates.starters.${starter.id}.name`) : '';
 
   const submit = (event: { preventDefault: () => void }) => {
     event.preventDefault();
-    setTouched(true);
-    if (missing) return;
+    if (!starter) return;
     create.mutate(
-      { name: name.trim(), subject: t('templates.starterSubject'), document: STARTER_LETTER },
+      {
+        name: name.trim() || starterName,
+        subject: starter.subject,
+        category: starter.category,
+        document: starter.document,
+      },
       {
         onSuccess: (template) => {
           setName('');
-          setTouched(false);
           onCreated(template.id);
         },
       },
@@ -255,22 +271,48 @@ function NewTemplateModal({
   };
 
   return (
-    <Modal opened={opened} onClose={onClose} title={t('templates.newTitle')} centered radius="lg">
+    <Modal
+      opened={opened}
+      onClose={onClose}
+      title={t('templates.newTitle')}
+      centered
+      radius="lg"
+      size="xl"
+    >
       <form onSubmit={submit} noValidate>
         <Stack>
+          <Radio.Group
+            value={starterId}
+            onChange={setStarterId}
+            label={t('templates.galleryLabel')}
+            description={t('templates.galleryHint')}
+          >
+            <div className={classes.gallery}>
+              {STARTER_GALLERY.map((item) => (
+                <Radio.Card
+                  key={item.id}
+                  value={item.id}
+                  radius="lg"
+                  className={classes.starter}
+                  data-selected={item.id === starterId || undefined}
+                >
+                  <Text fw={650}>{t(`templates.starters.${item.id}.name`)}</Text>
+                  <Text size="sm" c="var(--pl-muted)">
+                    {t(`templates.starters.${item.id}.description`)}
+                  </Text>
+                </Radio.Card>
+              ))}
+            </div>
+          </Radio.Group>
           <TextInput
             label={t('templates.nameLabel')}
             description={t('templates.nameHint')}
+            placeholder={starterName}
             value={name}
+            maxLength={120}
             onChange={(event) => {
               setName(event.currentTarget.value);
             }}
-            onBlur={() => {
-              setTouched(true);
-            }}
-            error={touched && missing ? t('templates.nameMissing') : undefined}
-            data-autofocus
-            required
           />
           {create.isError && (
             <Alert color="red" role="alert">

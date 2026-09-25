@@ -7,6 +7,7 @@ import type {
   UpdateSenderInput,
   Preferences,
   SaveTemplateInput,
+  SendTemplateTestInput,
   TemplateDetail,
 } from '@postloom/contracts';
 import { writeDocumentToMjml, type WriteDocument } from '@postloom/editor';
@@ -17,6 +18,7 @@ export const queryKeys = {
   preferences: ['preferences'] as const,
   templates: ['templates'] as const,
   template: (id: string) => ['templates', id] as const,
+  versions: (id: string) => ['templates', id, 'versions'] as const,
   preview: (document: WriteDocument | undefined) => ['preview', document] as const,
   security: ['security'] as const,
   accounts: ['accounts'] as const,
@@ -69,9 +71,11 @@ export function useSaveTemplate() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (input: SaveTemplateInput) => unwrap(window.postloom.templates.save(input)),
-    onSuccess: (template: TemplateDetail) => {
+    onSuccess: (template: TemplateDetail, input) => {
       client.setQueryData(queryKeys.template(template.id), template);
       void client.invalidateQueries({ queryKey: queryKeys.templates, exact: true });
+      if (input.snapshot)
+        void client.invalidateQueries({ queryKey: queryKeys.versions(template.id) });
     },
   });
 }
@@ -89,6 +93,33 @@ export function useRestoreTemplate() {
   return useMutation({
     mutationFn: (id: string) => unwrap(window.postloom.templates.restore({ id })),
     onSuccess: () => client.invalidateQueries({ queryKey: queryKeys.templates, exact: true }),
+  });
+}
+
+export function useTemplateVersions(id: string, enabled: boolean) {
+  return useQuery({
+    queryKey: queryKeys.versions(id),
+    queryFn: () => unwrap(window.postloom.templates.versions({ id })),
+    enabled,
+  });
+}
+
+export function useRestoreVersion() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: string; versionNo: number }) =>
+      unwrap(window.postloom.templates.restoreVersion(input)),
+    onSuccess: (template: TemplateDetail) => {
+      client.setQueryData(queryKeys.template(template.id), template);
+      void client.invalidateQueries({ queryKey: queryKeys.versions(template.id) });
+      void client.invalidateQueries({ queryKey: queryKeys.templates, exact: true });
+    },
+  });
+}
+
+export function useSendTemplateTest() {
+  return useMutation({
+    mutationFn: (input: SendTemplateTestInput) => unwrap(window.postloom.templates.sendTest(input)),
   });
 }
 

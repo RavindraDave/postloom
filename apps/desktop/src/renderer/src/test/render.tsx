@@ -106,6 +106,7 @@ export function mockApi(overrides: DeepPartial<PostloomApi> = {}): PostloomApi {
       restore: vi.fn(() => ok({ ok: true as const })),
       versions: vi.fn(() => ok([])),
       restoreVersion: vi.fn(() => ok(sampleTemplate)),
+      sendTest: vi.fn(() => ok({ sentTo: 'asha@example.com' })),
       ...overrides.templates,
     },
   };
@@ -116,7 +117,7 @@ export function mockApi(overrides: DeepPartial<PostloomApi> = {}): PostloomApi {
 export function renderWithProviders(ui: ReactElement, { route = '/' } = {}) {
   return render(
     <QueryClientProvider client={createQueryClient()}>
-      <MantineProvider theme={theme} cssVariablesResolver={cssVariablesResolver}>
+      <MantineProvider theme={theme} cssVariablesResolver={cssVariablesResolver} env="test">
         <Notifications />
         <MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>
       </MantineProvider>

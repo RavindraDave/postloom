@@ -47,10 +47,8 @@
     "new": "New template",
     "newTitle": "Make a new template",
     "nameLabel": "Name",
-    "nameHint": "Something you'll recognise, like “Payment reminder”.",
-    "nameMissing": "Give your template a name first.",
+    "nameHint": "Something you'll recognise, like “Payment reminder”. Leave empty to use the starter's name.",
     "create": "Make template",
-    "starterSubject": "A note from us",
     "listLabel": "Your templates",
     "emptyTitle": "No templates yet",
     "emptyBody": "A template is an email you can reuse. Make one and Postloom fills in each person's details for you.",
@@ -61,7 +59,44 @@
     "previewTitle": "Preview",
     "desktop": "Computer",
     "phone": "Phone",
-    "previewFrameTitle": "Email preview"
+    "previewFrameTitle": "Email preview",
+    "edit": "Edit",
+    "galleryLabel": "Start from",
+    "galleryHint": "Pick a starting point. You'll change the words to your own next.",
+    "starters": {
+      "plainLetter": {
+        "name": "Plain letter",
+        "description": "A simple personal letter. Start here if you are not sure."
+      },
+      "paymentReminder": {
+        "name": "Payment reminder",
+        "description": "A friendly nudge about an invoice that is due."
+      },
+      "invoice": {
+        "name": "Invoice",
+        "description": "Send an invoice with the amount and due date."
+      },
+      "thankYou": {
+        "name": "Thank you",
+        "description": "Say thank you after a purchase, visit or favour."
+      },
+      "welcome": {
+        "name": "Welcome",
+        "description": "Welcome a new customer, member or colleague."
+      },
+      "announcement": {
+        "name": "Announcement",
+        "description": "Share news: a new service, new hours or a change."
+      },
+      "newsletter": {
+        "name": "Newsletter",
+        "description": "A short update with a few stories."
+      },
+      "eventInvite": {
+        "name": "Event invite",
+        "description": "Invite people to an event and ask them to reply."
+      }
+    }
   },
   "errors": {
     "unexpected": "Something went wrong. Please try again.",
@@ -276,5 +311,114 @@
     "doneTitle": "You're all set",
     "doneBody": "{{account}} is connected, and your emails will come from {{sender}}.",
     "doneAction": "Go to Home"
+  },
+  "editor": {
+    "back": "Templates",
+    "nameLabel": "Template name",
+    "status": {
+      "saved": "Saved",
+      "saving": "Saving…",
+      "unsaved": "Unsaved changes",
+      "error": "Couldn't save. Retrying when you make a change.",
+      "invalid": "Something in this letter can't be saved. Undo your last change."
+    },
+    "retry": "Try again",
+    "preview": "Preview",
+    "previewTitle": "How it will look",
+    "previewHint": "Personal details show as [First Name]. They're filled in for each person when you send.",
+    "sendTest": "Send me a test",
+    "testSent": "Test sent to {{address}}. Check your inbox.",
+    "chooseSenderFirst": "Choose who it's from first.",
+    "more": "More",
+    "history": "Version history",
+    "subjectLabel": "Subject",
+    "subjectHint": "{{count}} of about {{limit}} characters that most inboxes show.",
+    "bodyLabel": "Email text",
+    "toolbarLabel": "Formatting",
+    "styles": {
+      "label": "Text style",
+      "paragraph": "Normal text",
+      "h1": "Big heading",
+      "h2": "Heading",
+      "h3": "Small heading"
+    },
+    "bold": "Bold",
+    "italic": "Italic",
+    "underline": "Underline",
+    "link": "Link",
+    "removeLink": "Remove link",
+    "linkNeedsText": "Select some words first",
+    "bulletList": "Bulleted list",
+    "orderedList": "Numbered list",
+    "alignLeft": "Align left",
+    "alignCenter": "Centre",
+    "alignRight": "Align right",
+    "divider": "Divider line",
+    "button": "Button",
+    "undo": "Undo",
+    "redo": "Redo",
+    "insertDetail": "Insert detail",
+    "detailsFromList": "Details from your list",
+    "detailsHint": "Details are the columns in your spreadsheet. You'll match them when you send.",
+    "noDetailsYet": "No details yet.",
+    "newDetail": "New detail…",
+    "editDetail": "Edit detail",
+    "editButton": "Edit button",
+    "linkModal": {
+      "title": "Add a link",
+      "label": "Web or email address",
+      "hint": "For example https://yourshop.com or mailto:you@example.com",
+      "invalid": "Use a full address starting with https:// or mailto:",
+      "save": "Add link"
+    },
+    "buttonModal": {
+      "title": "Add a button",
+      "editTitle": "Edit button",
+      "label": "Button text",
+      "labelMissing": "Enter the words on the button.",
+      "href": "Where it goes",
+      "save": "Add button",
+      "saveEdit": "Save button"
+    },
+    "detailModal": {
+      "title": "Add a detail",
+      "editTitle": "Edit detail",
+      "name": "Column name in your list",
+      "nameHint": "Exactly as it's written in your spreadsheet, e.g. First Name.",
+      "nameInvalid": "Use letters, numbers and spaces (no quotes, braces, % or < >).",
+      "fallback": "If it's empty, show",
+      "fallbackHint": "Optional, e.g. “there” so it reads “Dear there”.",
+      "save": "Add detail",
+      "saveEdit": "Save detail"
+    },
+    "checklist": "Checklist",
+    "allGood": "Everything looks good",
+    "mustFix": "Must fix",
+    "worthALook": "Worth a look",
+    "from": "From",
+    "fromHint": "Who this template usually comes from. You can change it when you send.",
+    "fromPlaceholder": "Choose a sender",
+    "noSenders": "Add a sender in Senders & accounts to send tests.",
+    "designTitle": "Need columns, a table or a newsletter layout?",
+    "designBody": "Design mode will let you arrange blocks, add tables and show parts only to some people. Your words stay as they are.",
+    "designSoon": "Design mode is coming soon",
+    "historyTitle": "Version history",
+    "historyHint": "Postloom keeps your last 50 saved versions.",
+    "keepVersion": "Keep a copy of this version",
+    "versionKept": "Version kept",
+    "noVersions": "No saved versions yet.",
+    "version": "Version {{number}}",
+    "restore": "Restore",
+    "restored": "Version {{number}} restored",
+    "loadFailed": "This template couldn't be opened."
+  },
+  "checks": {
+    "subjectMissing": "Add a subject so people know what the email is about.",
+    "subjectLong": "The subject is {{count}} characters. Most inboxes cut it off after about {{limit}}.",
+    "letterEmpty": "The email is empty. Write your message first.",
+    "linkInvalid": "The link on “{{text}}” doesn't go anywhere. Use a full address starting with https://.",
+    "buttonLinkInvalid": "The “{{label}}” button doesn't go anywhere yet. Add a full web address.",
+    "buttonLinkExample": "The “{{label}}” button still points to the example address. Change it to your own link.",
+    "tooLarge": "This email is {{size}} KB. Gmail hides the end of emails over about 102 KB."
   }
 }

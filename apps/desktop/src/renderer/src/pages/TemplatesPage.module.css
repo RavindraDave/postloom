@@ -31,3 +31,25 @@
 .details {
   min-width: 0;
 }
+
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.starter {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1px solid var(--pl-border);
+  background: var(--pl-surface);
+}
+
+.starter[data-selected] {
+  border: 2px solid var(--mantine-color-loom-7);
+  box-shadow: 0 0 0 4px var(--pl-accent-soft);
+  padding: 11px 13px;
+}

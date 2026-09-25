@@ -89,6 +89,7 @@ export const saveTemplateInputSchema = z.object({
   name: templateNameSchema.optional(),
   subject: subjectSchema.optional(),
   document: writeDocumentSchema.optional(),
+  defaultSenderProfileId: idSchema.nullable().optional(),
   /** True for a manual save: also keeps a version to restore later. */
   snapshot: z.boolean().optional(),
 });
@@ -185,6 +186,14 @@ export const createSenderInputSchema = z.object({
 
 export const updateSenderInputSchema = createSenderInputSchema.partial().extend({ id: idSchema });
 
+/** "Send me a test": the template as it is now, from one of your senders. */
+export const sendTemplateTestInputSchema = z.object({
+  id: idSchema,
+  senderId: idSchema,
+  /** Defaults to the sender's email account address. */
+  to: emailSchema.optional(),
+});
+
 export const secretProtectionSchema = z.enum(['keychain', 'weak', 'unavailable']);
 
 // ------------------------------------------------------------------- Contract
@@ -221,6 +230,10 @@ export const ipcContract = {
   'templates:delete': { input: byId, output: ok },
   'templates:restore': { input: byId, output: ok },
   'templates:versions': { input: byId, output: z.array(templateVersionSchema) },
+  'templates:sendTest': {
+    input: sendTemplateTestInputSchema,
+    output: z.object({ sentTo: z.string() }),
+  },
   'templates:restoreVersion': {
     input: byId.extend({ versionNo: z.number().int().positive() }),
     output: templateDetailSchema,
@@ -245,6 +258,7 @@ export type TemplateDetail = z.infer<typeof templateDetailSchema>;
 export type TemplateVersionInfo = z.infer<typeof templateVersionSchema>;
 export type CreateTemplateInput = z.infer<typeof createTemplateInputSchema>;
 export type SaveTemplateInput = z.infer<typeof saveTemplateInputSchema>;
+export type SendTemplateTestInput = z.infer<typeof sendTemplateTestInputSchema>;
 export type EmailAccountInfo = z.infer<typeof emailAccountSchema>;
 export type CreateAccountInput = z.infer<typeof createAccountInputSchema>;
 export type UpdateAccountInput = z.infer<typeof updateAccountInputSchema>;
@@ -293,6 +307,7 @@ export interface PostloomApi {
     delete: Call<'templates:delete'>;
     restore: Call<'templates:restore'>;
     versions: Call<'templates:versions'>;
+    sendTest: Call<'templates:sendTest'>;
     restoreVersion: Call<'templates:restoreVersion'>;
   };
 }

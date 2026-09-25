@@ -39,6 +39,7 @@ const api: PostloomApi = {
     delete: (input) => invoke('templates:delete', input),
     restore: (input) => invoke('templates:restore', input),
     versions: (input) => invoke('templates:versions', input),
+    sendTest: (input) => invoke('templates:sendTest', input),
     restoreVersion: (input) => invoke('templates:restoreVersion', input),
   },
 };

@@ -53,6 +53,7 @@ test('the preload exposes only the typed Postloom API', async ({ page }) => {
       'restore',
       'restoreVersion',
       'save',
+      'sendTest',
       'versions',
     ],
     everyEntryIsAFunction: true,
@@ -152,6 +153,11 @@ test('the email preview runs without scripts or same-origin access', async ({ pa
   await page.getByRole('button', { name: 'New template' }).first().click();
   await page.getByLabel('Name').fill('Security check');
   await page.getByRole('button', { name: 'Make template' }).click();
+  await expect(page.getByRole('textbox', { name: 'Template name' })).toHaveValue('Security check');
+  await page
+    .getByRole('navigation', { name: 'Main' })
+    .getByRole('link', { name: 'Templates' })
+    .click();
 
   const frame = page.locator('iframe[title="Email preview"]');
   await expect(frame).toHaveAttribute('sandbox', '');

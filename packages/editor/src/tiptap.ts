@@ -1,5 +1,7 @@
-import { mergeAttributes, Node } from '@tiptap/core';
+import { mergeAttributes, Node, type JSONContent } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
+import TextAlign from '@tiptap/extension-text-align';
+import type { WriteDocument } from './document';
 
 /**
  * TipTap extensions for Write mode. The editor's JSON output matches
@@ -84,11 +86,25 @@ export const writeModeExtensions = [
     blockquote: false,
     code: false,
     codeBlock: false,
-    horizontalRule: false,
-    orderedList: false,
     strike: false,
     heading: { levels: [1, 2, 3] },
+    link: {
+      openOnClick: false,
+      autolink: true,
+      protocols: ['http', 'https', 'mailto'],
+      defaultProtocol: 'https',
+    },
   }),
+  TextAlign.configure({ types: ['heading', 'paragraph'], alignments: ['left', 'center', 'right'] }),
   FieldNode,
   ButtonNode,
 ];
+
+/**
+ * A stored document as editor content. Every `WriteDocument` is valid TipTap
+ * JSON (the schema is a strict subset); the types differ only in how they
+ * spell optional properties.
+ */
+export function toEditorContent(doc: WriteDocument): JSONContent {
+  return doc as JSONContent;
+}
