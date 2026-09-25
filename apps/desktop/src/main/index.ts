@@ -20,6 +20,7 @@ import { join } from 'node:path';
 import { serveAppProtocol, registerAppScheme, type AssetReader } from './app-protocol';
 import type { PickedFile } from './assets';
 import { MAX_IMAGE_FILE_BYTES } from './images';
+import { preloadMjml } from '@postloom/email';
 import { MAX_SPREADSHEET_BYTES } from '@postloom/recipients';
 import { databaseLocation, openAppDatabase, restorePendingBackup } from './database';
 import { applyHistoryRetention } from './data';
@@ -74,6 +75,10 @@ function createMainWindow(): BrowserWindow {
   });
 
   window.once('ready-to-show', () => window.show());
+  // Once the first screen is up, get the email layout library ready for the first preview.
+  window.webContents.once('did-finish-load', () => {
+    setTimeout(preloadMjml, 2000);
+  });
 
   if (devServerUrl) {
     void window.loadURL(devServerUrl);

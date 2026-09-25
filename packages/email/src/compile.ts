@@ -1,6 +1,6 @@
 import { AppError } from '@postloom/core';
 import { convert } from 'html-to-text';
-import mjml2html from 'mjml';
+import type mjml2html from 'mjml';
 
 export interface CompiledEmail {
   html: string;
@@ -10,6 +10,15 @@ export interface CompiledEmail {
   warnings: string[];
 }
 
+// MJML takes over half a second to load, so it loads when first needed, not at start-up.
+let loading: Promise<typeof mjml2html> | null = null;
+const loadMjml = () => (loading ??= import('mjml').then((module) => module.default));
+
+/** Loads MJML in the background, so the first preview doesn't wait for it. */
+export function preloadMjml(): void {
+  void loadMjml();
+}
+
 /**
  * Compiles MJML into email-client-safe HTML plus a plain-text version.
  *
@@ -17,9 +26,10 @@ export interface CompiledEmail {
  * sources are untrusted input (imported or shared templates).
  */
 export async function compileMjml(source: string): Promise<CompiledEmail> {
+  const compile = await loadMjml();
   let result: Awaited<ReturnType<typeof mjml2html>>;
   try {
-    result = await mjml2html(source, {
+    result = await compile(source, {
       validationLevel: 'soft',
       ignoreIncludes: true,
       keepComments: false,
