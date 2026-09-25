@@ -19,6 +19,8 @@ export interface SmtpAccountConfig {
 export interface OutgoingEmail {
   from: { name?: string | undefined; address: string };
   to: string[];
+  cc?: string[] | undefined;
+  bcc?: string[] | undefined;
   /** Where replies go, if not the From address. */
   replyTo?: string | undefined;
   subject: string;
@@ -44,9 +46,11 @@ export interface SendResult {
 const HEADER_BREAK = /[\r\n]/;
 
 /** Creates a Nodemailer transport that always requires an encrypted, verified connection. */
-export function createSmtpTransport(config: SmtpAccountConfig) {
+export function createSmtpTransport(config: SmtpAccountConfig, { pool = false } = {}) {
   const timeout = config.connectionTimeoutMs ?? 20_000;
   return nodemailer.createTransport({
+    // A pool keeps one connection open across a whole send and reconnects if it drops.
+    ...(pool ? { pool: true as const, maxConnections: 1, maxMessages: 100 } : {}),
     host: config.host,
     port: config.port,
     secure: config.security === 'tls',
@@ -82,27 +86,7 @@ export async function sendEmail(
   assertNoHeaderInjection(email);
   const transport = createSmtpTransport(config);
   try {
-    const info = await transport.sendMail({
-      from: email.from.name
-        ? { name: email.from.name, address: email.from.address }
-        : email.from.address,
-      to: email.to,
-      ...(email.replyTo ? { replyTo: email.replyTo } : {}),
-      subject: email.subject,
-      html: email.html,
-      text: email.text,
-      ...(email.inlineImages?.length
-        ? {
-            attachments: email.inlineImages.map((image) => ({
-              cid: image.cid,
-              contentType: image.contentType,
-              content: Buffer.from(image.content),
-              filename: image.filename,
-              contentDisposition: 'inline' as const,
-            })),
-          }
-        : {}),
-    });
+    const info = await transport.sendMail(toMailOptions(email));
     return {
       messageId: info.messageId,
       accepted: info.accepted.map(String),
@@ -115,6 +99,33 @@ export async function sendEmail(
   }
 }
 
+/** Nodemailer's message options for an email (after the header check). */
+export function toMailOptions(email: OutgoingEmail) {
+  return {
+    from: email.from.name
+      ? { name: email.from.name, address: email.from.address }
+      : email.from.address,
+    to: email.to,
+    ...(email.cc?.length ? { cc: email.cc } : {}),
+    ...(email.bcc?.length ? { bcc: email.bcc } : {}),
+    ...(email.replyTo ? { replyTo: email.replyTo } : {}),
+    subject: email.subject,
+    html: email.html,
+    text: email.text,
+    ...(email.inlineImages?.length
+      ? {
+          attachments: email.inlineImages.map((image) => ({
+            cid: image.cid,
+            contentType: image.contentType,
+            content: Buffer.from(image.content),
+            filename: image.filename,
+            contentDisposition: 'inline' as const,
+          })),
+        }
+      : {}),
+  };
+}
+
 /** Values that end up in email headers must never contain line breaks (PLAN.md §10.4). */
 export function assertNoHeaderInjection(email: OutgoingEmail): void {
   const headerValues = [
@@ -123,6 +134,8 @@ export function assertNoHeaderInjection(email: OutgoingEmail): void {
     email.from.address,
     email.replyTo ?? '',
     ...email.to,
+    ...(email.cc ?? []),
+    ...(email.bcc ?? []),
   ];
   if (headerValues.some((value) => HEADER_BREAK.test(value))) {
     throw new AppError({
