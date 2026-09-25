@@ -1,0 +1,9 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Dependency install scripts are blocked by default (supply-chain hardening, PLAN.md §10.5).
+# Only packages listed here may run them.
+onlyBuiltDependencies:
+  - electron
+  - esbuild

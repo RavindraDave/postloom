@@ -1,0 +1,21 @@
+{
+  "name": "@postloom/editor",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@tiptap/core": "3.31.3",
+    "@tiptap/pm": "3.31.3",
+    "@tiptap/starter-kit": "3.31.3",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@postloom/email": "workspace:*",
+    "liquidjs": "10.29.0"
+  }
+}

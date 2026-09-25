@@ -1,0 +1,51 @@
+{
+  "app": {
+    "name": "Postloom",
+    "tagline": "Personal emails, woven for you"
+  },
+  "nav": {
+    "label": "Main",
+    "home": "Home",
+    "send": "Send emails",
+    "templates": "Templates",
+    "senders": "Senders & accounts",
+    "history": "History",
+    "settings": "Settings",
+    "help": "Help"
+  },
+  "home": {
+    "title": "Welcome to Postloom",
+    "intro": "Send beautiful, personal emails to a list of people - from your own email account, with checks before anything is sent.",
+    "checklistTitle": "Get started",
+    "stepConnect": "Connect your email",
+    "stepTemplate": "Make your first template",
+    "stepSend": "Send your first emails",
+    "comingSoon": "Coming soon",
+    "version": "Version {{version}}"
+  },
+  "placeholder": {
+    "body": "This part of Postloom is being built. It will be ready in a later version."
+  },
+  "templates": {
+    "title": "Templates",
+    "previewNotice": "Early preview: this screen checks that email designs turn into email-ready HTML. The drag-and-drop designer replaces it later.",
+    "sourceLabel": "Template source (MJML)",
+    "updatePreview": "Update preview",
+    "updating": "Updating…",
+    "previewTitle": "Preview",
+    "desktop": "Desktop",
+    "phone": "Phone",
+    "warningsTitle": "Things to check",
+    "previewFrameTitle": "Email preview"
+  },
+  "errors": {
+    "unexpected": "Something went wrong. Please try again.",
+    "forbidden": "This action isn't allowed.",
+    "validationFailed": "Some information is missing or not valid.",
+    "templateInvalid": "This template couldn't be read. Check it for typing mistakes.",
+    "emailAuthFailed": "Your email provider didn't accept the password. Many providers, like Gmail, need an \"app password\" for apps like Postloom.",
+    "emailConnectionFailed": "Postloom couldn't reach your email provider. Check your internet connection and the server details.",
+    "emailSendFailed": "The email couldn't be sent. Please try again later.",
+    "headerLineBreak": "A subject, name or email address contains a line break. Remove it and try again."
+  }
+}
