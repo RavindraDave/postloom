@@ -234,7 +234,7 @@ function ProblemCard({
     >
       <Stack gap={6}>
         <Text fw={650}>
-          {t(`send.check.problems.${problem.id}`, {
+          {t(`send.check.problems.${messageId(problem)}`, {
             count: problem.rows.length,
             ...problem.values,
           })}
@@ -270,6 +270,13 @@ function ProblemCard({
       </Stack>
     </Alert>
   );
+}
+
+/** An unmatched detail with an "if empty" text only changes how personal the email is. */
+function messageId(problem: RecipientProblemInfo): string {
+  return problem.id === 'missingColumn' && problem.severity !== 'mustFix'
+    ? 'missingColumnFallback'
+    : problem.id;
 }
 
 /** Steps through the people who'll get an email, showing exactly what each gets. */

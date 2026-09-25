@@ -607,6 +607,7 @@
       "sendDuplicatesOnce": "Send only once to each address",
       "problems": {
         "missingColumn": "“{{field}}” isn't matched to a column in your list.",
+        "missingColumnFallback": "“{{field}}” isn't matched to a column, so everyone gets its “if empty” text.",
         "noAddress": "{{count}} row has no email address.",
         "noAddress_other": "{{count}} rows have no email address.",
         "invalidAddress": "{{count}} row has an email address that isn't valid.",

@@ -629,7 +629,17 @@ Estimates assume one developer working with AI assistance; they're rough and get
 
   Phase 3 is complete. Still to do:
   - run the Design-mode trial with 2–3 users (`docs/research/design-mode-trial.md`, owner);
-  - preview with rows from a real spreadsheet, which comes with Phase 4's import.
+  - ~~preview with rows from a real spreadsheet~~ (done in Phase 4, below).
+- **Phase 4 (in progress):** first increment, the list and the checks (steps 1–3 of the send wizard):
+  - Excel (.xlsx) and CSV lists are picked with the computer's file picker and read in the main process; the screen only gets a token, a 20-row sample and check results, never the file or its path. Limits: 25 MB and 20,000 rows; old .xls files get a clear "save as .xlsx" message;
+  - cells keep the text people typed (leading zeros, no 1.1000000001), dates become YYYY-MM-DD, the header row is found even under a title row, and repeated or empty headers get readable names;
+  - address columns (To, Cc, Bcc, and "send only if") are guessed and remembered between sends; each personal detail is matched to a column of the same name and remembered per template. Several addresses can share a cell (`;` or `,`); line breaks and angle brackets in an address are refused;
+  - "Check" groups problems as must fix (no or bad address, an unmatched detail, over today's limit), worth a look (empty details, repeated addresses, large sends) and good to know (people on the "Do not email" list and rows not marked to send, which are left out automatically), each with a fix such as "Leave these rows out";
+  - the daily limit counts what the account has already sent today (`daily_usage`);
+  - a preview steps through each person's email exactly as they'll get it, and "Send this person's email to me" sends a test with their real details;
+  - the Send step shows the confirmation and time estimate. Sending itself comes with the sending engine (next increment).
+
+  Still to do in Phase 4: the sending engine in a utility process (throttle, retries, crash-safe resume, pause/resume/stop, progress and result screen), then attachments and history. Reading very large spreadsheets moves off the main process with the engine.
 
 **Total:** roughly 19-23 weeks to 1.0 stable. Phases 2 and 3 can overlap once Phase 1 is done.
 

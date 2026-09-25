@@ -172,3 +172,81 @@ test('capture setup and senders screens', async ({ userDataDir }) => {
   await app.close();
   await mail.close();
 });
+
+test('capture the send wizard', async ({ userDataDir }) => {
+  const mail = await startTestMailServer({ username: 'asha@brightlane.example', password: 'pw' });
+  const caFile = join(userDataDir, 'test-ca.pem');
+  writeFileSync(caFile, mail.caPem);
+  const listFile = join(userDataDir, 'October invoices.csv');
+  writeFileSync(
+    listFile,
+    [
+      'Email,First Name,Invoice No,Amount,Due Date,Send?',
+      'rahul.mehta@example.com,Rahul,INV-1001,"₹12,400",1 October,yes',
+      'priya@example.com,Priya,INV-1002,"₹8,150",2 October,yes',
+      'sam.okafor@example,Sam,INV-1003,"₹2,300",3 October,yes',
+      'lena@example.com,Lena,INV-1004,,4 October,yes',
+      'priya@example.com,Priya,INV-1005,"₹950",5 October,yes',
+      'tom@example.com,Tom,INV-1006,"₹4,000",6 October,no',
+      'meera.iyer@example.com,Meera,INV-1007,"₹15,750",7 October,yes',
+    ].join('\n'),
+  );
+  const app = await launchApp(userDataDir, {
+    POSTLOOM_TEST_EXTRA_CA_FILE: caFile,
+    POSTLOOM_TEST_PICK_SPREADSHEET: listFile,
+  });
+  const page = await firstPage(app);
+  await app.evaluate(({ BrowserWindow }) => {
+    BrowserWindow.getAllWindows()[0]?.setSize(1280, 820);
+  });
+
+  await page.getByRole('button', { name: 'Connect your email' }).click();
+  await page.getByRole('button', { name: "Let's start" }).click();
+  await page.getByRole('radio', { name: /Something else/ }).check();
+  await page.getByRole('button', { name: 'Continue with Something else' }).click();
+  await page.getByLabel('Your email address').fill('asha@brightlane.example');
+  await page.getByLabel(/^Password/).fill('pw');
+  await page.getByLabel('Outgoing mail server (SMTP)').fill('localhost');
+  await page.getByLabel('Port').fill(String(mail.port));
+  await page.getByLabel('A name for this account (optional)').fill('Office mail');
+  await page.getByRole('button', { name: 'Check and save' }).click();
+  await page.getByLabel('Name people see').fill('Asha Kapoor');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByRole('button', { name: 'Skip for now' }).click();
+  await page.getByRole('button', { name: 'Go to Home' }).click();
+
+  await page.getByRole('link', { name: 'Templates' }).click();
+  await page.getByRole('button', { name: 'New template' }).first().click();
+  await page.getByRole('radio', { name: /Payment reminder/ }).check();
+  await page.getByRole('button', { name: 'Make template' }).click();
+  await page.getByTestId('save-status').filter({ hasText: 'Saved' }).waitFor();
+
+  await page.getByRole('link', { name: 'Send emails' }).click();
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${out}/send-empty-light.png` });
+  await page.getByRole('button', { name: 'Choose a file…' }).click();
+  await page.getByText('7 people on this list').waitFor();
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${out}/send-list-light.png` });
+
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByRole('combobox', { name: 'Template' }).click();
+  await page.getByRole('option', { name: 'Payment reminder' }).click();
+  await page.getByRole('combobox', { name: 'Invoice No' }).waitFor();
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${out}/send-template-light.png` });
+
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page
+    .frameLocator('iframe[title="Email preview"]')
+    .getByText(/INV-1001/)
+    .waitFor();
+  for (const scheme of ['light', 'dark'] as const) {
+    await page.emulateMedia({ colorScheme: scheme });
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: `${out}/send-check-${scheme}.png` });
+  }
+
+  await app.close();
+  await mail.close();
+});

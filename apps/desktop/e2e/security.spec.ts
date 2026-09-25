@@ -26,6 +26,7 @@ test('the preload exposes only the typed Postloom API', async ({ page }) => {
     accounts: Object.keys(window.postloom.accounts).sort(),
     senders: Object.keys(window.postloom.senders).sort(),
     assets: Object.keys(window.postloom.assets).sort(),
+    recipients: Object.keys(window.postloom.recipients).sort(),
     templates: Object.keys(window.postloom.templates).sort(),
     everyEntryIsAFunction: [
       window.postloom.app,

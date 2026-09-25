@@ -37,11 +37,9 @@ export function createTemplateTestHandler({
 
       const brand = await senderBrand(repos, sender);
       const look = lookFromBrand(brand, sender.fromName);
-      const { html, text } = await compileMjml(writeDocumentToMjml(
-        document,
-        look,
-        values ? { values } : 'placeholder',
-      ));
+      const { html, text } = await compileMjml(
+        writeDocumentToMjml(document, look, values ? { values } : 'placeholder'),
+      );
       const assetIds = [...(look.logo ? [look.logo.assetId] : []), ...collectAssetIds(document)];
       await send(await loadSmtpConfig(account, { repos, vault, extraCa }), {
         from: { name: sender.fromName, address: sender.fromAddress },
