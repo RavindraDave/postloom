@@ -18,6 +18,7 @@ import { PasswordProtectionNotice } from '../components/PasswordProtectionNotice
 import { ProviderPicker } from '../components/ProviderPicker';
 import { WizardSteps } from '../components/WizardSteps';
 import classes from './SetupPage.module.css';
+import { useWindowTitle } from '../components/useWindowTitle';
 
 const STEPS = ['welcome', 'connect', 'sender', 'test', 'done'] as const;
 type Step = (typeof STEPS)[number];
@@ -25,6 +26,7 @@ type Step = (typeof STEPS)[number];
 /** First-run setup: connect an email account, create a sender, send a test (design: Setup). */
 export function SetupPage() {
   const { t } = useTranslation();
+  useWindowTitle(t('setup.title'));
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>('welcome');
   const [provider, setProvider] = useState<ProviderId | null>(null);

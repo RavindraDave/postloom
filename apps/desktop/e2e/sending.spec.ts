@@ -2,6 +2,7 @@ import type { ElectronApplication, Page } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { expectAccessible } from './a11y';
 import { expect, firstPage, launchApp, test, sendWithoutWaiting } from './fixtures';
 import { startTestMailServer, type TestMailServer } from './mail-server';
 
@@ -128,12 +129,17 @@ test('pauses and carries on, survives being killed mid-email, and never sends tw
   await startSend(page);
 
   // Live progress; pause after the first email.
-  await expect(page.getByText(/^Sending… \d of 5$/)).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: /^Sending… \d of 5$/ })).toBeVisible();
   await expect(page.getByTestId('count-sent')).toHaveText('1', { timeout: 20_000 });
   await page.getByRole('button', { name: 'Pause' }).click();
-  await expect(page.getByText('Paused. Nothing more is sent until you carry on.')).toBeVisible({
+  await expect(
+    page
+      .getByRole('status')
+      .filter({ hasText: 'Paused. Nothing more is sent until you carry on.' }),
+  ).toBeVisible({
     timeout: 20_000,
   });
+  await expectAccessible(page, 'a paused send');
   const whilePaused = mail.received.length;
   await page.waitForTimeout(3_000);
   expect(mail.received.length).toBe(whilePaused);
@@ -153,7 +159,9 @@ test('pauses and carries on, survives being killed mid-email, and never sends tw
   await page.getByRole('link', { name: 'Send emails' }).click();
   await expect(page.getByText("A send isn't finished")).toBeVisible();
   await page.getByRole('link', { name: 'Open' }).click();
-  await expect(page.getByText(/Postloom closed while sending/)).toBeVisible();
+  await expect(
+    page.getByRole('status').filter({ hasText: /Postloom closed while sending/ }),
+  ).toBeVisible();
   await expect(page.getByText('1 email may or may not have been sent')).toBeVisible();
   await expect(page.getByRole('table', { name: 'People not emailed' })).toContainText(
     'p3@example.com',
@@ -163,7 +171,9 @@ test('pauses and carries on, survives being killed mid-email, and never sends tw
   await expect(page.getByText('1 email may or may not have been sent')).toBeHidden();
 
   await page.getByRole('button', { name: 'Carry on sending' }).click();
-  await expect(page.getByText(/^Done! \d emails? sent\.$/)).toBeVisible({ timeout: 30_000 });
+  await expect(
+    page.getByRole('status').filter({ hasText: /^Done! \d emails? sent\.$/ }),
+  ).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('count-failed')).toHaveText('1');
   await expect(page.getByRole('table', { name: 'People not emailed' })).toContainText(
     'the address may not exist',

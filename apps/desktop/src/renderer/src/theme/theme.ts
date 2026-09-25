@@ -18,6 +18,8 @@ export const theme = createTheme({
   defaultRadius: 'md',
   radius: { sm: '8px', md: '10px', lg: '14px', xl: '20px' },
   cursorType: 'pointer',
+  // Honour the computer's "reduce motion" setting (PLAN.md §4.3).
+  respectReducedMotion: true,
   focusRing: 'auto',
   headings: {
     fontFamily: fonts.display,

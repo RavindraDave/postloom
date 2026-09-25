@@ -1,6 +1,7 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { expectAccessible } from './a11y';
 import { expect, firstPage, launchApp, test, sendWithoutWaiting } from './fixtures';
 import { startTestMailServer } from './mail-server';
 
@@ -71,6 +72,7 @@ test('sends each person their own files, then saves a report from History', asyn
   // Cara's invoice doesn't exist; the brochure comes from a folder not used before.
   const mustFix = page.getByRole('region', { name: 'Must fix before sending' });
   await expect(mustFix).toContainText("1 row names a file to attach that can't be found.");
+  await expectAccessible(page, 'the check step, with file problems');
   await mustFix.getByRole('button', { name: 'Leave these rows out' }).click();
   await expect(
     page.getByText(/Some files come from a folder you haven't used before/),
@@ -84,7 +86,9 @@ test('sends each person their own files, then saves a report from History', asyn
   await page.getByRole('button', { name: 'Continue without a test' }).click();
   await page.getByRole('button', { name: 'Continue' }).first().click();
   await page.getByRole('button', { name: 'Send now' }).click();
-  await expect(page.getByText('Done! 2 emails sent.')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole('status').filter({ hasText: 'Done! 2 emails sent.' })).toBeVisible({
+    timeout: 30_000,
+  });
 
   const ben = mail.received.find((email) => email.to[0] === 'ben@example.com')?.raw ?? '';
   const dan = mail.received.find((email) => email.to[0] === 'dan@example.com')?.raw ?? '';
@@ -99,6 +103,7 @@ test('sends each person their own files, then saves a report from History', asyn
   await page.getByRole('link', { name: /^Open Payment reminder from / }).click();
   await page.getByRole('button', { name: 'Save a report' }).click();
   await expect(page.getByText('Report saved as report.csv.')).toBeVisible();
+  await expectAccessible(page, 'History, with a send');
   const report = readFileSync(reportFile, 'utf8')
     .replace(/^\uFEFF/, '')
     .trim()

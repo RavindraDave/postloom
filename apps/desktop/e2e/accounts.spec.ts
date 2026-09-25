@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { expectAccessible } from './a11y';
 import { expect, firstPage, launchApp, test } from './fixtures';
 import { startTestMailServer, type TestMailServer } from './mail-server';
 
@@ -56,6 +57,7 @@ test('first-run setup connects an account and sends a real test email', async ({
   // The account and sender show on Senders & accounts.
   await page.getByRole('link', { name: 'Senders & accounts' }).click();
   await expect(page.getByRole('button', { name: /Asha Kapoor/ })).toBeVisible();
+  await expectAccessible(page, 'Senders & accounts, with an account');
   await page.getByRole('tab', { name: /Email accounts/ }).click();
   await expect(page.getByRole('region', { name: 'Office mail' })).toContainText('Working');
 

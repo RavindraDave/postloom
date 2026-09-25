@@ -1,4 +1,14 @@
-import { Alert, Button, Group, Loader, Paper, Stack, Text, Title } from '@mantine/core';
+import {
+  Alert,
+  Button,
+  Group,
+  Loader,
+  Paper,
+  Stack,
+  Text,
+  Title,
+  VisuallyHidden,
+} from '@mantine/core';
 import type { SenderInfo } from '@postloom/contracts';
 import { IconAlertTriangle, IconSend } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
@@ -82,6 +92,12 @@ export function ConfirmStep({ check, senderId, senders }: ConfirmStepProps) {
             {t(errorKey(start.error))}
           </Alert>
         )}
+        {/* Read out once when the wait starts, not every second. */}
+        <VisuallyHidden role="status" aria-live="polite">
+          {countdown === null
+            ? ''
+            : t('send.confirm.countdownAnnounce', { count: LAST_CHANCE_SECONDS })}
+        </VisuallyHidden>
         {countdown === null ? (
           <Button
             size="md"
@@ -97,11 +113,13 @@ export function ConfirmStep({ check, senderId, senders }: ConfirmStepProps) {
           </Button>
         ) : (
           <Group>
-            <Text fw={600} role="status" aria-live="polite">
+            <Text fw={600} aria-hidden>
               {t('send.confirm.countdown', { count: countdown })}
             </Text>
             <Button
               variant="default"
+              // The Send button has gone: keep the keyboard on the way to call it off.
+              ref={(button) => button?.focus()}
               onClick={() => {
                 setCountdown(null);
               }}
