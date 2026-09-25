@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_SENDING_SETTINGS, resolveDailyLimit, resolveSendingSettings } from './sending';
+import {
+  DEFAULT_SENDING_SETTINGS,
+  resolveDailyLimit,
+  resolveDailyLimitWithSource,
+  resolveSendingSettings,
+} from './sending';
 
 describe('resolveDailyLimit', () => {
   it('uses the app default when nothing stricter is configured', () => {
@@ -32,5 +37,21 @@ describe('resolveSendingSettings', () => {
 
     expect(resolved.delayBetweenEmailsMs).toEqual({ value: 5000, source: 'account' });
     expect(resolved.requireTestEmail).toEqual({ value: false, source: 'send' });
+  });
+});
+
+describe('resolveDailyLimitWithSource', () => {
+  it('names the setting that sets the ceiling', () => {
+    expect(resolveDailyLimitWithSource({ appDefault: 450, providerLimit: 500 })).toEqual({
+      value: 450,
+      source: 'app',
+    });
+    expect(resolveDailyLimitWithSource({ appDefault: 450, providerLimit: 300 })).toEqual({
+      value: 300,
+      source: 'provider',
+    });
+    expect(
+      resolveDailyLimitWithSource({ appDefault: 450, accountLimit: 300, providerLimit: 300 }),
+    ).toEqual({ value: 300, source: 'account' });
   });
 });

@@ -32,6 +32,16 @@ describe('app navigation', () => {
     expect(screen.getByRole('link', { name: 'Home' })).not.toHaveAttribute('aria-current');
   });
 
+  it('does not mark "Send emails" as current on Senders & accounts', () => {
+    renderWithProviders(<AppRoutes />, { route: '/senders' });
+
+    expect(screen.getByRole('link', { name: 'Senders & accounts' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(screen.getByRole('link', { name: 'Send emails' })).not.toHaveAttribute('aria-current');
+  });
+
   it('shows the getting-started checklist and version on Home', async () => {
     renderWithProviders(<AppRoutes />);
 

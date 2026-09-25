@@ -21,22 +21,29 @@ test('the page has no access to Node.js', async ({ page }) => {
 test('the preload exposes only the typed Postloom API', async ({ page }) => {
   const api = await page.evaluate(() => ({
     top: Object.keys(window.postloom).sort(),
-    app: Object.keys(window.postloom.app),
+    app: Object.keys(window.postloom.app).sort(),
     settings: Object.keys(window.postloom.settings),
+    accounts: Object.keys(window.postloom.accounts).sort(),
+    senders: Object.keys(window.postloom.senders).sort(),
     templates: Object.keys(window.postloom.templates).sort(),
     everyEntryIsAFunction: [
       window.postloom.app,
       window.postloom.settings,
       window.postloom.templates,
+      window.postloom.accounts,
+      window.postloom.senders,
     ]
       .flatMap((group): unknown[] => Object.values(group))
       .every((value) => typeof value === 'function'),
     hasIpcRenderer: 'ipcRenderer' in window || 'electron' in window,
   }));
   expect(api).toEqual({
-    top: ['app', 'settings', 'templates'],
-    app: ['getInfo'],
+    top: ['accounts', 'app', 'senders', 'settings', 'templates'],
+    app: ['getInfo', 'getSecurity'],
     settings: ['get', 'update'],
+    // No channel ever returns a saved password.
+    accounts: ['create', 'delete', 'list', 'sendTestEmail', 'test', 'testConnection', 'update'],
+    senders: ['create', 'delete', 'list', 'update'],
     templates: [
       'create',
       'delete',

@@ -9,10 +9,26 @@ const invoke = (channel: IpcChannel, input?: unknown) => ipcRenderer.invoke(chan
 const api: PostloomApi = {
   app: {
     getInfo: () => invoke('app:getInfo'),
+    getSecurity: () => invoke('app:getSecurity'),
   },
   settings: {
     get: () => invoke('settings:get'),
     update: (input) => invoke('settings:update', input),
+  },
+  accounts: {
+    list: () => invoke('accounts:list'),
+    create: (input) => invoke('accounts:create', input),
+    update: (input) => invoke('accounts:update', input),
+    delete: (input) => invoke('accounts:delete', input),
+    testConnection: (input) => invoke('accounts:testConnection', input),
+    test: (input) => invoke('accounts:test', input),
+    sendTestEmail: (input) => invoke('accounts:sendTestEmail', input),
+  },
+  senders: {
+    list: () => invoke('senders:list'),
+    create: (input) => invoke('senders:create', input),
+    update: (input) => invoke('senders:update', input),
+    delete: (input) => invoke('senders:delete', input),
   },
   templates: {
     renderPreview: (input) => invoke('templates:renderPreview', input),

@@ -1,0 +1,55 @@
+.label {
+  font-weight: 650;
+  margin-bottom: 10px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
+}
+
+.tile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 76px;
+  padding: 14px 16px;
+  border: 1px solid var(--pl-border);
+  background: var(--pl-surface);
+}
+
+.tile[data-selected] {
+  border: 2px solid var(--mantine-color-loom-7);
+  box-shadow: 0 0 0 4px var(--pl-accent-soft);
+  padding: 13px 15px;
+}
+
+.badge {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--pl-font-display);
+  font-weight: 750;
+  font-size: 1.125rem;
+  color: var(--pl-accent-ink);
+  background: var(--pl-accent-soft);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.check {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  color: var(--mantine-color-loom-7);
+}

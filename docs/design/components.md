@@ -7,14 +7,14 @@ Shared components (currently in `apps/desktop/src/renderer/src/components`; they
 | `AppSidebar` | Mantine AppShell + NavLink | All main screens | ✅ First version done (`layout/AppLayout.tsx`). Needs the account-status card at the bottom. |
 | `LoomMark` | SVG | Sidebar, setup, done screens | ✅ Done |
 | `PageHeader` | Title + Text | All | ✅ Done, in Storybook. Title, one-line explanation, optional main action |
-| `WizardSteps` | Custom list | Send 1–4 | Done / current / to-do states; `aria-current="step"` |
+| `WizardSteps` | Custom list | Setup, Send 1–4 | ✅ Done (setup). Done / current / to-do states; `aria-current="step"` |
 | `WizardFooter` | Group | Send 1–4, setup | Back on the left, one primary action on the right, an optional reason when disabled |
-| `ChoiceTile` | Radio card | Setup (providers), Send 2 (templates) | Big targets; selected ring + check; keyboard arrow navigation |
+| `ChoiceTile` | Radio card | Setup (providers), Send 2 (templates) | ✅ Provider version done (`ProviderPicker`, Mantine `Radio.Card`). Big targets; selected ring + check; keyboard arrow navigation |
 | `TemplateCard` | ChoiceTile + thumbnail | Send 2, first-run Home | Badges: "Fits your list", "Needs a … column" |
 | `ProblemList` / `ProblemItem` | Custom | Check together | Severity (must fix / worth a look / info / all good), one-click fixes, undo |
 | `RecipientPreview` | Sandboxed iframe | Check together, editor preview | Person stepper, computer/phone switch; email always light |
-| `InheritedField` | Custom row | Senders & accounts | Value, where it comes from ("Same as the Office Gmail account"), change/lower action |
-| `StatusPill` | Badge | Home, History, accounts | Success / warning / danger / neutral, text + colour |
+| `InheritedField` | Custom row | Senders & accounts | ✅ Done. Value, where it comes from ("Same as the Office Gmail account"), change/lower action |
+| `StatusPill` | Custom span | Home, History, accounts | ✅ Done. Success / warning / danger / neutral, text + colour |
 | `LimitMeter` | Progress | Home | "312 of 450 left" |
 | `ProgressRing` | SVG + `role="progressbar"` | Sending | Percentage, counts, time left |
 | `ActivityList` | List | Sending | Sending… / Sent / Didn't go through, plain-language reasons |
@@ -23,7 +23,7 @@ Shared components (currently in `apps/desktop/src/renderer/src/components`; they
 | `FieldChip` | TipTap node view | Write mode, subject line | Uses the `field` node from `@postloom/editor`. `FieldChips` (read-only list) ✅ done |
 | `InsertDetailMenu` | Combobox | Write mode | Lists spreadsheet columns with example values |
 | `ModeSwitch` | SegmentedControl (links) | Editor header | Write / Design |
-| `FixPanel` | Alert + steps | Account needs attention | Explains what happened, numbered steps, check-and-save |
+| `FixPanel` | Alert + steps | Account needs attention | ✅ First version (`FixPasswordForm` in the account card). Explains what happened, check-and-save |
 | `EmptyState` | Custom | History, templates | ✅ Done, in Storybook. Loom illustration, one sentence, one action |
 | `Toast` | Mantine Notifications | Everywhere | ✅ In use (template bin + Undo) |
 | `SkeletonBlock` | Skeleton | Loading states | Only after 500 ms |

@@ -10,6 +10,7 @@ import {
 import type { Repositories } from '@postloom/db';
 import { collectFields, writeDocumentSchema, type WriteDocument } from '@postloom/editor';
 import { compileMjml } from '@postloom/email';
+import { createAccountHandlers, type AccountDeps } from './accounts';
 import type { IpcHandlers } from './ipc-router';
 
 const PREFERENCES_KEY = 'preferences';
@@ -18,12 +19,12 @@ const WRITE_DOCUMENT_VERSION = 1;
 /** A blank letter for "Write a new letter". */
 export const BLANK_LETTER: WriteDocument = { type: 'doc', content: [{ type: 'paragraph' }] };
 
-export interface HandlerDeps {
+export interface HandlerDeps extends Omit<AccountDeps, 'repos'> {
   appInfo: AppInfo;
   repos: Repositories;
 }
 
-export function createHandlers({ appInfo, repos }: HandlerDeps): IpcHandlers {
+export function createHandlers({ appInfo, repos, ...accountDeps }: HandlerDeps): IpcHandlers {
   const loadPreferences = async (): Promise<Preferences> => {
     const stored = await repos.settings.get<unknown>(PREFERENCES_KEY, {});
     // Merge over defaults and drop anything invalid (e.g. from an older version).
@@ -32,6 +33,8 @@ export function createHandlers({ appInfo, repos }: HandlerDeps): IpcHandlers {
   };
 
   return {
+    ...createAccountHandlers({ repos, ...accountDeps }),
+
     'app:getInfo': () => Promise.resolve(appInfo),
 
     'settings:get': loadPreferences,

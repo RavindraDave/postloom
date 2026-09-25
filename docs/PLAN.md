@@ -588,6 +588,21 @@ Estimates assume one developer working with AI assistance; they're rough and get
   - per-screen error boundaries.
   
   Still open: the prototype usability round (run by the owner, `docs/research/usability-test-plan.md`) and the Storybook accessibility test run in CI.
+- **Phase 2 (in progress):** done so far:
+  - IPC for email accounts and senders, and the password-protection status;
+  - passwords encrypted with the OS keychain (Electron `safeStorage`), decrypted only in the main process just before connecting, and never sent to the screen;
+  - Linux without a keyring still works, flagged as "weak" with a warning;
+  - a new password is only saved after it signs in successfully;
+  - the first-run setup wizard (provider tiles, connect and check, who you are, send yourself a test);
+  - the Senders & accounts screen:
+    - account status, with Check now, Send me a test and Remove (explained when blocked);
+    - a fix panel for an account that stopped working;
+    - senders with inherited sending pace and daily limit that say where each value comes from;
+  - a Home checklist that reflects real progress.
+
+  E2E tests run the first-run flow against a real local SMTP server (STARTTLS, password sign-in, a throwaway test CA trusted only in non-packaged builds). They also check that the password isn't stored in plain text in the database file.
+
+  Still open: brand kits (moved to Phase 3, where the designer uses them).
 
 **Total:** roughly 19-23 weeks to 1.0 stable. Phases 2 and 3 can overlap once Phase 1 is done.
 
