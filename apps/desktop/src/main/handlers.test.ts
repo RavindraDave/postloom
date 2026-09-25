@@ -4,6 +4,7 @@ import { STARTER_LETTER } from '@postloom/editor';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { BLANK_LETTER, createHandlers } from './handlers';
 import type { IpcHandlers } from './ipc-router';
+import { fakeVault } from './test-fakes';
 
 let opened: OpenedDatabase;
 let handlers: IpcHandlers;
@@ -15,6 +16,7 @@ beforeEach(async () => {
   handlers = createHandlers({
     appInfo: { name: 'Postloom', version: '0.1.0', platform: 'linux' },
     repos,
+    vault: fakeVault(),
   });
 });
 afterEach(async () => {

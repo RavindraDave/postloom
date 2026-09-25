@@ -1,0 +1,29 @@
+.page {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  min-height: 100vh;
+  background: var(--pl-ground);
+}
+
+.aside {
+  display: flex;
+  flex-direction: column;
+  padding: 28px 20px;
+  background: var(--pl-sidebar);
+  border-right: 1px solid var(--pl-border);
+}
+
+.mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--mantine-color-loom-7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.main {
+  padding: 56px 48px;
+  overflow-y: auto;
+}

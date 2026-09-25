@@ -1,4 +1,4 @@
-import type { AppErrorShape } from '@postloom/core';
+import { isPlausibleEmail, type AppErrorShape } from '@postloom/core';
 import { writeDocumentSchema } from '@postloom/editor';
 import { z } from 'zod';
 
@@ -96,10 +96,121 @@ export const saveTemplateInputSchema = z.object({
 const byId = z.object({ id: idSchema });
 const ok = z.object({ ok: z.literal(true) });
 
+// ------------------------------------------------------ Accounts and senders
+
+const emailSchema = z
+  .string()
+  .trim()
+  .max(254)
+  .refine((value) => isPlausibleEmail(value), 'Not a valid email address');
+
+const hostSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(253)
+  .regex(/^[A-Za-z0-9.-]+$/, 'Server names contain only letters, digits, dots and dashes');
+
+const connectionSchema = z.object({
+  host: hostSchema,
+  port: z.number().int().min(1).max(65535),
+  security: z.enum(['tls', 'starttls']),
+  username: z.string().trim().min(1).max(254),
+});
+
+/**
+ * App passwords are typed by the person, so they cross IPC renderer → main
+ * once. They are never sent back to the renderer.
+ */
+const passwordSchema = z.string().min(1).max(256);
+
+export const providerIdSchema = z.enum(['gmail', 'outlook', 'yahoo', 'zoho', 'icloud', 'other']);
+
+export const emailAccountSchema = connectionSchema.extend({
+  id: idSchema,
+  name: z.string(),
+  provider: providerIdSchema,
+  hasPassword: z.boolean(),
+  dailyLimit: z.number().int().nullable(),
+  delayMs: z.number().int().nullable(),
+  lastTestedAt: z.string().nullable(),
+  lastTestOk: z.boolean().nullable(),
+  /** How many senders send through this account ("Used by 2 senders"). */
+  senderCount: z.number().int(),
+});
+
+export const createAccountInputSchema = connectionSchema.extend({
+  name: z.string().trim().min(1).max(80),
+  provider: providerIdSchema,
+  password: passwordSchema,
+  dailyLimit: z.number().int().min(1).max(100_000).nullable().optional(),
+  delayMs: z.number().int().min(0).max(60_000).nullable().optional(),
+});
+
+export const updateAccountInputSchema = createAccountInputSchema.partial().extend({ id: idSchema });
+
+export const testConnectionInputSchema = connectionSchema.extend({ password: passwordSchema });
+
+const sourceSchema = z.enum(['app', 'account', 'sender', 'provider']);
+const inheritedNumberSchema = z.object({ value: z.number(), source: sourceSchema });
+
+export const senderSchema = z.object({
+  id: idSchema,
+  name: z.string(),
+  emailAccountId: idSchema,
+  fromName: z.string(),
+  fromAddress: z.string(),
+  replyTo: z.string().nullable(),
+  delayMs: z.number().int().nullable(),
+  templateCount: z.number().int(),
+  /** Values in force after inheritance, and where each comes from. */
+  effective: z.object({ delayMs: inheritedNumberSchema, dailyLimit: inheritedNumberSchema }),
+});
+
+const nameInHeaderSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(120)
+  .refine((value) => !/[\r\n"<>]/.test(value), 'Names cannot contain line breaks, quotes or < >');
+
+export const createSenderInputSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  emailAccountId: idSchema,
+  fromName: nameInHeaderSchema,
+  fromAddress: emailSchema,
+  replyTo: emailSchema.nullable().optional(),
+  delayMs: z.number().int().min(0).max(60_000).nullable().optional(),
+});
+
+export const updateSenderInputSchema = createSenderInputSchema.partial().extend({ id: idSchema });
+
+export const secretProtectionSchema = z.enum(['keychain', 'weak', 'unavailable']);
+
 // ------------------------------------------------------------------- Contract
 
 export const ipcContract = {
   'app:getInfo': { input: z.undefined(), output: appInfoSchema },
+  'app:getSecurity': {
+    input: z.undefined(),
+    output: z.object({ secretProtection: secretProtectionSchema }),
+  },
+  'accounts:list': { input: z.undefined(), output: z.array(emailAccountSchema) },
+  'accounts:create': { input: createAccountInputSchema, output: emailAccountSchema },
+  'accounts:update': { input: updateAccountInputSchema, output: emailAccountSchema },
+  'accounts:delete': { input: byId, output: ok },
+  /** Signs in without sending (setup wizard, before saving). */
+  'accounts:testConnection': { input: testConnectionInputSchema, output: ok },
+  /** Signs in with a saved account and records the result. */
+  'accounts:test': { input: byId, output: emailAccountSchema },
+  'accounts:sendTestEmail': {
+    input: byId.extend({ to: emailSchema.optional() }),
+    output: z.object({ sentTo: z.string() }),
+  },
+  'senders:list': { input: z.undefined(), output: z.array(senderSchema) },
+  'senders:create': { input: createSenderInputSchema, output: senderSchema },
+  'senders:update': { input: updateSenderInputSchema, output: senderSchema },
+  'senders:delete': { input: byId, output: ok },
   'settings:get': { input: z.undefined(), output: preferencesSchema },
   'settings:update': { input: preferencesSchema.partial(), output: preferencesSchema },
   'templates:renderPreview': { input: renderPreviewInputSchema, output: renderPreviewOutputSchema },
@@ -134,6 +245,14 @@ export type TemplateDetail = z.infer<typeof templateDetailSchema>;
 export type TemplateVersionInfo = z.infer<typeof templateVersionSchema>;
 export type CreateTemplateInput = z.infer<typeof createTemplateInputSchema>;
 export type SaveTemplateInput = z.infer<typeof saveTemplateInputSchema>;
+export type EmailAccountInfo = z.infer<typeof emailAccountSchema>;
+export type CreateAccountInput = z.infer<typeof createAccountInputSchema>;
+export type UpdateAccountInput = z.infer<typeof updateAccountInputSchema>;
+export type TestConnectionInput = z.infer<typeof testConnectionInputSchema>;
+export type SenderInfo = z.infer<typeof senderSchema>;
+export type CreateSenderInput = z.infer<typeof createSenderInputSchema>;
+export type UpdateSenderInput = z.infer<typeof updateSenderInputSchema>;
+export type SecretProtection = z.infer<typeof secretProtectionSchema>;
 
 type Call<C extends IpcChannel> =
   IpcInput<C> extends undefined
@@ -144,6 +263,22 @@ type Call<C extends IpcChannel> =
 export interface PostloomApi {
   app: {
     getInfo: Call<'app:getInfo'>;
+    getSecurity: Call<'app:getSecurity'>;
+  };
+  accounts: {
+    list: Call<'accounts:list'>;
+    create: Call<'accounts:create'>;
+    update: Call<'accounts:update'>;
+    delete: Call<'accounts:delete'>;
+    testConnection: Call<'accounts:testConnection'>;
+    test: Call<'accounts:test'>;
+    sendTestEmail: Call<'accounts:sendTestEmail'>;
+  };
+  senders: {
+    list: Call<'senders:list'>;
+    create: Call<'senders:create'>;
+    update: Call<'senders:update'>;
+    delete: Call<'senders:delete'>;
   };
   settings: {
     get: Call<'settings:get'>;

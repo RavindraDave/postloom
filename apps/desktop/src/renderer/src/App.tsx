@@ -6,7 +6,9 @@ import { HashRouter, Route, Routes } from 'react-router';
 import { AppLayout } from './layout/AppLayout';
 import { HomePage } from './pages/HomePage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
+import { SendersPage } from './pages/SendersPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { SetupPage } from './pages/SetupPage';
 import { TemplatesPage } from './pages/TemplatesPage';
 import { PreferencesEffects } from './PreferencesEffects';
 import { cssVariablesResolver, theme } from './theme/theme';
@@ -43,11 +45,12 @@ export function App() {
 export function AppRoutes() {
   return (
     <Routes>
+      <Route path="setup" element={<SetupPage />} />
       <Route element={<AppLayout />}>
         <Route index element={<HomePage />} />
         <Route path="send" element={<PlaceholderPage titleKey="nav.send" />} />
         <Route path="templates" element={<TemplatesPage />} />
-        <Route path="senders" element={<PlaceholderPage titleKey="nav.senders" />} />
+        <Route path="senders" element={<SendersPage />} />
         <Route path="history" element={<PlaceholderPage titleKey="nav.history" />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="help" element={<PlaceholderPage titleKey="nav.help" />} />

@@ -1,5 +1,10 @@
 import type {
+  CreateAccountInput,
+  CreateSenderInput,
   CreateTemplateInput,
+  TestConnectionInput,
+  UpdateAccountInput,
+  UpdateSenderInput,
   Preferences,
   SaveTemplateInput,
   TemplateDetail,
@@ -13,6 +18,9 @@ export const queryKeys = {
   templates: ['templates'] as const,
   template: (id: string) => ['templates', id] as const,
   preview: (document: WriteDocument | undefined) => ['preview', document] as const,
+  security: ['security'] as const,
+  accounts: ['accounts'] as const,
+  senders: ['senders'] as const,
 };
 
 export function usePreferences() {
@@ -96,5 +104,113 @@ export function useEmailPreview(document: WriteDocument | undefined) {
     },
     enabled: document !== undefined,
     staleTime: Infinity,
+  });
+}
+
+// ------------------------------------------------------ Accounts and senders
+
+/** How well this computer protects saved passwords (keychain / weak / unavailable). */
+export function useSecurity() {
+  return useQuery({
+    queryKey: queryKeys.security,
+    queryFn: () => unwrap(window.postloom.app.getSecurity()),
+    staleTime: Infinity,
+  });
+}
+
+export function useAccounts() {
+  return useQuery({
+    queryKey: queryKeys.accounts,
+    queryFn: () => unwrap(window.postloom.accounts.list()),
+  });
+}
+
+export function useSenders() {
+  return useQuery({
+    queryKey: queryKeys.senders,
+    queryFn: () => unwrap(window.postloom.senders.list()),
+  });
+}
+
+/** Accounts and senders depend on each other (counts, inherited values), so refresh both. */
+function useRefreshPeople() {
+  const client = useQueryClient();
+  return () =>
+    Promise.all([
+      client.invalidateQueries({ queryKey: queryKeys.accounts }),
+      client.invalidateQueries({ queryKey: queryKeys.senders }),
+    ]);
+}
+
+export function useTestConnection() {
+  return useMutation({
+    mutationFn: (input: TestConnectionInput) =>
+      unwrap(window.postloom.accounts.testConnection(input)),
+  });
+}
+
+export function useCreateAccount() {
+  const refresh = useRefreshPeople();
+  return useMutation({
+    mutationFn: (input: CreateAccountInput) => unwrap(window.postloom.accounts.create(input)),
+    onSuccess: refresh,
+  });
+}
+
+export function useUpdateAccount() {
+  const refresh = useRefreshPeople();
+  return useMutation({
+    mutationFn: (input: UpdateAccountInput) => unwrap(window.postloom.accounts.update(input)),
+    onSuccess: refresh,
+  });
+}
+
+export function useDeleteAccount() {
+  const refresh = useRefreshPeople();
+  return useMutation({
+    mutationFn: (id: string) => unwrap(window.postloom.accounts.delete({ id })),
+    onSuccess: refresh,
+  });
+}
+
+export function useTestAccount() {
+  const refresh = useRefreshPeople();
+  return useMutation({
+    mutationFn: (id: string) => unwrap(window.postloom.accounts.test({ id })),
+    // A failed test is recorded too, so refresh either way.
+    onSettled: refresh,
+  });
+}
+
+export function useSendTestEmail() {
+  const refresh = useRefreshPeople();
+  return useMutation({
+    mutationFn: (input: { id: string; to?: string }) =>
+      unwrap(window.postloom.accounts.sendTestEmail(input)),
+    onSuccess: refresh,
+  });
+}
+
+export function useCreateSender() {
+  const refresh = useRefreshPeople();
+  return useMutation({
+    mutationFn: (input: CreateSenderInput) => unwrap(window.postloom.senders.create(input)),
+    onSuccess: refresh,
+  });
+}
+
+export function useUpdateSender() {
+  const refresh = useRefreshPeople();
+  return useMutation({
+    mutationFn: (input: UpdateSenderInput) => unwrap(window.postloom.senders.update(input)),
+    onSuccess: refresh,
+  });
+}
+
+export function useDeleteSender() {
+  const refresh = useRefreshPeople();
+  return useMutation({
+    mutationFn: (id: string) => unwrap(window.postloom.senders.delete({ id })),
+    onSuccess: refresh,
   });
 }

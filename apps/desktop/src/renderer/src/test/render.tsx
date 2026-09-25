@@ -2,7 +2,9 @@ import { MantineProvider } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
 import {
   DEFAULT_PREFERENCES,
+  type EmailAccountInfo,
   type IpcResult,
+  type SenderInfo,
   type PostloomApi,
   type TemplateDetail,
 } from '@postloom/contracts';
@@ -29,6 +31,37 @@ export const sampleTemplate: TemplateDetail = {
   defaultSenderProfileId: null,
 };
 
+export const sampleAccount: EmailAccountInfo = {
+  id: 'a1',
+  name: 'Office Gmail',
+  provider: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 587,
+  security: 'starttls',
+  username: 'asha@example.com',
+  hasPassword: true,
+  dailyLimit: null,
+  delayMs: null,
+  lastTestedAt: '2026-09-24T09:41:00.000Z',
+  lastTestOk: true,
+  senderCount: 1,
+};
+
+export const sampleSender: SenderInfo = {
+  id: 's1',
+  name: 'Asha (Accounts)',
+  emailAccountId: 'a1',
+  fromName: 'Asha Kapoor',
+  fromAddress: 'asha@example.com',
+  replyTo: null,
+  delayMs: null,
+  templateCount: 0,
+  effective: {
+    delayMs: { value: 2000, source: 'app' },
+    dailyLimit: { value: 450, source: 'app' },
+  },
+};
+
 type DeepPartial<T> = { [K in keyof T]?: Partial<T[K]> };
 
 /** Installs a fake `window.postloom`; every call resolves with sensible data. */
@@ -36,7 +69,25 @@ export function mockApi(overrides: DeepPartial<PostloomApi> = {}): PostloomApi {
   const api: PostloomApi = {
     app: {
       getInfo: vi.fn(() => ok({ name: 'Postloom', version: '0.1.0', platform: 'linux' as const })),
+      getSecurity: vi.fn(() => ok({ secretProtection: 'keychain' as const })),
       ...overrides.app,
+    },
+    accounts: {
+      list: vi.fn(() => ok([sampleAccount])),
+      create: vi.fn((input: { name: string }) => ok({ ...sampleAccount, name: input.name })),
+      update: vi.fn(() => ok(sampleAccount)),
+      delete: vi.fn(() => ok({ ok: true as const })),
+      testConnection: vi.fn(() => ok({ ok: true as const })),
+      test: vi.fn(() => ok(sampleAccount)),
+      sendTestEmail: vi.fn(() => ok({ sentTo: sampleAccount.username })),
+      ...overrides.accounts,
+    },
+    senders: {
+      list: vi.fn(() => ok([sampleSender])),
+      create: vi.fn((input: { name: string }) => ok({ ...sampleSender, name: input.name })),
+      update: vi.fn(() => ok(sampleSender)),
+      delete: vi.fn(() => ok({ ok: true as const })),
+      ...overrides.senders,
     },
     settings: {
       get: vi.fn(() => ok(DEFAULT_PREFERENCES)),

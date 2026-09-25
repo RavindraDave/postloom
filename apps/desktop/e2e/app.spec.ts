@@ -12,7 +12,7 @@ async function createTemplate(page: Page, name: string) {
 test('opens on the Home screen with the getting-started checklist', async ({ page }) => {
   await expect(page).toHaveTitle('Postloom');
   await expect(page.getByRole('heading', { name: 'Welcome to Postloom' })).toBeVisible();
-  await expect(page.getByText('Connect your email')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Connect your email' })).toBeVisible();
   await expect(page.getByTestId('app-version')).toContainText('Version 0.1.0');
 });
 

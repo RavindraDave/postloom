@@ -33,13 +33,26 @@ export interface DailyLimitInputs {
  * strictest of the configured values always wins, so no override can raise it
  * above what the account or provider allows (PLAN.md §7.2).
  */
-export function resolveDailyLimit({
+export function resolveDailyLimit(inputs: DailyLimitInputs): number {
+  return resolveDailyLimitWithSource(inputs).value;
+}
+
+export type DailyLimitSource = 'app' | 'account' | 'provider';
+
+/** Like `resolveDailyLimit`, and says which setting set the ceiling (for the UI). */
+export function resolveDailyLimitWithSource({
   appDefault,
   accountLimit,
   providerLimit,
-}: DailyLimitInputs): number {
-  const candidates = [appDefault, accountLimit, providerLimit].filter(
-    (value): value is number => value !== undefined && Number.isFinite(value) && value >= 0,
-  );
-  return Math.floor(Math.min(...candidates));
+}: DailyLimitInputs): { value: number; source: DailyLimitSource } {
+  const valid = (value: number | undefined): value is number =>
+    value !== undefined && Number.isFinite(value) && value >= 0;
+  // On a tie the more specific setting is reported, as that's the one to change.
+  const candidates: { value: number; source: DailyLimitSource }[] = [
+    ...(valid(accountLimit) ? [{ value: accountLimit, source: 'account' as const }] : []),
+    ...(valid(providerLimit) ? [{ value: providerLimit, source: 'provider' as const }] : []),
+    { value: appDefault, source: 'app' as const },
+  ];
+  const strictest = candidates.reduce((best, next) => (next.value < best.value ? next : best));
+  return { value: Math.floor(strictest.value), source: strictest.source };
 }

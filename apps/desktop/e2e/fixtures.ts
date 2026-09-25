@@ -16,13 +16,24 @@ const appDir = join(dirname(fileURLToPath(import.meta.url)), '..');
  * with its data in `userDataDir`, so tests never touch real data and can
  * relaunch on the same data to check that it was saved.
  */
-export async function launchApp(userDataDir: string): Promise<ElectronApplication> {
+export async function launchApp(
+  userDataDir: string,
+  extraEnv: Record<string, string> = {},
+): Promise<ElectronApplication> {
   // Chromium refuses to start as root with its OS sandbox (container dev
   // environments). CI runners are not root, so the sandbox is on there.
   const runningAsRoot = process.getuid?.() === 0;
+  // Linux CI has no unlocked keyring; use Electron's basic store instead of
+  // waiting on one. The app reports this as "weak" protection.
+  const linuxPasswordStore = process.platform === 'linux' ? ['--password-store=basic'] : [];
   return electron.launch({
-    args: [...(runningAsRoot ? ['--no-sandbox'] : []), appDir],
-    env: { ...process.env, NODE_ENV: 'production', POSTLOOM_USER_DATA_DIR: userDataDir },
+    args: [...(runningAsRoot ? ['--no-sandbox'] : []), ...linuxPasswordStore, appDir],
+    env: {
+      ...process.env,
+      NODE_ENV: 'production',
+      POSTLOOM_USER_DATA_DIR: userDataDir,
+      ...extraEnv,
+    },
   });
 }
 

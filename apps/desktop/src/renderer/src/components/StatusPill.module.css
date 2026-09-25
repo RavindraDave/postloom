@@ -1,0 +1,30 @@
+.pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  line-height: 1.2;
+  padding: 4px 10px;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+.pill[data-tone='success'] {
+  color: var(--pl-success-ink);
+  background: var(--pl-success-bg);
+}
+
+.pill[data-tone='warning'] {
+  color: var(--pl-warning-ink);
+  background: var(--pl-warning-bg);
+}
+
+.pill[data-tone='danger'] {
+  color: var(--pl-danger-ink);
+  background: var(--pl-danger-bg);
+}
+
+.pill[data-tone='neutral'] {
+  color: var(--pl-ink-soft);
+  background: var(--pl-sidebar);
+}

@@ -1,10 +1,12 @@
 import { createRepositories, type OpenedDatabase } from '@postloom/db';
-import { app, BrowserWindow, dialog, ipcMain, session } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, safeStorage, session } from 'electron';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { serveAppProtocol, registerAppScheme } from './app-protocol';
 import { databaseLocation, openAppDatabase } from './database';
 import { createHandlers } from './handlers';
 import { registerIpcHandlers } from './ipc-router';
+import { createSecretVault } from './secrets';
 import {
   APP_ORIGIN,
   hardenAllWebContents,
@@ -103,6 +105,8 @@ void app.whenReady().then(async () => {
     createHandlers({
       appInfo: { name: app.getName(), version: app.getVersion(), platform: platform() },
       repos: createRepositories(database.db),
+      vault: createSecretVault(safeStorage, process.platform),
+      extraCa: testExtraCa(),
     }),
     {
       isTrustedUrl: (url) => isAppUrl(url, devServerUrl),
@@ -116,6 +120,16 @@ void app.whenReady().then(async () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
   });
 });
+
+/**
+ * Lets end-to-end tests trust a local test mail server's certificate.
+ * Ignored in packaged builds, so it can never weaken a user's installation.
+ */
+function testExtraCa(): string | undefined {
+  const file = process.env['POSTLOOM_TEST_EXTRA_CA_FILE'];
+  if (app.isPackaged || !file) return undefined;
+  return readFileSync(file, 'utf8');
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
