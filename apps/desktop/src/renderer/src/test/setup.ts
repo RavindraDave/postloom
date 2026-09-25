@@ -31,4 +31,14 @@ if (!('fonts' in document)) {
   });
 }
 
+// ...and these, which ProseMirror (the Write-mode editor) uses to scroll the caret into view.
+const emptyRect = () => new DOMRect(0, 0, 0, 0);
+const emptyRects = () => [] as unknown as DOMRectList;
+Range.prototype.getBoundingClientRect = emptyRect;
+Range.prototype.getClientRects = emptyRects;
+Element.prototype.scrollIntoView = vi.fn();
+if (!('elementFromPoint' in document)) {
+  Object.defineProperty(document, 'elementFromPoint', { value: () => null });
+}
+
 afterEach(() => cleanup());

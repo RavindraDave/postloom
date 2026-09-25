@@ -603,6 +603,21 @@ Estimates assume one developer working with AI assistance; they're rough and get
   E2E tests run the first-run flow against a real local SMTP server (STARTTLS, password sign-in, a throwaway test CA trusted only in non-packaged builds). They also check that the password isn't stored in plain text in the database file.
 
   Still open: brand kits (moved to Phase 3, where the designer uses them).
+- **Phase 3 (in progress):** first increment, Write mode:
+  - a letter-like editor (TipTap) with:
+    - text styles, bold/italic/underline, links, bulleted and numbered lists (nestable), alignment and divider lines;
+    - buttons, and personal details inserted as chips from "Insert detail", each with an optional "if empty, show" text;
+  - autosave as you type, with a visible Saved status, undo/redo, and a save when leaving the editor;
+  - version history: keep a copy, restore;
+  - a live checklist:
+    - missing or too-long subject, empty letter;
+    - broken links, and buttons still pointing at the example address;
+    - Gmail's clipping size;
+  - a preview on computer and phone;
+  - the template's usual sender, and "Send me a test" through that sender, marked [Test];
+  - a starter gallery of eight tested letters in "New template".
+
+  Still open: Design mode (the GrapesJS trial in ADR 0004), images and logo, brand kits, conditional blocks, HTML import, preview with real data (needs Phase 4's spreadsheet import), and personal details in the subject line.
 
 **Total:** roughly 19-23 weeks to 1.0 stable. Phases 2 and 3 can overlap once Phase 1 is done.
 

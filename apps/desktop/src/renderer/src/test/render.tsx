@@ -117,7 +117,7 @@ export function mockApi(overrides: DeepPartial<PostloomApi> = {}): PostloomApi {
 export function renderWithProviders(ui: ReactElement, { route = '/' } = {}) {
   return render(
     <QueryClientProvider client={createQueryClient()}>
-      <MantineProvider theme={theme} cssVariablesResolver={cssVariablesResolver}>
+      <MantineProvider theme={theme} cssVariablesResolver={cssVariablesResolver} env="test">
         <Notifications />
         <MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>
       </MantineProvider>
