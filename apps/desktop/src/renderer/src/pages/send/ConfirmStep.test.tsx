@@ -10,7 +10,7 @@ const check = {
   sheet: 'Sheet1',
   templateId: 't1',
   senderId: 's1',
-  mapping: { to: 'Email' },
+  mapping: { to: 'Email', cc: null, bcc: null, enabled: null, attachments: null },
   fieldMap: {},
   skipRows: [],
   sendDuplicatesOnce: false,
