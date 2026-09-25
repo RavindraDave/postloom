@@ -137,7 +137,8 @@
     "screenRetry": "Try again",
     "sendHasProblems": "Something on the Check step must be fixed before sending. Go back and fix it, then try again.",
     "sendNobody": "Nobody on this list will get an email. Put some rows back or choose another list.",
-    "sendAccountBusy": "This email account is already sending. Wait for that send to finish (or pause it), then try again."
+    "sendAccountBusy": "This email account is already sending. Wait for that send to finish (or pause it), then try again.",
+    "restoreWhileSending": "Emails are being sent right now. Wait for the send to finish (or pause it), then restore."
   },
   "common": {
     "loading": "Loading…",
@@ -158,7 +159,40 @@
     "textLargest": "Largest",
     "sending": "Sending",
     "confirmBeforeSend": "Always ask me before sending",
-    "confirmBeforeSendHint": "Shows a summary of who gets what, with 10 seconds to change your mind."
+    "confirmBeforeSendHint": "Shows a summary of who gets what, with 10 seconds to change your mind.",
+    "data": {
+      "title": "Your data",
+      "intro": "Everything Postloom keeps is on this computer. Backups are taken every day automatically.",
+      "backupNow": "Back up now",
+      "backedUp": "Backup saved.",
+      "openFolder": "Open the data folder",
+      "backupsLabel": "Backups",
+      "noBackups": "No backups yet. Postloom takes one every day you use it.",
+      "kinds": {
+        "daily": "Daily",
+        "manual": "You made it",
+        "before": "Before an update"
+      },
+      "restore": "Restore",
+      "restoreTitle": "Restore this backup?",
+      "restoreBody": "Postloom will restart and go back to how things were on {{when}}. Anything changed since then is kept in a separate file, just in case.",
+      "restorePasswords": "Saved email passwords are never kept in backups, so you'll type them again in Senders & accounts.",
+      "restoreConfirm": "Restore and restart",
+      "cancel": "Cancel",
+      "historyTitle": "History",
+      "historyDays": "Keep sends in History for",
+      "historyForever": "Always",
+      "history30": "30 days",
+      "history90": "90 days",
+      "history365": "1 year",
+      "historyHint": "Older finished sends, and their lists of people, are deleted. Sends that aren't finished are always kept.",
+      "clearHistory": "Clear history now",
+      "clearTitle": "Clear History?",
+      "clearBody": "Finished and stopped sends, with their lists of people and reports, will be deleted. Templates, senders and accounts stay.",
+      "clearConfirm": "Clear history",
+      "cleared": "{{count}} send removed from History.",
+      "cleared_other": "{{count}} sends removed from History."
+    }
   },
   "accounts": {
     "providerLabel": "Email provider",

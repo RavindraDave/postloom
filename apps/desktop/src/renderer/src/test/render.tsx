@@ -184,6 +184,30 @@ export function mockApi(overrides: DeepPartial<PostloomApi> = {}): PostloomApi {
       exportReport: vi.fn(() => ok({ saved: true, fileName: 'Payment reminder 2026-09-25.csv' })),
       ...overrides.sends,
     },
+    data: {
+      backups: vi.fn(() =>
+        ok([
+          {
+            fileName: 'postloom-daily-2026-09-25.sqlite',
+            kind: 'daily',
+            createdAt: '2026-09-25T08:00:00.000Z',
+            sizeBytes: 1_258_291,
+          },
+        ]),
+      ),
+      backupNow: vi.fn(() =>
+        ok({
+          fileName: 'postloom-manual-2026-09-25.sqlite',
+          kind: 'manual',
+          createdAt: '2026-09-25T11:00:00.000Z',
+          sizeBytes: 1_258_291,
+        }),
+      ),
+      restore: vi.fn(() => ok({ ok: true as const })),
+      openFolder: vi.fn(() => ok({ ok: true as const })),
+      clearHistory: vi.fn(() => ok({ deleted: 3 })),
+      ...overrides.data,
+    },
     settings: {
       get: vi.fn(() => ok(DEFAULT_PREFERENCES)),
       update: vi.fn((changes) => ok({ ...DEFAULT_PREFERENCES, ...changes })),

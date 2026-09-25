@@ -677,6 +677,7 @@ Decided on 2026-09-24 (owner accepted the recommendations). Revisit only with a 
 | D7 | Crash reporting | None / opt-in Sentry | **Decided:** opt-in Sentry | Phase 5 |
 | D8 | License of the app | Private / open source (MIT/GPL) | **Decided for now:** private, all rights reserved; can be opened later. Only permissively licensed dependencies (MIT/BSD/Apache-2.0/ISC) are accepted, so every option stays available | Phase 0 |
 | D9 | Second UI language | Hindi / other / none | **Open:** decide after beta | 1.x |
+| D10 | Distribution and signing | Own certificates on all platforms / stores / unsigned | **Decided:** Windows through the **Microsoft Store** (MSIX, signed by the Store, Store handles updates). macOS **unsigned** on GitHub Releases, with a basic built-in (ad-hoc) signature, which Apple Silicon Macs require. Consequences: Mac users confirm the first launch in System Settings → Privacy & Security → "Open Anyway" (the user guide shows how), and update by downloading each new version (the app says when one is out; automatic updates on macOS need a signed app). Any Windows `.exe` on GitHub stays unsigned and shows a SmartScreen warning, so the Store is the recommended Windows download. Revisit Apple signing (Developer Program, about US$99/year) if Mac users grow | Phase 6 |
 
 ---
 
