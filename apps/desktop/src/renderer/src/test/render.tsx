@@ -101,6 +101,9 @@ export function mockApi(overrides: DeepPartial<PostloomApi> = {}): PostloomApi {
     app: {
       getInfo: vi.fn(() => ok({ name: 'Postloom', version: '0.1.0', platform: 'linux' as const })),
       getSecurity: vi.fn(() => ok({ secretProtection: 'keychain' as const })),
+      exportDiagnostics: vi.fn(() =>
+        ok({ saved: true, fileName: 'Postloom diagnostics 2026-09-25.json' }),
+      ),
       ...overrides.app,
     },
     accounts: {

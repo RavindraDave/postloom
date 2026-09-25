@@ -35,7 +35,7 @@ test('sends each person their own files, then saves a report from History', asyn
   const app = await launchApp(userDataDir, {
     POSTLOOM_TEST_EXTRA_CA_FILE: caFile,
     POSTLOOM_TEST_PICK_SPREADSHEET: listFile,
-    POSTLOOM_TEST_SAVE_REPORT: reportFile,
+    POSTLOOM_TEST_SAVE_FILE: reportFile,
   });
   const page = await firstPage(app);
 

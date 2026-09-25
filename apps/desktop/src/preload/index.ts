@@ -10,6 +10,7 @@ const api: PostloomApi = {
   app: {
     getInfo: () => invoke('app:getInfo'),
     getSecurity: () => invoke('app:getSecurity'),
+    exportDiagnostics: () => invoke('app:exportDiagnostics'),
   },
   settings: {
     get: () => invoke('settings:get'),

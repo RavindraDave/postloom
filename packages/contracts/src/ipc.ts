@@ -478,6 +478,11 @@ export const ipcContract = {
   },
   /** Trusts the folders the last check flagged, for attachments from now on. */
   'recipients:approveFolders': { input: z.object({ token: z.uuid() }), output: ok },
+  /** Saves a diagnostics file for support (no passwords, addresses or content). */
+  'app:exportDiagnostics': {
+    input: z.undefined(),
+    output: z.object({ saved: z.boolean(), fileName: z.string().nullable() }),
+  },
   /** Backups of Postloom's data, newest first. */
   'data:backups': { input: z.undefined(), output: z.array(backupSchema) },
   'data:backupNow': { input: z.undefined(), output: backupSchema },
@@ -552,6 +557,7 @@ export interface PostloomApi {
   app: {
     getInfo: Call<'app:getInfo'>;
     getSecurity: Call<'app:getSecurity'>;
+    exportDiagnostics: Call<'app:exportDiagnostics'>;
   };
   accounts: {
     list: Call<'accounts:list'>;

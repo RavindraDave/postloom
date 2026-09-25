@@ -38,9 +38,6 @@
     "tipLocal": "Your lists and emails stay on this computer.",
     "stepConnect": "Connect your email"
   },
-  "placeholder": {
-    "body": "This part of Postloom is being built. It will be ready in a later version."
-  },
   "templates": {
     "title": "Templates",
     "intro": "Reusable emails you can send again and again.",
@@ -791,5 +788,20 @@
       "finished": "Finished"
     },
     "open": "Open {{template}} from {{when}}"
+  },
+  "help": {
+    "title": "Help",
+    "intro": "Short guides to each part of Postloom.",
+    "search": "Search help",
+    "searchPlaceholder": "For example: app password, attachments, daily limit",
+    "noResults": "Nothing matches “{{query}}”. Try another word.",
+    "back": "All help",
+    "setupAgain": "Run the setup again",
+    "setupAgainHint": "Connect another email account step by step.",
+    "diagnostics": "Export diagnostics",
+    "diagnosticsHint": "A file for support: your version and how things are set up. No passwords, addresses or email content.",
+    "diagnosticsSaved": "Saved as {{file}}.",
+    "about": "Postloom {{version}}",
+    "open": "Help: {{title}}"
   }
 }

@@ -8,11 +8,13 @@ import {
   type TemplateSummary,
 } from '@postloom/contracts';
 import type { Repositories } from '@postloom/db';
+import { release } from 'node:os';
 import { collectFields, writeDocumentSchema, type WriteDocument } from '@postloom/editor';
 import { compileMjml, openMailer, sendEmail } from '@postloom/email';
 import { createAccountHandlers, type AccountDeps } from './accounts';
 import { createAssetHandlers, type AssetDeps } from './assets';
 import { applyHistoryRetention, createDataHandlers, type DataStore } from './data';
+import { buildDiagnostics } from './diagnostics';
 import { readDocument } from './documents';
 import { createListService, type RecipientDeps } from './recipients';
 import { createInProcessRunner, type RunnerEvents, type SendRunner } from './send-runner';
@@ -40,7 +42,7 @@ export interface HandlerDeps extends Omit<AccountDeps, 'repos'>, Partial<Omit<As
   openMailer?: typeof openMailer;
   /** Shows a notification from the computer. */
   notify?: (title: string, body: string) => void;
-  saveReport?: (suggestedName: string, csv: string) => Promise<string | null>;
+  saveFile?: (suggestedName: string, csv: string) => Promise<string | null>;
   /** Backups and the data folder (tests fake it). */
   dataStore?: DataStore;
 }
@@ -77,7 +79,7 @@ export function createMainServices({
   createSendRunner,
   openMailer: mailerFor = openMailer,
   notify,
-  saveReport,
+  saveFile,
   dataStore = noDataStore,
   ...accountDeps
 }: HandlerDeps): { handlers: IpcHandlers; sends: SendService } {
@@ -91,7 +93,7 @@ export function createMainServices({
       createSendRunner ??
       ((events) => createInProcessRunner({ repos, openMailer: mailerFor }, events)),
     ...(notify && { notify }),
-    ...(saveReport && { saveReport }),
+    ...(saveFile && { saveFile }),
   });
 
   const loadPreferences = async (): Promise<Preferences> => {
@@ -119,6 +121,28 @@ export function createMainServices({
     }),
 
     'app:getInfo': () => Promise.resolve(appInfo),
+
+    'app:exportDiagnostics': async () => {
+      const diagnostics = await buildDiagnostics(repos, {
+        appInfo,
+        runtime: {
+          electron: process.versions.electron,
+          chrome: process.versions.chrome,
+          node: process.versions.node,
+          arch: process.arch,
+          osRelease: release(),
+        },
+        secretProtection: accountDeps.vault.protection(),
+        preferences: await loadPreferences(),
+        backups: dataStore.list().length,
+      });
+      const day = new Date().toISOString().slice(0, 10);
+      const fileName = await (saveFile ?? (() => Promise.resolve(null)))(
+        `Postloom diagnostics ${day}.json`,
+        `${JSON.stringify(diagnostics, null, 2)}\n`,
+      );
+      return { saved: fileName !== null, fileName };
+    },
 
     'settings:get': loadPreferences,
     'settings:update': async (changes) => {

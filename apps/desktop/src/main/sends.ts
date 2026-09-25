@@ -19,7 +19,7 @@ export interface SendServiceDeps extends Pick<AccountDeps, 'repos' | 'vault' | '
   /** Shows a notification from the computer (e.g. "Sending finished"). */
   notify?: (title: string, body: string) => void;
   /** Asks where to save a report and saves it; the file name, or null if cancelled. */
-  saveReport?: (suggestedName: string, csv: string) => Promise<string | null>;
+  saveFile?: (suggestedName: string, csv: string) => Promise<string | null>;
 }
 
 type SendHandlers = Pick<
@@ -244,7 +244,7 @@ export function createSendService(deps: SendServiceDeps) {
       const day = send.createdAt.slice(0, 10);
       // A file name without characters that aren't allowed in file names.
       const suggested = `${template || 'Send'} ${day}.csv`.replace(/[\\/:*?"<>|]+/g, '-');
-      const fileName = await (deps.saveReport ?? (() => Promise.resolve(null)))(
+      const fileName = await (deps.saveFile ?? (() => Promise.resolve(null)))(
         suggested,
         buildReport(await repos.sends.recipients(id)),
       );

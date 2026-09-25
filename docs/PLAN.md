@@ -655,6 +655,12 @@ Estimates assume one developer working with AI assistance; they're rough and get
   - History lists every send; each opens its result, and "Save a report" writes a CSV of everyone with what happened and why (formula-safe, so it can't run anything when opened in a spreadsheet).
 
   Phase 4 is complete. Still to do: usability round 3 (owner). Reading very large spreadsheets still happens in the main process, within the 25 MB / 20,000-row limits.
+- **Phase 5 (in progress):** done so far:
+  - Settings → Your data: backups (daily, before updates, and on request), restore a backup on restart, open the data folder, how long History is kept, and clear History;
+  - Help: ten short guides you can search (getting started, connecting Gmail, Outlook and other providers, templates, lists, sending, History, your data, and fixing problems), an ⓘ link to the right guide on each page, and "Run the setup again";
+  - Export diagnostics: a file for support with only the version, the computer, the settings and counts. It never includes passwords, addresses, server names, people or email content.
+
+  Still to do: importing from EmailAutomation, the accessibility and performance pass, and the rest of Settings (sending defaults, opt-in crash reporting, about).
 
 **Total:** roughly 19-23 weeks to 1.0 stable. Phases 2 and 3 can overlap once Phase 1 is done.
 
