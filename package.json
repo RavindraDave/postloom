@@ -19,7 +19,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "e2e": "pnpm --filter @postloom/desktop e2e",
-    "package": "pnpm --filter @postloom/desktop package"
+    "package": "pnpm --filter @postloom/desktop package",
+    "e2e:perf": "pnpm --filter @postloom/desktop e2e:perf"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

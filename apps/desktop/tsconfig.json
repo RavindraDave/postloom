@@ -8,6 +8,7 @@
     "vitest.main.config.ts",
     "vitest.renderer.config.ts",
     "playwright.config.ts",
+    "playwright.perf.config.ts",
     "src/main",
     "src/preload",
     "src/sender"

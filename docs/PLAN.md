@@ -542,8 +542,12 @@ A fuller STRIDE threat model lives in `docs/security/threat-model.md` and is rev
 | Designer opens an existing template | < 1s |
 | Preview re-render on change | < 300ms |
 | Import 10k-row spreadsheet | < 5s, UI stays responsive |
-| Memory during a 5k-recipient send | Flat (no growth per recipient); < 400MB total |
+| Memory during a 5k-recipient send | Flat (no growth per recipient); sending adds < 300MB to the app at rest* |
 | Installer size | < 150MB |
+
+Checked in CI: `pnpm e2e:perf` (Linux, `apps/desktop/e2e/performance.spec.ts`) times each budget in the built app and prints the numbers; the installer size is checked on all three systems after packaging.
+
+\* Changed from "< 400MB total" (Phase 5): Electron's own processes (main, screen, graphics and network) already use about 600MB at rest on a CI machine with no graphics card, before Postloom does anything. What Postloom controls is what sending adds (measured: 187MB) and whether it grows (the sending process holds memory it tidies up later; `memory.test.ts` in `@postloom/sending` shows the memory in use stays flat).
 
 ---
 
@@ -666,7 +670,9 @@ Estimates assume one developer working with AI assistance; they're rough and get
 
   - Accessibility: automated WCAG 2.2 AA checks (axe) on every screen in light and dark, including screens with real content; "Skip to content"; focus moves to the page on a page change; window titles name the page; send progress is read out at the start, every tenth and at the end rather than for every email; the countdown before sending is announced once and focus moves to "Don't send yet"; "reduce motion" is respected. The by-hand screen-reader pass before each release is in [design/accessibility-checklist.md](design/accessibility-checklist.md).
 
-  Still to do: the performance pass, the first by-hand screen-reader pass (owner), and opt-in crash reporting (D7, needs a Sentry project). Updates are handled by the Microsoft Store on Windows and by a new-version notice on macOS (D10, Phase 6).
+  - Performance budgets (§15.3) checked in CI. Loading the email layout library (MJML) only when first needed, instead of at start-up, cut the cold start from 3.6s to 1.1s and keeps it out of the sending process. Measured on Linux CI-like hardware: cold start 1.1s, slowest page change 50ms, opening a template 0.15-0.4s, preview 0.12s, a 10,000-row spreadsheet 0.4s (longest pause of the screen 89ms), sending adds 187MB, installers 101-130MB.
+
+  Still to do: the first by-hand screen-reader pass (owner), and opt-in crash reporting (D7, needs a Sentry project). Updates are handled by the Microsoft Store on Windows and by a new-version notice on macOS (D10, Phase 6).
 
 **Total:** roughly 19-23 weeks to 1.0 stable. Phases 2 and 3 can overlap once Phase 1 is done.
 
