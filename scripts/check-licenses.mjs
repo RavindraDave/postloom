@@ -25,15 +25,16 @@ const ALLOWED = new Set([
 
 /** "MIT (http://…)" → "MIT"; "(MIT OR CC0-1.0)" → alternatives; AND needs all parts. */
 export function isAllowed(expression) {
-  const cleaned = expression.replace(/\s*\(https?:[^)]*\)/g, '').replace(/^\((.*)\)$/, '$1').trim();
-  return cleaned
-    .split(/\s+OR\s+/i)
-    .some((option) =>
-      option
-        .replace(/[()]/g, '')
-        .split(/\s+AND\s+/i)
-        .every((part) => ALLOWED.has(part.trim())),
-    );
+  const cleaned = expression
+    .replace(/\s*\(https?:[^)]*\)/g, '')
+    .replace(/^\((.*)\)$/, '$1')
+    .trim();
+  return cleaned.split(/\s+OR\s+/i).some((option) =>
+    option
+      .replace(/[()]/g, '')
+      .split(/\s+AND\s+/i)
+      .every((part) => ALLOWED.has(part.trim())),
+  );
 }
 
 const output = execFileSync('pnpm', ['licenses', 'list', '--json'], {
@@ -44,7 +45,9 @@ const output = execFileSync('pnpm', ['licenses', 'list', '--json'], {
 const byLicense = JSON.parse(output);
 const problems = Object.entries(byLicense)
   .filter(([license]) => !isAllowed(license))
-  .flatMap(([license, packages]) => packages.map((p) => `${p.name}@${p.versions.join(',')}: ${license}`));
+  .flatMap(([license, packages]) =>
+    packages.map((p) => `${p.name}@${p.versions.join(',')}: ${license}`),
+  );
 
 if (problems.length > 0) {
   console.error('Dependencies with licences outside the allowlist:\n  ' + problems.join('\n  '));

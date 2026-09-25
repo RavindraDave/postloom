@@ -114,4 +114,14 @@ export default tseslint.config(
     ],
     languageOptions: { globals: globals.node },
   },
+  {
+    // Plain Node build/CI scripts: linted without type information.
+    files: ['scripts/**/*.mjs'],
+    ...tseslint.configs.disableTypeChecked,
+    languageOptions: {
+      ...tseslint.configs.disableTypeChecked.languageOptions,
+      globals: globals.node,
+    },
+    rules: { ...tseslint.configs.disableTypeChecked.rules, 'no-console': 'off' },
+  },
 );
