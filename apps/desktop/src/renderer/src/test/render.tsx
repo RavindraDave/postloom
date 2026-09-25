@@ -56,6 +56,7 @@ export const sampleSender: SenderInfo = {
   replyTo: null,
   delayMs: null,
   templateCount: 0,
+  brand: null,
   effective: {
     delayMs: { value: 2000, source: 'app' },
     dailyLimit: { value: 450, source: 'app' },
@@ -87,7 +88,22 @@ export function mockApi(overrides: DeepPartial<PostloomApi> = {}): PostloomApi {
       create: vi.fn((input: { name: string }) => ok({ ...sampleSender, name: input.name })),
       update: vi.fn(() => ok(sampleSender)),
       delete: vi.fn(() => ok({ ok: true as const })),
+      setBrand: vi.fn(() => ok(sampleSender)),
       ...overrides.senders,
+    },
+    assets: {
+      pickImage: vi.fn(() =>
+        ok({
+          id: 'img1',
+          mime: 'image/png',
+          size: 2048,
+          width: 800,
+          height: 400,
+          name: 'shop.png',
+        }),
+      ),
+      totalSize: vi.fn(() => ok({ bytes: 0 })),
+      ...overrides.assets,
     },
     settings: {
       get: vi.fn(() => ok(DEFAULT_PREFERENCES)),

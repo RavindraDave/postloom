@@ -25,6 +25,7 @@ Email account secrets · recipient personal data · the user's machine · the us
 | | Header injection from spreadsheet values | Reject CR/LF in header values; strict address parsing |
 | **Repudiation** | "Was this email sent?" | Per-recipient log with status, timestamps, provider message-id; frozen resolved settings per send |
 | **Information disclosure** | Script in imported HTML reads files | Sandboxed renderer, no Node, strict CSP, sanitization, sandboxed preview iframe without scripts |
+| | A "picture" that is really a script or document, or a photo leaking its GPS location | Pictures only via the OS file picker; PNG/JPEG recognised by magic bytes; re-encoded (metadata dropped); served only from the app's own store with `nosniff` ([ADR 0006](../adr/0006-images-inside-emails.md)) |
 | | Spreadsheet attaches `~/.ssh/id_rsa` and sends it out | Attachment review step; folder allowlist; sensitive-path blocklist |
 | | Passwords in logs or crash reports | Redaction layer with tests; opt-in crash reports with PII scrubbing |
 | | Lost laptop exposes recipient data | Retention limits; clear-history; OS disk encryption guidance; optional DB encryption (1.x) |

@@ -25,6 +25,7 @@ test('the preload exposes only the typed Postloom API', async ({ page }) => {
     settings: Object.keys(window.postloom.settings),
     accounts: Object.keys(window.postloom.accounts).sort(),
     senders: Object.keys(window.postloom.senders).sort(),
+    assets: Object.keys(window.postloom.assets).sort(),
     templates: Object.keys(window.postloom.templates).sort(),
     everyEntryIsAFunction: [
       window.postloom.app,
@@ -32,18 +33,20 @@ test('the preload exposes only the typed Postloom API', async ({ page }) => {
       window.postloom.templates,
       window.postloom.accounts,
       window.postloom.senders,
+      window.postloom.assets,
     ]
       .flatMap((group): unknown[] => Object.values(group))
       .every((value) => typeof value === 'function'),
     hasIpcRenderer: 'ipcRenderer' in window || 'electron' in window,
   }));
   expect(api).toEqual({
-    top: ['accounts', 'app', 'senders', 'settings', 'templates'],
+    top: ['accounts', 'app', 'assets', 'senders', 'settings', 'templates'],
     app: ['getInfo', 'getSecurity'],
     settings: ['get', 'update'],
     // No channel ever returns a saved password.
     accounts: ['create', 'delete', 'list', 'sendTestEmail', 'test', 'testConnection', 'update'],
-    senders: ['create', 'delete', 'list', 'update'],
+    senders: ['create', 'delete', 'list', 'setBrand', 'update'],
+    assets: ['pickImage', 'totalSize'],
     templates: [
       'create',
       'delete',

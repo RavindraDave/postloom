@@ -1,4 +1,13 @@
-import { Button, Group, Modal, Stack, TextInput } from '@mantine/core';
+import {
+  Button,
+  Group,
+  Modal,
+  SegmentedControl,
+  Slider,
+  Stack,
+  Text,
+  TextInput,
+} from '@mantine/core';
 import { fieldNameSchema, safeHref } from '@postloom/editor';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -194,6 +203,127 @@ function DetailForm({
         <Group justify="flex-end">
           <Button type="submit">
             {initial ? t('editor.detailModal.saveEdit') : t('editor.detailModal.save')}
+          </Button>
+        </Group>
+      </Stack>
+    </form>
+  );
+}
+
+export interface PictureValue {
+  alt: string;
+  width: number;
+  align: 'left' | 'center' | 'right';
+  href: string;
+}
+
+/** Describes a picture and sets its size, position and optional link. */
+export function PictureDialog({
+  opened,
+  onClose,
+  onSave,
+  initial,
+  maxWidth,
+  isEdit,
+}: DialogProps<PictureValue> & { maxWidth: number; isEdit: boolean }) {
+  const { t } = useTranslation();
+  return (
+    <Modal
+      opened={opened}
+      onClose={onClose}
+      title={isEdit ? t('editor.pictureModal.editTitle') : t('editor.pictureModal.title')}
+      centered
+    >
+      {opened && initial && (
+        <PictureForm initial={initial} maxWidth={maxWidth} isEdit={isEdit} onSave={onSave} />
+      )}
+    </Modal>
+  );
+}
+
+function PictureForm({
+  initial,
+  maxWidth,
+  isEdit,
+  onSave,
+}: {
+  initial: PictureValue;
+  maxWidth: number;
+  isEdit: boolean;
+  onSave: (value: PictureValue) => void;
+}) {
+  const { t } = useTranslation();
+  const [alt, setAlt] = useState(initial.alt);
+  const [width, setWidth] = useState(initial.width);
+  const [align, setAlign] = useState(initial.align);
+  const [href, setHref] = useState(initial.href);
+  const [submitted, setSubmitted] = useState(false);
+  const altMissing = alt.trim() === '';
+  const hrefValid = href.trim() === '' || safeHref(href) !== null;
+  const submit = (event: Submit) => {
+    event.preventDefault();
+    setSubmitted(true);
+    if (!altMissing && hrefValid) onSave({ alt: alt.trim(), width, align, href: href.trim() });
+  };
+  return (
+    <form onSubmit={submit} noValidate>
+      <Stack gap="md">
+        <TextInput
+          label={t('editor.pictureModal.alt')}
+          description={t('editor.pictureModal.altHint')}
+          value={alt}
+          maxLength={200}
+          onChange={(event) => {
+            setAlt(event.currentTarget.value);
+          }}
+          error={submitted && altMissing ? t('editor.pictureModal.altMissing') : undefined}
+          data-autofocus
+        />
+        <Stack gap={4}>
+          <Text size="sm" fw={500} id="picture-width-label">
+            {t('editor.pictureModal.width')}
+          </Text>
+          <Slider
+            aria-labelledby="picture-width-label"
+            min={16}
+            max={maxWidth}
+            step={4}
+            value={width}
+            onChange={setWidth}
+            label={(value) => `${String(value)} px`}
+          />
+        </Stack>
+        <Stack gap={4}>
+          <Text size="sm" fw={500}>
+            {t('editor.pictureModal.align')}
+          </Text>
+          <SegmentedControl
+            aria-label={t('editor.pictureModal.align')}
+            value={align}
+            onChange={(value) => {
+              setAlign(value);
+            }}
+            data={[
+              { value: 'left', label: t('editor.pictureModal.alignLeft') },
+              { value: 'center', label: t('editor.pictureModal.alignCenter') },
+              { value: 'right', label: t('editor.pictureModal.alignRight') },
+            ]}
+          />
+        </Stack>
+        <TextInput
+          label={t('editor.pictureModal.link')}
+          value={href}
+          onChange={(event) => {
+            setHref(event.currentTarget.value);
+          }}
+          error={submitted && !hrefValid ? t('editor.linkModal.invalid') : undefined}
+        />
+        <Text size="xs" c="var(--pl-muted)">
+          {t('editor.pictureModal.inside')}
+        </Text>
+        <Group justify="flex-end">
+          <Button type="submit">
+            {isEdit ? t('editor.pictureModal.saveEdit') : t('editor.pictureModal.save')}
           </Button>
         </Group>
       </Stack>

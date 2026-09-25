@@ -13,7 +13,7 @@ import {
   type TemplateVersion,
 } from '@postloom/core';
 import type { Kysely, Selectable } from 'kysely';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import type {
   BrandKitsTable,
   Database,
@@ -42,6 +42,25 @@ export type NewSenderProfile = Omit<SenderProfile, Timestamps>;
 export type SenderProfileChanges = Partial<NewSenderProfile>;
 export type NewBrandKit = Omit<BrandKit, Timestamps>;
 export type BrandKitChanges = Partial<NewBrandKit>;
+/** A picture stored in the database (logos and images in emails). */
+export interface Asset {
+  id: Id;
+  mime: string;
+  size: number;
+  width: number | null;
+  height: number | null;
+  name: string | null;
+  createdAt: string;
+}
+
+export interface NewAsset {
+  mime: string;
+  bytes: Uint8Array;
+  width: number | null;
+  height: number | null;
+  name: string | null;
+}
+
 export type NewTemplate = Omit<Template, Timestamps | 'deletedAt'>;
 export type TemplateChanges = Partial<Omit<NewTemplate, 'editorMode'>> & {
   editorMode?: EditorMode;
@@ -314,6 +333,61 @@ export function createRepositories(db: Kysely<Database>, options: RepositoryOpti
     },
   };
 
+  const assets = {
+    /** Stores a picture once: adding the same bytes again returns the existing one. */
+    async put(input: NewAsset): Promise<Asset> {
+      const sha256 = createHash('sha256').update(input.bytes).digest('hex');
+      const existing = await db
+        .selectFrom('assets')
+        .select('id')
+        .where('sha256', '=', sha256)
+        .executeTakeFirst();
+      if (existing) return assets.get(existing.id);
+      const id = newId();
+      await db
+        .insertInto('assets')
+        .values({
+          id,
+          sha256,
+          mime: input.mime,
+          size: input.bytes.byteLength,
+          bytes: input.bytes,
+          width: input.width,
+          height: input.height,
+          name: input.name,
+          created_at: now(),
+        })
+        .execute();
+      return assets.get(id);
+    },
+    async get(id: Id): Promise<Asset> {
+      const row = await db
+        .selectFrom('assets')
+        .select(['id', 'mime', 'size', 'width', 'height', 'name', 'created_at'])
+        .where('id', '=', id)
+        .executeTakeFirst();
+      if (!row) throw notFound('asset', id);
+      return {
+        id: row.id,
+        mime: row.mime,
+        size: row.size,
+        width: row.width,
+        height: row.height,
+        name: row.name,
+        createdAt: row.created_at,
+      };
+    },
+    /** The picture's bytes, or null if it no longer exists. */
+    async read(id: Id): Promise<{ mime: string; bytes: Uint8Array } | null> {
+      const row = await db
+        .selectFrom('assets')
+        .select(['mime', 'bytes'])
+        .where('id', '=', id)
+        .executeTakeFirst();
+      return row ? { mime: row.mime, bytes: row.bytes } : null;
+    },
+  };
+
   const templates = {
     /** Templates not in the bin, most recently changed first. */
     async list(): Promise<Template[]> {
@@ -494,7 +568,7 @@ export function createRepositories(db: Kysely<Database>, options: RepositoryOpti
     },
   };
 
-  return { settings, accounts, senders, brandKits, templates, suppression };
+  return { settings, accounts, senders, brandKits, assets, templates, suppression };
 }
 
 export type Repositories = ReturnType<typeof createRepositories>;

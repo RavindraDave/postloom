@@ -87,6 +87,9 @@ export interface AssetsTable {
   mime: string;
   size: number;
   bytes: Uint8Array;
+  width: number | null;
+  height: number | null;
+  name: string | null;
   created_at: string;
 }
 

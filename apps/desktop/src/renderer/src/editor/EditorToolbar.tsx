@@ -11,6 +11,7 @@ import {
   IconLinkOff,
   IconList,
   IconListNumbers,
+  IconPhoto,
   IconSeparatorHorizontal,
   IconSquareRoundedPlus,
   IconUnderline,
@@ -27,6 +28,8 @@ interface EditorToolbarProps {
   onButton: () => void;
   onEditButton: () => void;
   onEditDetail: () => void;
+  onPicture: () => void;
+  onEditPicture: () => void;
   insertDetail: ReactNode;
 }
 
@@ -38,6 +41,8 @@ export function EditorToolbar({
   onButton,
   onEditButton,
   onEditDetail,
+  onPicture,
+  onEditPicture,
   insertDetail,
 }: EditorToolbarProps) {
   const { t } = useTranslation();
@@ -62,6 +67,7 @@ export function EditorToolbar({
       alignRight: current.isActive({ textAlign: 'right' }),
       buttonSelected: current.isActive('button'),
       fieldSelected: current.isActive('field'),
+      pictureSelected: current.isActive('image'),
       canUndo: current.can().undo(),
       canRedo: current.can().redo(),
     }),
@@ -166,6 +172,9 @@ export function EditorToolbar({
         />
       </Group>
       <Divider orientation="vertical" />
+      <Button variant="default" size="sm" leftSection={<IconPhoto size={18} />} onClick={onPicture}>
+        {t('editor.picture')}
+      </Button>
       <Button
         variant="default"
         size="sm"
@@ -178,6 +187,11 @@ export function EditorToolbar({
       {state.buttonSelected && (
         <Button variant="subtle" size="sm" onClick={onEditButton}>
           {t('editor.editButton')}
+        </Button>
+      )}
+      {state.pictureSelected && (
+        <Button variant="subtle" size="sm" onClick={onEditPicture}>
+          {t('editor.editPicture')}
         </Button>
       )}
       {state.fieldSelected && (

@@ -11,6 +11,7 @@ import type { EmailAccountInfo, SenderInfo } from '@postloom/contracts';
 import type { Repositories } from '@postloom/db';
 import { writeDocumentToMjml, type WriteDocument } from '@postloom/editor';
 import { compileMjml, sendEmail, verifySmtpAccount, type SmtpAccountConfig } from '@postloom/email';
+import { saveSenderBrand, senderBrand } from './brand';
 import type { IpcHandlers } from './ipc-router';
 import type { SecretVault } from './secrets';
 
@@ -39,6 +40,7 @@ type AccountHandlers = Pick<
   | 'senders:create'
   | 'senders:update'
   | 'senders:delete'
+  | 'senders:setBrand'
 >;
 
 /** Decrypts the saved password just in time; it never leaves the main process. */
@@ -142,6 +144,7 @@ export function createAccountHandlers({
       replyTo: sender.replyTo,
       delayMs: sender.delayMs,
       templateCount: await repos.senders.templateCount(sender.id),
+      brand: await senderBrand(repos, sender),
       effective: { delayMs: delay, dailyLimit },
     };
   };
@@ -255,6 +258,11 @@ export function createAccountHandlers({
 
     'senders:update': async ({ id, ...changes }) => {
       await repos.senders.update(id, definedOnly(changes));
+      return senderInfo(id);
+    },
+
+    'senders:setBrand': async ({ id, brand }) => {
+      await saveSenderBrand(repos, await repos.senders.get(id), brand);
       return senderInfo(id);
     },
 

@@ -5,13 +5,13 @@ import { DatabaseSync } from 'node:sqlite';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { tempDir } from './test-helpers';
 
-// Simulates an app update that ships a new migration: the database must be
+// Simulates an app update that ships a new migration (sorted after the real ones): the database must be
 // backed up before it is changed.
 vi.mock('./migrations', async (importOriginal) => {
   const original = await importOriginal<typeof MigrationsModule>();
   const MIGRATIONS = {
     ...original.MIGRATIONS,
-    '0002-test-column': {
+    '9999-test-column': {
       up: async (db: Kysely<unknown>) => {
         await db.schema.alterTable('templates').addColumn('test_note', 'text').execute();
       },
@@ -21,10 +21,7 @@ vi.mock('./migrations', async (importOriginal) => {
   return {
     MIGRATIONS,
     migrationProvider: {
-      getMigrations: () =>
-        Promise.resolve(
-          includeSecond ? MIGRATIONS : { '0001-initial': original.MIGRATIONS['0001-initial']! },
-        ),
+      getMigrations: () => Promise.resolve(includeSecond ? MIGRATIONS : original.MIGRATIONS),
     },
     enableSecondMigration: () => {
       includeSecond = true;
@@ -72,9 +69,9 @@ describe('upgrading an existing database', () => {
     migrations.enableSecondMigration();
     const v2 = await openDatabase({ file, backupDir, now: () => new Date('2026-10-01T10:00:00Z') });
 
-    expect(v2.applied).toEqual(['0002-test-column']);
+    expect(v2.applied).toEqual(['9999-test-column']);
     expect(v2.backupPath).toMatch(
-      /postloom-before-0002-test-column-2026-10-01T10-00-00-000Z\.sqlite$/,
+      /postloom-before-9999-test-column-2026-10-01T10-00-00-000Z\.sqlite$/,
     );
 
     const backup = new DatabaseSync(v2.backupPath!, { readOnly: true });

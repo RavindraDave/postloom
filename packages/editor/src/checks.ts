@@ -16,7 +16,9 @@ export interface TemplateProblem {
     | 'linkInvalid'
     | 'buttonLinkInvalid'
     | 'buttonLinkExample'
-    | 'tooLarge';
+    | 'tooLarge'
+    | 'imageAltMissing'
+    | 'imagesHeavy';
   severity: CheckSeverity;
   /** Values for the message, e.g. the button label. */
   values?: Record<string, string | number>;
@@ -26,6 +28,8 @@ export interface TemplateProblem {
 export const SUBJECT_SOFT_LIMIT = 78;
 /** Gmail clips messages over ~102 KB and hides the rest behind "View entire message". */
 export const GMAIL_CLIP_BYTES = 102 * 1024;
+/** Pictures travel inside every email; beyond this they slow sending and can look like spam. */
+export const IMAGES_SOFT_LIMIT_BYTES = 1024 * 1024;
 
 const EXAMPLE_HOST = /(^|\.)example\.(com|org|net)$/i;
 
@@ -34,6 +38,8 @@ export function checkTemplate(input: {
   document: WriteDocument;
   /** Size of the compiled HTML, when known. */
   htmlBytes?: number | undefined;
+  /** Total size of the pictures sent inside each email, when known. */
+  imageBytes?: number | undefined;
 }): TemplateProblem[] {
   const problems: TemplateProblem[] = [];
   const subject = input.subject.trim();
@@ -49,7 +55,9 @@ export function checkTemplate(input: {
 
   if (!hasContent(input.document)) problems.push({ id: 'letterEmpty', severity: 'mustFix' });
 
+  let unnamedPictures = 0;
   for (const block of input.document.content) {
+    if (block.type === 'image' && !block.attrs.alt.trim()) unnamedPictures += 1;
     if (block.type === 'button') {
       const href = safeHref(block.attrs.href);
       if (!href) {
@@ -66,6 +74,14 @@ export function checkTemplate(input: {
         });
       }
     }
+  }
+
+  if (unnamedPictures > 0) {
+    problems.push({
+      id: 'imageAltMissing',
+      severity: 'mustFix',
+      values: { count: unnamedPictures },
+    });
   }
 
   const badLinks = new Set<string>();
@@ -86,6 +102,13 @@ export function checkTemplate(input: {
       values: { size: Math.round(input.htmlBytes / 1024) },
     });
   }
+  if (input.imageBytes !== undefined && input.imageBytes > IMAGES_SOFT_LIMIT_BYTES) {
+    problems.push({
+      id: 'imagesHeavy',
+      severity: 'worthALook',
+      values: { size: Math.round(input.imageBytes / 1024) },
+    });
+  }
   return problems;
 }
 
@@ -103,7 +126,7 @@ function hasContent(doc: WriteDocument): boolean {
   forEachInline(doc, (node) => inline.push(node));
   return (
     inline.some((node) => node.type === 'field' || (node.type === 'text' && node.text.trim())) ||
-    doc.content.some((block) => block.type === 'button')
+    doc.content.some((block) => block.type === 'button' || block.type === 'image')
   );
 }
 
