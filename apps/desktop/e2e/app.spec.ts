@@ -23,9 +23,12 @@ test('opens on the Home screen with the getting-started checklist', async ({ pag
 });
 
 test('navigates between sections from the sidebar', async ({ page }) => {
-  await page.getByRole('link', { name: 'History' }).click();
+  await page.getByRole('link', { name: 'History', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'History' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'History' })).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('link', { name: 'History', exact: true })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
 });
 
 test('makes a template and shows a readable preview', async ({ page }) => {

@@ -4,9 +4,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
 import { HashRouter, Route, Routes } from 'react-router';
 import { AppLayout } from './layout/AppLayout';
+import { HelpPage } from './pages/HelpPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { HomePage } from './pages/HomePage';
-import { PlaceholderPage } from './pages/PlaceholderPage';
 import { SendPage } from './pages/send/SendPage';
 import { SendProgressPage } from './pages/send/SendProgressPage';
 import { SendersPage } from './pages/SendersPage';
@@ -59,7 +59,8 @@ export function AppRoutes() {
         <Route path="senders" element={<SendersPage />} />
         <Route path="history" element={<HistoryPage />} />
         <Route path="settings" element={<SettingsPage />} />
-        <Route path="help" element={<PlaceholderPage titleKey="nav.help" />} />
+        <Route path="help" element={<HelpPage />} />
+        <Route path="help/:topic" element={<HelpPage />} />
       </Route>
     </Routes>
   );

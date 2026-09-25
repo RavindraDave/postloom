@@ -154,7 +154,7 @@ void app.whenReady().then(async () => {
         },
         events,
       ),
-    saveReport,
+    saveFile,
     dataStore: {
       list: () => listBackups(location.backupDir),
       backupNow: () => basename(opened.backupNow('manual')),
@@ -273,17 +273,22 @@ async function pickSpreadsheetFile(): Promise<(PickedFile & { folder: string }) 
   };
 }
 
-/** The computer's own "Save as" dialog, for a send's report. */
-async function saveReport(suggestedName: string, csv: string): Promise<string | null> {
+/** The computer's own "Save as" dialog (reports and diagnostics). */
+async function saveFile(suggestedName: string, content: string): Promise<string | null> {
   // End-to-end tests can't click a native dialog; never honoured when installed.
-  const testPath = app.isPackaged ? undefined : process.env['POSTLOOM_TEST_SAVE_REPORT'];
+  const testPath = app.isPackaged ? undefined : process.env['POSTLOOM_TEST_SAVE_FILE'];
   let path = testPath;
   if (!path) {
     const window = BrowserWindow.getFocusedWindow();
+    const json = suggestedName.endsWith('.json');
     const options = {
-      title: 'Save the report',
+      title: json ? 'Save the diagnostics' : 'Save the report',
       defaultPath: join(app.getPath('documents'), suggestedName),
-      filters: [{ name: 'Spreadsheet (CSV)', extensions: ['csv'] }],
+      filters: [
+        json
+          ? { name: 'Diagnostics (JSON)', extensions: ['json'] }
+          : { name: 'Spreadsheet (CSV)', extensions: ['csv'] },
+      ],
     };
     const result = window
       ? await dialog.showSaveDialog(window, options)
@@ -291,7 +296,7 @@ async function saveReport(suggestedName: string, csv: string): Promise<string | 
     path = result.canceled ? undefined : result.filePath;
   }
   if (!path) return null;
-  await writeFile(path, csv, 'utf8');
+  await writeFile(path, content, 'utf8');
   return basename(path);
 }
 

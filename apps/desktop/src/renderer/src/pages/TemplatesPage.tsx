@@ -122,6 +122,7 @@ export function TemplatesPage() {
   return (
     <Stack gap="lg">
       <PageHeader
+        helpTopic="templates"
         title={t('templates.title')}
         description={t('templates.intro')}
         action={headerActions}

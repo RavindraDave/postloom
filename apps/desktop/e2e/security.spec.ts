@@ -57,7 +57,7 @@ test('the preload exposes only the typed Postloom API', async ({ page }) => {
       'settings',
       'templates',
     ],
-    app: ['getInfo', 'getSecurity'],
+    app: ['exportDiagnostics', 'getInfo', 'getSecurity'],
     settings: ['get', 'update'],
     // No channel ever returns a saved password.
     accounts: ['create', 'delete', 'list', 'sendTestEmail', 'test', 'testConnection', 'update'],

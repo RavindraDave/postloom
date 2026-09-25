@@ -29,7 +29,7 @@ export function HistoryPage() {
 
   return (
     <Stack gap="lg">
-      <PageHeader title={t('history.title')} description={t('history.intro')} />
+      <PageHeader helpTopic="history" title={t('history.title')} description={t('history.intro')} />
       {sends.error && (
         <Alert color="red" icon={<IconAlertTriangle />} role="alert">
           {t(errorKey(sends.error))}

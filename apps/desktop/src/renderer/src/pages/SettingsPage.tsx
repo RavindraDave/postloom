@@ -33,7 +33,11 @@ export function SettingsPage() {
 
   return (
     <Stack gap="lg" maw={720}>
-      <PageHeader title={t('nav.settings')} description={t('settings.intro')} />
+      <PageHeader
+        helpTopic="your-data"
+        title={t('nav.settings')}
+        description={t('settings.intro')}
+      />
 
       {update.isError && (
         <Alert color="red" icon={<IconAlertTriangle />} role="alert">

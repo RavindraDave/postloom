@@ -79,7 +79,7 @@ export function SendPage() {
 
   return (
     <Stack gap="lg">
-      <PageHeader title={t('send.title')} description={t('send.intro')} />
+      <PageHeader helpTopic="lists" title={t('send.title')} description={t('send.intro')} />
       <WizardSteps
         label={t('send.stepsLabel')}
         steps={STEPS.map((id) => t(`send.steps.${id}`))}

@@ -63,7 +63,7 @@ beforeEach(async () => {
       }),
     openMailer: () => mailer,
     notify,
-    saveReport: (name, csv) => {
+    saveFile: (name, csv) => {
       saved = { name, csv };
       return Promise.resolve(name);
     },

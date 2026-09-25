@@ -75,7 +75,12 @@ export function SendersPage() {
 
   return (
     <Stack gap="lg">
-      <PageHeader title={t('senders.title')} description={t('senders.intro')} action={newButton} />
+      <PageHeader
+        helpTopic="connect-other"
+        title={t('senders.title')}
+        description={t('senders.intro')}
+        action={newButton}
+      />
 
       {error && (
         <Alert color="red" icon={<IconAlertTriangle />} role="alert">

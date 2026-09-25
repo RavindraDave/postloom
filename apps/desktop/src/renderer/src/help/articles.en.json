@@ -1,0 +1,253 @@
+{
+  "getting-started": {
+    "title": "Getting started",
+    "summary": "The four steps from installing Postloom to your first send.",
+    "sections": [
+      {
+        "heading": "What Postloom does",
+        "body": [
+          "Postloom sends a personal email to each person on a list, from your own email account. You write the email once, with details like a first name or invoice number left as gaps, and Postloom fills them in for each person from your spreadsheet."
+        ]
+      },
+      {
+        "heading": "The four steps",
+        "body": [
+          "1. Connect your email account (Senders & accounts). Postloom checks the password works before saving it.",
+          "2. Make a template (Templates). Start from one of the examples, or write your own.",
+          "3. Choose your list (Send emails). Any Excel or CSV file with one person per row works.",
+          "4. Check and send. Postloom checks everyone first, shows you each person's email, and lets you send yourself a test."
+        ]
+      },
+      {
+        "heading": "Everything stays on your computer",
+        "body": [
+          "Your lists, templates and history are kept on this computer only. Your email password is kept in your computer's own password store, never in Postloom's files or backups."
+        ]
+      }
+    ]
+  },
+  "connect-gmail": {
+    "title": "Connecting Gmail or Google Workspace",
+    "summary": "Gmail needs an app password, not your normal password.",
+    "sections": [
+      {
+        "heading": "Why an app password?",
+        "body": [
+          "Google doesn't let apps like Postloom sign in with your normal password. An app password is a separate 16-letter password just for Postloom, which you can remove at any time."
+        ]
+      },
+      {
+        "heading": "Create one",
+        "body": [
+          "1. Open your Google Account and choose Security.",
+          "2. Turn on 2-Step Verification if it isn't on already (app passwords need it).",
+          "3. Open App passwords, type “Postloom” as the name and choose Create.",
+          "4. Copy the 16 letters and paste them into Postloom. Spaces don't matter."
+        ]
+      },
+      {
+        "heading": "Limits",
+        "body": [
+          "Gmail lets a normal account send to about 500 people a day, and Google Workspace about 2,000. Postloom stays under your limit and pauses when you reach it, so you can carry on the next day."
+        ]
+      }
+    ]
+  },
+  "connect-outlook": {
+    "title": "Connecting Outlook, Hotmail or Microsoft 365",
+    "summary": "Personal Outlook accounts need an app password; work accounts may need your IT team.",
+    "sections": [
+      {
+        "heading": "Personal accounts (outlook.com, hotmail.com)",
+        "body": [
+          "1. Sign in to your Microsoft account and open Security.",
+          "2. Open Advanced security options and turn on two-step verification.",
+          "3. Under App passwords, create a new one and paste it into Postloom."
+        ]
+      },
+      {
+        "heading": "Work or school accounts (Microsoft 365)",
+        "body": [
+          "Many organisations switch off sending from apps (SMTP). If Postloom says it couldn't sign in with the right password, ask your IT team to turn on “Authenticated SMTP” for your mailbox."
+        ]
+      }
+    ]
+  },
+  "connect-other": {
+    "title": "Other email providers",
+    "summary": "Yahoo, Zoho, iCloud and your own company mail server.",
+    "sections": [
+      {
+        "heading": "What you need",
+        "body": [
+          "Your email address, a password (often an app password), and your provider's outgoing mail server (SMTP) name and port. Postloom fills these in for the providers it knows."
+        ]
+      },
+      {
+        "heading": "Security",
+        "body": [
+          "Postloom only connects over an encrypted connection (port 465, or 587 with STARTTLS) and checks the server's certificate. If your provider only offers an unencrypted connection, Postloom won't use it: your password would travel in plain view."
+        ]
+      }
+    ]
+  },
+  "templates": {
+    "title": "Writing a template",
+    "summary": "Your email, with gaps for each person’s details.",
+    "sections": [
+      {
+        "heading": "Personal details",
+        "body": [
+          "Use Insert detail to add a gap like First Name. Postloom fills it in from the column with the same name in your list. You can give each detail an “if empty” text, used when someone's cell is blank."
+        ]
+      },
+      {
+        "heading": "Pictures and your brand",
+        "body": [
+          "Pictures travel inside each email, so they show even without internet pictures switched on. Give each picture a short description for people who can't see pictures. In Senders & accounts, each sender can have a brand look: a logo, a colour and a font."
+        ]
+      },
+      {
+        "heading": "Design mode",
+        "body": [
+          "Switch to Design for columns, tables, spacers, a footer, and parts shown only to some people (for example, only to people with a Discount)."
+        ]
+      },
+      {
+        "heading": "Always send yourself a test",
+        "body": [
+          "Send me a test sends the email to you, with example details, so you see exactly what people will get."
+        ]
+      }
+    ]
+  },
+  "lists": {
+    "title": "Your list of people",
+    "summary": "How to set out the spreadsheet, and what Postloom checks.",
+    "sections": [
+      {
+        "heading": "Setting out the spreadsheet",
+        "body": [
+          "Use one row per person and one column per detail, with the column names in the first row. Excel (.xlsx) and CSV files both work; older .xls files need saving as .xlsx first.",
+          "Put the email address in a column called Email (or To). Several addresses in one cell can be separated with ; or ,."
+        ]
+      },
+      {
+        "heading": "Optional columns",
+        "body": [
+          "Cc and Bcc: addresses to copy in.",
+          "Send?: rows that say no, false, 0 or x are left out.",
+          "Attachment: files to attach, separated by ;. Paths can start from the list's own folder, like invoices/INV-1001.pdf."
+        ]
+      },
+      {
+        "heading": "What Postloom checks",
+        "body": [
+          "Before anything is sent, Postloom checks every row: addresses that aren't valid, empty details, repeated addresses, people on your “Do not email” list, today's limit, and attachments. Anything that must be fixed stops the send until it's fixed or left out."
+        ]
+      }
+    ]
+  },
+  "sending": {
+    "title": "Sending safely",
+    "summary": "Pausing, stopping, daily limits, and emails that may or may not have been sent.",
+    "sections": [
+      {
+        "heading": "While it sends",
+        "body": [
+          "Postloom sends one email at a time with a short pause between them, so your provider doesn't see a burst. You can keep using your computer. Pause and Stop take effect after the email going out at that moment."
+        ]
+      },
+      {
+        "heading": "Automatic pauses",
+        "body": [
+          "Sending pauses on its own at your daily limit, if your provider stops accepting the password, if the internet connection drops, or when the computer goes to sleep. The progress page says why, and Carry on sending continues where it stopped."
+        ]
+      },
+      {
+        "heading": "“May or may not have been sent”",
+        "body": [
+          "If the connection drops while an email is going out, Postloom can't tell whether the provider received it. Rather than risk sending it twice, it asks you: Send them again, or Skip them. Check your Sent folder if you're unsure."
+        ]
+      },
+      {
+        "heading": "Nobody gets an email twice",
+        "body": [
+          "Postloom records each person before contacting your provider, so even if the computer crashes mid-send, nobody on the list gets the same email twice."
+        ]
+      }
+    ]
+  },
+  "history": {
+    "title": "History and reports",
+    "summary": "Every send, and who got an email.",
+    "sections": [
+      {
+        "heading": "History",
+        "body": [
+          "History lists every send. Open one to see who got an email, who didn't, and why. Try the failed ones again resends only to people whose email couldn't be sent."
+        ]
+      },
+      {
+        "heading": "Reports",
+        "body": [
+          "Save a report makes a spreadsheet (CSV) of everyone in the send, for your records."
+        ]
+      }
+    ]
+  },
+  "your-data": {
+    "title": "Backups and your data",
+    "summary": "Where Postloom keeps things, and how to go back to an earlier day.",
+    "sections": [
+      {
+        "heading": "Backups",
+        "body": [
+          "Postloom takes a backup every day it opens, and you can take one any time from Settings → Your data. Restore puts everything back as it was on that day; Postloom restarts to do it and keeps today's data aside, just in case."
+        ]
+      },
+      {
+        "heading": "Passwords",
+        "body": [
+          "Email passwords are never kept in backups or in Postloom's files. After restoring, or on a new computer, type them again in Senders & accounts."
+        ]
+      },
+      {
+        "heading": "History",
+        "body": [
+          "You can choose how long finished sends stay in History, or clear it. Sends that aren't finished are always kept."
+        ]
+      }
+    ]
+  },
+  "troubleshooting": {
+    "title": "When something goes wrong",
+    "summary": "Common messages and what to do.",
+    "sections": [
+      {
+        "heading": "“Your email provider didn’t accept the password”",
+        "body": [
+          "Most providers need an app password (see the articles on connecting your email). If you recently changed your password, update it in Senders & accounts."
+        ]
+      },
+      {
+        "heading": "“Postloom couldn’t reach your email provider”",
+        "body": [
+          "Check your internet connection, then the server name and port in Senders & accounts. Some workplace networks block outgoing mail; try from another network."
+        ]
+      },
+      {
+        "heading": "Emails arrive in spam",
+        "body": [
+          "Send yourself a test first. Avoid all-capital subjects and very large pictures. Sending from your usual address, to people who know you, helps most."
+        ]
+      },
+      {
+        "heading": "Still stuck?",
+        "body": [
+          "Use Export diagnostics below and send the file to support. It says which version you have and how things are set up, without any passwords, addresses or email content."
+        ]
+      }
+    ]
+  }
+}
