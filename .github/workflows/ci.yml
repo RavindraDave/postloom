@@ -100,5 +100,9 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Electron fetches its own binary the first time it is asked for; do that
+      # now, so the first launch below is timed without the download.
+      - name: Fetch the Electron binary
+        run: pnpm --filter @postloom/desktop exec node -e "require('electron')"
       - name: Performance budgets (virtual display)
         run: xvfb-run -a pnpm --filter @postloom/desktop e2e:perf
