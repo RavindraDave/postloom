@@ -18,6 +18,7 @@ let delivered: OutgoingEmail[];
 let respond: (email: OutgoingEmail) => Error | null;
 let listText: string;
 let listFolder: string;
+let saved: { name: string; csv: string } | null;
 const notify = vi.fn();
 
 const LIST = [
@@ -33,6 +34,7 @@ beforeEach(async () => {
   delivered = [];
   respond = () => null;
   listText = LIST;
+  saved = null;
   listFolder = mkdtempSync(join(tmpdir(), 'postloom-list-'));
   notify.mockReset();
   const mailer: Mailer = {
@@ -61,6 +63,10 @@ beforeEach(async () => {
       }),
     openMailer: () => mailer,
     notify,
+    saveReport: (name, csv) => {
+      saved = { name, csv };
+      return Promise.resolve(name);
+    },
   });
 });
 afterEach(async () => {
@@ -169,6 +175,25 @@ describe('sending', () => {
     expect(await handlers['sends:problems']({ id: started.id })).toEqual([
       { rowNo: 5, to: 'not an address', status: 'skipped', errorCode: 'skipped' },
     ]);
+  });
+
+  it('saves a report of everyone, with what happened and why', async () => {
+    const { input } = await setUp();
+    respond = (email) =>
+      email.to[0] === 'ben@example.com' ? new SendFailure('rejected', '550') : null;
+    const started = await handlers['sends:start']({ ...input, skipRows: [4] });
+    await until(started.id, (s) => s.status === 'finished' && !s.running);
+
+    expect(await handlers['sends:exportReport']({ id: started.id })).toEqual({
+      saved: true,
+      fileName: expect.stringMatching(/^Payment reminder \d{4}-\d{2}-\d{2}\.csv$/) as unknown,
+    });
+    const lines = saved?.csv.trim().split('\r\n') ?? [];
+    expect(lines).toHaveLength(4);
+    expect(lines[1]).toMatch(/^2,asha@example.com,,,Sent,,/);
+    expect(lines[2]).toContain("Couldn't send");
+    expect(lines[2]).toContain('(550)');
+    expect(lines[3]).toContain('Left out');
   });
 
   it('refuses to start while there are problems to fix', async () => {

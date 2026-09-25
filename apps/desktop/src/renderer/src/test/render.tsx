@@ -181,6 +181,7 @@ export function mockApi(overrides: DeepPartial<PostloomApi> = {}): PostloomApi {
       retryFailed: vi.fn(() => ok(sampleSend)),
       resolveUncertain: vi.fn(() => ok(sampleSend)),
       problems: vi.fn(() => ok([])),
+      exportReport: vi.fn(() => ok({ saved: true, fileName: 'Payment reminder 2026-09-25.csv' })),
       ...overrides.sends,
     },
     settings: {

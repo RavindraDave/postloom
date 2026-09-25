@@ -438,3 +438,10 @@ export function useTrustFolders() {
     onSuccess: () => client.invalidateQueries({ queryKey: ['lists', 'check'] }),
   });
 }
+
+/** Saves a send's report where the person chooses. */
+export function useExportReport() {
+  return useMutation({
+    mutationFn: (id: string) => unwrap(window.postloom.sends.exportReport({ id })),
+  });
+}

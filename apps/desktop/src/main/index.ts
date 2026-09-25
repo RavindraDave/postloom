@@ -13,7 +13,7 @@ import {
   utilityProcess,
 } from 'electron';
 import { readFileSync } from 'node:fs';
-import { readFile, stat } from 'node:fs/promises';
+import { readFile, stat, writeFile } from 'node:fs/promises';
 import { basename, dirname } from 'node:path';
 import { join } from 'node:path';
 import { serveAppProtocol, registerAppScheme, type AssetReader } from './app-protocol';
@@ -150,6 +150,7 @@ void app.whenReady().then(async () => {
         },
         events,
       ),
+    saveReport,
     notify: (title, body) => {
       if (Notification.isSupported()) new Notification({ title, body }).show();
     },
@@ -246,6 +247,28 @@ async function pickSpreadsheetFile(): Promise<(PickedFile & { folder: string }) 
     // Relative attachment paths in the list start from its folder.
     folder: dirname(path),
   };
+}
+
+/** The computer's own "Save as" dialog, for a send's report. */
+async function saveReport(suggestedName: string, csv: string): Promise<string | null> {
+  // End-to-end tests can't click a native dialog; never honoured when installed.
+  const testPath = app.isPackaged ? undefined : process.env['POSTLOOM_TEST_SAVE_REPORT'];
+  let path = testPath;
+  if (!path) {
+    const window = BrowserWindow.getFocusedWindow();
+    const options = {
+      title: 'Save the report',
+      defaultPath: join(app.getPath('documents'), suggestedName),
+      filters: [{ name: 'Spreadsheet (CSV)', extensions: ['csv'] }],
+    };
+    const result = window
+      ? await dialog.showSaveDialog(window, options)
+      : await dialog.showSaveDialog(options);
+    path = result.canceled ? undefined : result.filePath;
+  }
+  if (!path) return null;
+  await writeFile(path, csv, 'utf8');
+  return basename(path);
 }
 
 /**

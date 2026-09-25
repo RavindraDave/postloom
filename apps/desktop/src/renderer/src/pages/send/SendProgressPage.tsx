@@ -19,6 +19,7 @@ import {
   IconAlertTriangle,
   IconArrowLeft,
   IconCircleCheck,
+  IconDownload,
   IconPlayerPause,
   IconPlayerPlay,
   IconPlayerStop,
@@ -27,7 +28,13 @@ import {
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
 import { errorKey } from '../../api/ipc';
-import { useResolveUncertain, useSend, useSendAction, useSendProblems } from '../../api/queries';
+import {
+  useExportReport,
+  useResolveUncertain,
+  useSend,
+  useSendAction,
+  useSendProblems,
+} from '../../api/queries';
 
 /** The reason codes the engine records, in plain words. */
 function reasonKey(errorCode: string | null): string {
@@ -217,8 +224,9 @@ function Controls({ send }: { send: SendSummary }) {
   const resume = useSendAction('resume');
   const stop = useSendAction('stop');
   const retry = useSendAction('retryFailed');
+  const report = useExportReport();
   const [confirmStop, { open: openStop, close: closeStop }] = useDisclosure(false);
-  const error = pause.error ?? resume.error ?? stop.error ?? retry.error;
+  const error = pause.error ?? resume.error ?? stop.error ?? retry.error ?? report.error;
   const left = send.counts.pending + send.counts.sending;
   const pausing = pause.isSuccess && send.running;
 
@@ -275,7 +283,24 @@ function Controls({ send }: { send: SendSummary }) {
             {t('progress.retryFailed', { count: send.counts.failed })}
           </Button>
         )}
+        {!send.running && (
+          <Button
+            variant="subtle"
+            leftSection={<IconDownload size={16} />}
+            loading={report.isPending}
+            onClick={() => {
+              report.mutate(send.id);
+            }}
+          >
+            {t('progress.exportReport')}
+          </Button>
+        )}
       </Group>
+      {report.data?.fileName && (
+        <Text size="sm" c="var(--pl-ink-soft)" role="status">
+          {t('progress.reportSaved', { file: report.data.fileName })}
+        </Text>
+      )}
       {pausing && (
         <Text size="sm" c="var(--pl-muted)">
           {t('progress.pausing')}

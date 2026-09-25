@@ -48,6 +48,7 @@ const api: PostloomApi = {
     retryFailed: (input) => invoke('sends:retryFailed', input),
     resolveUncertain: (input) => invoke('sends:resolveUncertain', input),
     problems: (input) => invoke('sends:problems', input),
+    exportReport: (input) => invoke('sends:exportReport', input),
   },
   assets: {
     pickImage: () => invoke('assets:pickImage'),

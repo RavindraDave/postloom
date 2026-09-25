@@ -440,6 +440,11 @@ export const ipcContract = {
     input: z.object({ id: idSchema, action: z.enum(['resend', 'skip']) }),
     output: sendSummarySchema,
   },
+  /** Saves a report of everyone in the send (CSV), where the person chooses. */
+  'sends:exportReport': {
+    input: byId,
+    output: z.object({ saved: z.boolean(), fileName: z.string().nullable() }),
+  },
   /** People not emailed, and why (failed, uncertain, left out). */
   'sends:problems': { input: byId, output: z.array(sendProblemSchema) },
   /** One person's addresses and details, for the preview. */
@@ -560,6 +565,7 @@ export interface PostloomApi {
     retryFailed: Call<'sends:retryFailed'>;
     resolveUncertain: Call<'sends:resolveUncertain'>;
     problems: Call<'sends:problems'>;
+    exportReport: Call<'sends:exportReport'>;
   };
   assets: {
     pickImage: Call<'assets:pickImage'>;

@@ -731,6 +731,31 @@
     },
     "unfinishedTitle": "A send isn't finished",
     "unfinishedBody": "“{{template}}” to {{file}}: {{count}} left to send.",
-    "open": "Open"
+    "open": "Open",
+    "exportReport": "Save a report",
+    "reportSaved": "Report saved as {{file}}."
+  },
+  "history": {
+    "title": "History",
+    "intro": "Every send, with who got an email and who didn't.",
+    "emptyTitle": "Nothing sent yet",
+    "emptyBody": "When you send emails, each send is kept here with a report of who got one.",
+    "startSending": "Send emails",
+    "listLabel": "Sends",
+    "when": "When",
+    "template": "Template",
+    "list": "List",
+    "sent": "Sent",
+    "failed": "Couldn't send",
+    "status": "Status",
+    "statuses": {
+      "draft": "Not started",
+      "ready": "Starting",
+      "sending": "Sending",
+      "paused": "Paused",
+      "stopped": "Stopped",
+      "finished": "Finished"
+    },
+    "open": "Open {{template}} from {{when}}"
   }
 }
