@@ -39,7 +39,8 @@ export function AppLayout() {
   const { pathname } = useLocation();
 
   const renderItem = ({ to, labelKey, icon: Icon }: NavItem) => {
-    const active = to === '/' ? pathname === '/' : pathname.startsWith(to);
+    // Whole path segments only: '/send' must not match '/senders'.
+    const active = to === '/' ? pathname === '/' : pathname === to || pathname.startsWith(`${to}/`);
     return (
       <NavLink
         key={to}

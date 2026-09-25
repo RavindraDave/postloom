@@ -590,14 +590,10 @@ function AccountCard({ account }: { account: EmailAccountInfo }) {
           </Text>
           <FixPasswordForm
             account={account}
-            onFixed={(fixed) => {
-              testAccount.mutate(fixed.id, {
-                onSuccess: () => {
-                  notifications.show({
-                    message: t('accounts.fixed', { name: account.name }),
-                    color: 'green',
-                  });
-                },
+            onFixed={() => {
+              notifications.show({
+                message: t('accounts.fixed', { name: account.name }),
+                color: 'green',
               });
             }}
           />

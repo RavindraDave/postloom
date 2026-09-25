@@ -113,15 +113,6 @@ describe('SendersPage', () => {
     await waitFor(() => {
       expect(api.accounts.update).toHaveBeenCalledWith({ id: 'a1', password: 'new pass' });
     });
-    expect(api.accounts.testConnection).toHaveBeenCalledWith({
-      host: 'smtp.gmail.com',
-      port: 587,
-      security: 'starttls',
-      username: 'asha@example.com',
-      password: 'new pass',
-    });
-    await waitFor(() => {
-      expect(api.accounts.test).toHaveBeenCalledWith({ id: 'a1' });
-    });
+    expect(await screen.findByText('Office Gmail is working again')).toBeInTheDocument();
   });
 });

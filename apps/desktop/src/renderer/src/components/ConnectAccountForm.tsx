@@ -17,7 +17,7 @@ import { IconAlertTriangle } from '@tabler/icons-react';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { errorKey } from '../api/ipc';
-import { useCreateAccount, useSecurity, useTestConnection } from '../api/queries';
+import { useCreateAccount, useSecurity } from '../api/queries';
 
 interface ConnectAccountFormProps {
   provider: ProviderId;
@@ -27,8 +27,8 @@ interface ConnectAccountFormProps {
 }
 
 /**
- * Email address + (app) password, checked with the provider before anything is
- * saved. Server details are pre-filled from the provider and hidden unless
+ * Email address + (app) password. Saving signs in to the provider first
+ * (in the main process), so nothing is stored unless it works. Server details are pre-filled from the provider and hidden unless
  * the person picked "Something else" or asks to see them.
  */
 export function ConnectAccountForm({
@@ -39,7 +39,6 @@ export function ConnectAccountForm({
   const { t } = useTranslation();
   const preset = PROVIDER_PRESETS[provider];
   const security = useSecurity();
-  const testConnection = useTestConnection();
   const createAccount = useCreateAccount();
 
   const [address, setAddress] = useState('');
@@ -65,26 +64,22 @@ export function ConnectAccountForm({
     host: host.trim() ? null : t('accounts.hostMissing'),
   };
   const valid = !problems.address && !problems.password && !problems.host;
-  const busy = testConnection.isPending || createAccount.isPending;
-  const failure = testConnection.error ?? createAccount.error;
+  const busy = createAccount.isPending;
+  const failure = createAccount.error;
 
   const submit = async (event: { preventDefault: () => void }) => {
     event.preventDefault();
     setSubmitted(true);
     if (!valid || busy || cantSavePasswords) return;
-    testConnection.reset();
     createAccount.reset();
-    const connection = {
-      host: host.trim(),
-      port,
-      security: connectionSecurity,
-      username: signInName,
-      password,
-    };
     try {
-      await testConnection.mutateAsync(connection);
+      // The main process signs in first and only saves the account if that works.
       const account = await createAccount.mutateAsync({
-        ...connection,
+        host: host.trim(),
+        port,
+        security: connectionSecurity,
+        username: signInName,
+        password,
         provider,
         name: name.trim() || defaultName,
       });

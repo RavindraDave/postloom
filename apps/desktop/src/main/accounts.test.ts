@@ -49,10 +49,18 @@ afterEach(async () => {
 });
 
 describe('email accounts', () => {
-  it('saves an account without ever returning the password', async () => {
+  it('signs in before saving, and never returns the password', async () => {
     const account = await handlers['accounts:create'](gmail);
 
-    expect(account).toMatchObject({ name: 'Office Gmail', hasPassword: true, senderCount: 0 });
+    expect(verify).toHaveBeenCalledWith(
+      expect.objectContaining({ password: gmail.password, extraCa: 'TEST-CA' }),
+    );
+    expect(account).toMatchObject({
+      name: 'Office Gmail',
+      hasPassword: true,
+      senderCount: 0,
+      lastTestOk: true,
+    });
     expect(JSON.stringify(account)).not.toContain('abcd');
     expect(JSON.stringify(await handlers['accounts:list'](undefined))).not.toContain('abcd');
     // Stored encrypted, not as plain text.
@@ -83,6 +91,37 @@ describe('email accounts', () => {
       code: 'EMAIL_AUTH_FAILED',
     });
     expect((await repos.accounts.get(id)).lastTestOk).toBe(false);
+  });
+
+  it('does not save an account whose sign-in fails', async () => {
+    verify.mockRejectedValueOnce(
+      new AppError({ code: 'EMAIL_AUTH_FAILED', messageKey: 'errors.emailAuthFailed' }),
+    );
+    await expect(handlers['accounts:create'](gmail)).rejects.toMatchObject({
+      code: 'EMAIL_AUTH_FAILED',
+    });
+    expect(await handlers['accounts:list'](undefined)).toEqual([]);
+  });
+
+  it('keeps the old password when a new one does not work', async () => {
+    const { id } = await handlers['accounts:create'](gmail);
+    verify.mockRejectedValueOnce(
+      new AppError({ code: 'EMAIL_AUTH_FAILED', messageKey: 'errors.emailAuthFailed' }),
+    );
+    await expect(handlers['accounts:update']({ id, password: 'wrong' })).rejects.toMatchObject({
+      code: 'EMAIL_AUTH_FAILED',
+    });
+    await handlers['accounts:test']({ id });
+    expect(verify).toHaveBeenLastCalledWith(expect.objectContaining({ password: gmail.password }));
+  });
+
+  it('re-checks the sign-in when server details change', async () => {
+    const { id } = await handlers['accounts:create'](gmail);
+    verify.mockClear();
+    await handlers['accounts:update']({ id, port: 465, security: 'tls' });
+    expect(verify).toHaveBeenCalledWith(
+      expect.objectContaining({ port: 465, security: 'tls', password: gmail.password }),
+    );
   });
 
   it('changes the password only when a new one is given', async () => {

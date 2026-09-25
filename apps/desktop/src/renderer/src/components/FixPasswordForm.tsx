@@ -5,7 +5,7 @@ import { IconAlertTriangle } from '@tabler/icons-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { errorKey } from '../api/ipc';
-import { useTestConnection, useUpdateAccount } from '../api/queries';
+import { useUpdateAccount } from '../api/queries';
 
 interface FixPasswordFormProps {
   account: EmailAccountInfo;
@@ -16,18 +16,16 @@ interface FixPasswordFormProps {
 export function FixPasswordForm({ account, onFixed }: FixPasswordFormProps) {
   const { t } = useTranslation();
   const [password, setPassword] = useState('');
-  const testConnection = useTestConnection();
   const updateAccount = useUpdateAccount();
-  const busy = testConnection.isPending || updateAccount.isPending;
-  const failure = testConnection.error ?? updateAccount.error;
+  const busy = updateAccount.isPending;
+  const failure = updateAccount.error;
   const preset = PROVIDER_PRESETS[account.provider];
 
   const submit = async (event: { preventDefault: () => void }) => {
     event.preventDefault();
     if (!password || busy) return;
-    const { host, port, security, username } = account;
     try {
-      await testConnection.mutateAsync({ host, port, security, username, password });
+      // Signs in with the new password first; it's only saved if that works.
       onFixed(await updateAccount.mutateAsync({ id: account.id, password }));
     } catch {
       // Shown below from the mutation state.

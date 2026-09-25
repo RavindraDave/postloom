@@ -41,6 +41,8 @@ type AccountHandlers = Pick<
   | 'senders:delete'
 >;
 
+const CONNECTION_FIELDS = ['host', 'port', 'security', 'username'] as const;
+
 const TEST_EMAIL: WriteDocument = {
   type: 'doc',
   content: [
@@ -152,19 +154,40 @@ export function createAccountHandlers({
       return (await repos.accounts.list()).map((a) => toAccountInfo(a, counts.get(a.id) ?? 0));
     },
 
+    // Saving checks the sign-in first, here in the main process: a password
+    // that doesn't work is never stored.
     'accounts:create': async ({ password, dailyLimit, delayMs, ...input }) => {
+      const { host, port, security, username } = input;
+      await smtp.verify({ host, port, security, username, password, extraCa });
       const account = await repos.accounts.create({
         ...input,
         dailyLimit: dailyLimit ?? null,
         delayMs: delayMs ?? null,
       });
       await repos.accounts.setSecret(account.id, vault.encrypt(password));
+      await repos.accounts.recordTest(account.id, true);
       return accountInfo(account.id);
     },
 
-    'accounts:update': async ({ id, password, ...changes }) => {
-      await repos.accounts.update(id, definedOnly(changes));
+    'accounts:update': async ({ id, password, ...rest }) => {
+      const changes = definedOnly(rest);
+      const connectionChanged =
+        password !== undefined || CONNECTION_FIELDS.some((field) => changes[field] !== undefined);
+      if (connectionChanged) {
+        const current = await repos.accounts.get(id);
+        const next = { ...current, ...changes };
+        await smtp.verify({
+          host: next.host,
+          port: next.port,
+          security: next.security,
+          username: next.username,
+          password: password ?? (await savedConfig(current)).password,
+          extraCa,
+        });
+      }
+      await repos.accounts.update(id, changes);
       if (password !== undefined) await repos.accounts.setSecret(id, vault.encrypt(password));
+      if (connectionChanged) await repos.accounts.recordTest(id, true);
       return accountInfo(id);
     },
 

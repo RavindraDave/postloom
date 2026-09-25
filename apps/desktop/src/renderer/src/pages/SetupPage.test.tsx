@@ -25,7 +25,7 @@ describe('SetupPage', () => {
     // Connect: validated before anything is sent to the provider.
     await userEvent.click(screen.getByRole('button', { name: 'Check and save' }));
     expect(await screen.findByText(/doesn't look like an email address/)).toBeInTheDocument();
-    expect(api.accounts.testConnection).not.toHaveBeenCalled();
+    expect(api.accounts.create).not.toHaveBeenCalled();
 
     await userEvent.type(screen.getByLabelText(/Your email address/), 'asha@example.com');
     await userEvent.type(screen.getByLabelText(/App password/), 'abcd efgh ijkl mnop');
@@ -42,7 +42,6 @@ describe('SetupPage', () => {
         name: 'My Gmail',
       });
     });
-    expect(api.accounts.testConnection).toHaveBeenCalledBefore(vi.mocked(api.accounts.create));
 
     // Who you are.
     await userEvent.type(await screen.findByLabelText(/Name people see/), 'Asha Kapoor');
@@ -68,7 +67,7 @@ describe('SetupPage', () => {
   it('explains a rejected password and does not save the account', async () => {
     const api = mockApi({
       accounts: {
-        testConnection: vi.fn(() =>
+        create: vi.fn(() =>
           Promise.resolve({
             ok: false as const,
             error: { code: 'EMAIL_AUTH_FAILED' as const, messageKey: 'errors.emailAuthFailed' },
@@ -86,7 +85,9 @@ describe('SetupPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Check and save' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/didn't accept the password/);
-    expect(api.accounts.create).not.toHaveBeenCalled();
+    // Still on the connect step: nothing moved on.
+    expect(screen.getByRole('button', { name: 'Check and save' })).toBeInTheDocument();
+    expect(api.senders.create).not.toHaveBeenCalled();
   });
 
   it('asks for server details for other providers and warns about a weak keyring', async () => {
