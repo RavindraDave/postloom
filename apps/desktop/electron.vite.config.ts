@@ -10,6 +10,7 @@ const workspacePackages = [
   '@postloom/db',
   '@postloom/editor',
   '@postloom/email',
+  '@postloom/recipients',
 ];
 
 export default defineConfig({

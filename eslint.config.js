@@ -108,7 +108,13 @@ export default tseslint.config(
           paths: [{ name: 'electron', message: 'The renderer must use window.postloom only.' }],
           patterns: [
             {
-              group: ['@postloom/email', '@postloom/db', '**/main/**', '**/preload/**'],
+              group: [
+                '@postloom/email',
+                '@postloom/db',
+                '@postloom/recipients',
+                '**/main/**',
+                '**/preload/**',
+              ],
               message:
                 'The renderer may only import @postloom/contracts, @postloom/core types and UI code.',
             },
@@ -123,6 +129,7 @@ export default tseslint.config(
       'apps/desktop/src/main/**/*.ts',
       'apps/desktop/src/preload/**/*.ts',
       'packages/email/**/*.ts',
+      'packages/recipients/**/*.ts',
     ],
     languageOptions: { globals: globals.node },
   },
