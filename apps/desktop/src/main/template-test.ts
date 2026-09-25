@@ -15,8 +15,9 @@ export const TEST_SUBJECT_PREFIX = '[Test] ';
 
 /**
  * "Send me a test": sends the template as it is now, from the chosen sender
- * and in its brand look, with personal details shown as "[First Name]"
- * placeholders and pictures travelling inside the email.
+ * and in its brand look, with pictures travelling inside the email. Personal
+ * details show as "[First Name]" placeholders, or as one person's real
+ * details when they're given (from the list, while checking a send).
  */
 export function createTemplateTestHandler({
   repos,
@@ -27,7 +28,7 @@ export function createTemplateTestHandler({
   send: NonNullable<AccountDeps['smtp']>['send'];
 }): Pick<IpcHandlers, 'templates:sendTest'> {
   return {
-    'templates:sendTest': async ({ id, senderId, to }) => {
+    'templates:sendTest': async ({ id, senderId, to, values }) => {
       const template = await repos.templates.get(id);
       const document = readDocument(template);
       const sender = await repos.senders.get(senderId);
@@ -36,13 +37,15 @@ export function createTemplateTestHandler({
 
       const brand = await senderBrand(repos, sender);
       const look = lookFromBrand(brand, sender.fromName);
-      const { html, text } = await compileMjml(writeDocumentToMjml(document, look, 'placeholder'));
+      const { html, text } = await compileMjml(
+        writeDocumentToMjml(document, look, values ? { values } : 'placeholder'),
+      );
       const assetIds = [...(look.logo ? [look.logo.assetId] : []), ...collectAssetIds(document)];
       await send(await loadSmtpConfig(account, { repos, vault, extraCa }), {
         from: { name: sender.fromName, address: sender.fromAddress },
         replyTo: sender.replyTo ?? undefined,
         to: [recipient],
-        subject: `${TEST_SUBJECT_PREFIX}${renderSubject(template.subject) || template.name}`,
+        subject: `${TEST_SUBJECT_PREFIX}${renderSubject(template.subject, values) || template.name}`,
         html,
         text,
         inlineImages: await inlineImagesFor(repos, assetIds),

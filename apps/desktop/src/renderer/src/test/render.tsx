@@ -63,6 +63,18 @@ export const sampleSender: SenderInfo = {
   },
 };
 
+export const SAMPLE_LIST = {
+  token: '11111111-1111-4111-8111-111111111111',
+  fileName: 'customers.xlsx',
+  sheets: [{ name: 'Sheet1', rowCount: 3 }],
+};
+
+const sampleRows = [
+  { rowNo: 2, cells: ['asha@example.com', 'Asha', 'INV-1'] },
+  { rowNo: 3, cells: ['ben@example.com', 'Ben', 'INV-2'] },
+  { rowNo: 4, cells: ['cara@example.com', 'Cara', 'INV-3'] },
+];
+
 type DeepPartial<T> = { [K in keyof T]?: Partial<T[K]> };
 
 /** Installs a fake `window.postloom`; every call resolves with sensible data. */
@@ -104,6 +116,39 @@ export function mockApi(overrides: DeepPartial<PostloomApi> = {}): PostloomApi {
       ),
       totalSize: vi.fn(() => ok({ bytes: 0 })),
       ...overrides.assets,
+    },
+    recipients: {
+      pick: vi.fn(() => ok(SAMPLE_LIST)),
+      inspect: vi.fn(() =>
+        ok({
+          headers: ['Email', 'First Name', 'Invoice No'],
+          sample: sampleRows,
+          rowCount: 3,
+          mapping: { to: 'Email', cc: null, bcc: null, enabled: null },
+          fields: [{ name: 'First Name', hasFallback: false }],
+          fieldMap: { 'First Name': 'First Name' },
+        }),
+      ),
+      check: vi.fn(() =>
+        ok({
+          problems: [],
+          toSendRows: [2, 3, 4],
+          leftOut: { skipped: 0, disabled: 0, doNotEmail: 0, duplicate: 0 },
+          dailyLimit: 450,
+          remainingToday: 450,
+        }),
+      ),
+      row: vi.fn((input: { rowNo: number }) => {
+        const row = sampleRows.find((r) => r.rowNo === input.rowNo) ?? sampleRows[0];
+        return ok({
+          rowNo: input.rowNo,
+          to: [row?.cells[0] ?? ''],
+          cc: [],
+          bcc: [],
+          values: { 'First Name': row?.cells[1] ?? '', 'Invoice No': row?.cells[2] ?? '' },
+        });
+      }),
+      ...overrides.recipients,
     },
     settings: {
       get: vi.fn(() => ok(DEFAULT_PREFERENCES)),

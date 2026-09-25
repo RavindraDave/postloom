@@ -1,4 +1,4 @@
-import { fieldNameSchema } from './document';
+import { fieldNameSchema, walkBlocks, walkInline, type WriteDocument } from './document';
 
 /**
  * Subjects are stored as plain text where a personal detail is written
@@ -62,4 +62,29 @@ export function renderSubject(subject: string, values?: Record<string, string>):
     })
     .join('')
     .trim();
+}
+
+/**
+ * Every personal detail a template uses (subject and letter), and whether an
+ * empty value is fine: the detail has an "if empty" text everywhere it
+ * appears, or it's only used to decide a "show only if" part.
+ */
+export function templateFields(
+  subject: string,
+  document: WriteDocument,
+): { name: string; hasFallback: boolean }[] {
+  const order: string[] = [];
+  const needsValue = new Map<string, boolean>();
+  const note = (name: string, needs: boolean) => {
+    if (!needsValue.has(name)) order.push(name);
+    needsValue.set(name, (needsValue.get(name) ?? false) || needs);
+  };
+  for (const name of subjectFields(subject)) note(name, true);
+  walkBlocks(document, (block) => {
+    if (block.type === 'conditional') note(block.attrs.field, false);
+  });
+  walkInline(document, (node) => {
+    if (node.type === 'field') note(node.attrs.name, !node.attrs.fallback);
+  });
+  return order.map((name) => ({ name, hasFallback: !needsValue.get(name) }));
 }

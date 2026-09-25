@@ -19,6 +19,7 @@
     "build-storybook": "storybook build -o storybook-static --quiet"
   },
   "dependencies": {
+    "@postloom/recipients": "workspace:*",
     "@tiptap/core": "3.31.3",
     "@tiptap/pm": "3.31.3",
     "@tiptap/react": "3.31.3",

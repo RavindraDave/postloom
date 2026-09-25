@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import { serveAppProtocol, registerAppScheme, type AssetReader } from './app-protocol';
 import type { PickedFile } from './assets';
 import { MAX_IMAGE_FILE_BYTES } from './images';
+import { MAX_SPREADSHEET_BYTES } from '@postloom/recipients';
 import { databaseLocation, openAppDatabase } from './database';
 import { createHandlers } from './handlers';
 import { registerIpcHandlers } from './ipc-router';
@@ -124,6 +125,7 @@ void app.whenReady().then(async () => {
       },
       pickImageFile,
       pickHtmlFile,
+      pickSpreadsheetFile,
     }),
     {
       isTrustedUrl: (url) => isAppUrl(url, devServerUrl),
@@ -187,6 +189,29 @@ async function pickHtmlFile(): Promise<{ name: string; html: string } | null> {
     throw new AppError({ code: 'VALIDATION_FAILED', messageKey: 'errors.htmlTooBig' });
   }
   return { name: basename(path), html: await readFile(path, 'utf8') };
+}
+
+/** The computer's own file picker, for a list of people (Excel or CSV). */
+async function pickSpreadsheetFile(): Promise<PickedFile | null> {
+  const testFile = app.isPackaged ? undefined : process.env['POSTLOOM_TEST_PICK_SPREADSHEET'];
+  let path = testFile;
+  if (!path) {
+    const window = BrowserWindow.getFocusedWindow();
+    const options = {
+      title: 'Choose your list of people',
+      properties: ['openFile' as const],
+      filters: [{ name: 'Spreadsheets', extensions: ['xlsx', 'csv', 'txt'] }],
+    };
+    const result = window
+      ? await dialog.showOpenDialog(window, options)
+      : await dialog.showOpenDialog(options);
+    path = result.canceled ? undefined : result.filePaths[0];
+  }
+  if (!path) return null;
+  if ((await stat(path)).size > MAX_SPREADSHEET_BYTES) {
+    throw new AppError({ code: 'VALIDATION_FAILED', messageKey: 'errors.spreadsheetTooBig' });
+  }
+  return { name: basename(path), bytes: new Uint8Array(await readFile(path)) };
 }
 
 /**
