@@ -270,6 +270,15 @@ test('capture the send wizard', async ({ userDataDir }) => {
     await page.screenshot({ path: `${out}/send-done-${scheme}.png` });
   }
 
+  // History keeps every send.
+  await page.getByRole('link', { name: 'History' }).click();
+  await page.getByRole('table', { name: 'Sends' }).waitFor();
+  for (const scheme of ['light', 'dark'] as const) {
+    await page.emulateMedia({ colorScheme: scheme });
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: `${out}/history-${scheme}.png` });
+  }
+
   await app.close();
   await mail.close();
 });

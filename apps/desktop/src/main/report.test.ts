@@ -44,7 +44,10 @@ describe('reports', () => {
       }),
       person({ rowNo: 4, to: ['=cmd@example.com'], status: 'skipped', errorCode: 'doNotEmail' }),
     ]);
-    const lines = csv.replace(/^\uFEFF/, '').trim().split('\r\n');
+    const lines = csv
+      .replace(/^\uFEFF/, '')
+      .trim()
+      .split('\r\n');
     expect(lines[0]).toBe('Row,To,Cc,Bcc,Status,Why,When,Message ID');
     expect(lines[1]).toBe('2,asha@example.com,,,Sent,,2026-09-25T10:00:00.000Z,<1@example.com>');
     expect(lines[2]).toBe(

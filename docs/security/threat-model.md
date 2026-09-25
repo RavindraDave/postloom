@@ -27,7 +27,8 @@ Email account secrets · recipient personal data · the user's machine · the us
 | | The same email sent twice after a crash or dropped connection | Claim-before-send (committed); only "nothing was sent" failures retried; lost connections marked uncertain and never resent without asking ([ADR 0008](../adr/0008-sending-engine.md)) |
 | **Information disclosure** | Script in imported HTML reads files | Sandboxed renderer, no Node, strict CSP, sanitization, sandboxed preview iframe without scripts |
 | | A "picture" that is really a script or document, or a photo leaking its GPS location | Pictures only via the OS file picker; PNG/JPEG recognised by magic bytes; re-encoded (metadata dropped); served only from the app's own store with `nosniff` ([ADR 0006](../adr/0006-images-inside-emails.md)) |
-| | Spreadsheet attaches `~/.ssh/id_rsa` and sends it out | Attachment review step; folder allowlist; sensitive-path blocklist |
+| | Spreadsheet attaches `~/.ssh/id_rsa` and sends it out | Files checked where they really are (shortcuts followed); private files (keys, `.ssh`, `.env`, keychains, browser password stores) blocked and never sent; files from unapproved folders flagged; checked again just before sending; 18 MB per email |
+| | A saved report runs a formula when opened in a spreadsheet | Every CSV cell starting with `= + - @`, tab or CR is prefixed with `'` |
 | | Passwords in logs or crash reports | Redaction layer with tests; opt-in crash reports with PII scrubbing |
 | | Lost laptop exposes recipient data | Retention limits; clear-history; OS disk encryption guidance; optional DB encryption (1.x) |
 | **Denial of service** | Account locked by sending too fast | Delay between emails, daily limit across all sends per account, one running send per account, circuit breaker |
@@ -37,5 +38,5 @@ Email account secrets · recipient personal data · the user's machine · the us
 
 ## Open items
 - Validate CSP against the chosen editor (Phase 0).
-- Decide attachment folder-allowlist UX (Phase 4).
+- ~~Decide attachment folder-allowlist UX (Phase 4).~~ The list's own folder is trusted; other folders are flagged once, with "trust these folders".
 - External security review before the public 1.0 release.
