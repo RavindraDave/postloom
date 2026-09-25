@@ -22,6 +22,7 @@ import type {
   TemplatesTable,
   TemplateVersionsTable,
 } from './schema';
+import { createSendRepository } from './sends';
 
 /** Template versions kept per template (PLAN.md §7.1). */
 export const MAX_TEMPLATE_VERSIONS = 50;
@@ -531,9 +532,30 @@ export function createRepositories(db: Kysely<Database>, options: RepositoryOpti
           .deleteFrom('template_versions')
           .where('template_id', '=', id)
           .where('version_no', '<=', versionNo - MAX_TEMPLATE_VERSIONS)
+          // A version that was sent is kept: the send's history points at it.
+          .where('id', 'not in', trx.selectFrom('sends').select('template_version_id'))
           .execute();
       });
       return templates.get(id);
+    },
+    /**
+     * The template exactly as it is now, recorded as a version (e.g. when a
+     * send starts, so later edits never change what that send uses).
+     */
+    async snapshot(id: Id, note: string): Promise<TemplateVersion> {
+      await templates.update(id, {}, { snapshot: true, note });
+      const [latest] = await templates.versions(id);
+      if (!latest) throw notFound('templateVersion', id);
+      return latest;
+    },
+    async version(versionId: Id): Promise<TemplateVersion> {
+      const row = await db
+        .selectFrom('template_versions')
+        .selectAll()
+        .where('id', '=', versionId)
+        .executeTakeFirst();
+      if (!row) throw notFound('templateVersion', versionId);
+      return toVersion(row);
     },
     async versions(id: Id): Promise<TemplateVersion[]> {
       const rows = await db
@@ -593,7 +615,19 @@ export function createRepositories(db: Kysely<Database>, options: RepositoryOpti
     },
   };
 
-  return { settings, accounts, senders, brandKits, assets, usage, templates, suppression };
+  const sends = createSendRepository(db, now, newId);
+
+  return {
+    settings,
+    accounts,
+    senders,
+    brandKits,
+    assets,
+    usage,
+    templates,
+    suppression,
+    sends,
+  };
 }
 
 export type Repositories = ReturnType<typeof createRepositories>;
