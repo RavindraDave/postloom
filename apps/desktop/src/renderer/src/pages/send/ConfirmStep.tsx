@@ -1,8 +1,10 @@
 import { Alert, Button, Loader, Paper, Stack, Text, Title } from '@mantine/core';
 import type { SenderInfo } from '@postloom/contracts';
-import { IconInfoCircle, IconSend } from '@tabler/icons-react';
+import { IconAlertTriangle, IconSend } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import { useAccounts, useCheckList, type CheckListInput } from '../../api/queries';
+import { useNavigate } from 'react-router';
+import { errorKey } from '../../api/ipc';
+import { useAccounts, useCheckList, useStartSend, type CheckListInput } from '../../api/queries';
 
 interface ConfirmStepProps {
   check: CheckListInput;
@@ -13,7 +15,9 @@ interface ConfirmStepProps {
 /** Step 4: "Send 245 emails from Office Gmail as Asha?" with a time estimate. */
 export function ConfirmStep({ check, senderId, senders }: ConfirmStepProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const result = useCheckList(check);
+  const start = useStartSend();
   const accounts = useAccounts();
   const sender = senders.find((option) => option.id === senderId);
   const account = accounts.data?.find((option) => option.id === sender?.emailAccountId);
@@ -34,10 +38,24 @@ export function ConfirmStep({ check, senderId, senders }: ConfirmStepProps) {
           })}
         </Text>
         <Text c="var(--pl-ink-soft)">{t('send.confirm.time', { count: minutes, minutes })}</Text>
-        <Alert color="loom" icon={<IconInfoCircle />} role="note">
-          {t('send.confirm.comingSoon')}
-        </Alert>
-        <Button size="md" leftSection={<IconSend size={18} />} disabled>
+        <Text size="sm" c="var(--pl-muted)">
+          {t('send.confirm.notSaved')}
+        </Text>
+        {start.error && (
+          <Alert color="red" icon={<IconAlertTriangle />} role="alert">
+            {t(errorKey(start.error))}
+          </Alert>
+        )}
+        <Button
+          size="md"
+          leftSection={<IconSend size={18} />}
+          loading={start.isPending}
+          onClick={() => {
+            start.mutate(check, {
+              onSuccess: (send) => void navigate(`/send/${send.id}`),
+            });
+          }}
+        >
           {t('send.confirm.send')}
         </Button>
       </Stack>

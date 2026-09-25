@@ -2,13 +2,14 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Route, Routes } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
-import { mockApi, ok, renderWithProviders, SAMPLE_LIST } from '../../test/render';
+import { mockApi, ok, renderWithProviders, SAMPLE_LIST, sampleSend } from '../../test/render';
 import { SendPage } from './SendPage';
 
 function renderSend(route = '/send') {
   return renderWithProviders(
     <Routes>
       <Route path="/send" element={<SendPage />} />
+      <Route path="/send/:id" element={<p>Sending {'progress'}</p>} />
     </Routes>,
     { route },
   );
@@ -106,7 +107,33 @@ describe('SendPage', () => {
     expect(
       await screen.findByText('Send 3 emails from Office Gmail as Asha (Accounts)?'),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Send now' })).toBeDisabled();
+    await userEvent.click(screen.getByRole('button', { name: 'Send now' }));
+    await waitFor(() => {
+      expect(api.sends.start).toHaveBeenCalledWith(
+        expect.objectContaining({ templateId: 't1', senderId: 's1', skipRows: [] }),
+      );
+    });
+    expect(await screen.findByText('Sending progress')).toBeInTheDocument();
+  });
+
+  it('points to a send that isn’t finished', async () => {
+    mockApi({
+      sends: {
+        list: vi.fn(() =>
+          ok([
+            {
+              ...sampleSend,
+              status: 'paused' as const,
+              running: false,
+              pauseReason: 'user' as const,
+            },
+          ]),
+        ),
+      },
+    });
+    renderSend();
+    expect(await screen.findByText("A send isn't finished")).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open' })).toHaveAttribute('href', '/send/send1');
   });
 
   it('leaves out rows with problems when asked, and can put them back', async () => {

@@ -7,6 +7,7 @@ import { AppLayout } from './layout/AppLayout';
 import { HomePage } from './pages/HomePage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import { SendPage } from './pages/send/SendPage';
+import { SendProgressPage } from './pages/send/SendProgressPage';
 import { SendersPage } from './pages/SendersPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { SetupPage } from './pages/SetupPage';
@@ -51,6 +52,7 @@ export function AppRoutes() {
       <Route element={<AppLayout />}>
         <Route index element={<HomePage />} />
         <Route path="send" element={<SendPage />} />
+        <Route path="send/:id" element={<SendProgressPage />} />
         <Route path="templates" element={<TemplatesPage />} />
         <Route path="templates/:id" element={<TemplateEditorPage />} />
         <Route path="senders" element={<SendersPage />} />

@@ -4,6 +4,7 @@ import {
   DEFAULT_PREFERENCES,
   type EmailAccountInfo,
   type IpcResult,
+  type SendSummary,
   type SenderInfo,
   type PostloomApi,
   type TemplateDetail,
@@ -74,6 +75,23 @@ const sampleRows = [
   { rowNo: 3, cells: ['ben@example.com', 'Ben', 'INV-2'] },
   { rowNo: 4, cells: ['cara@example.com', 'Cara', 'INV-3'] },
 ];
+
+export const sampleSend: SendSummary = {
+  id: 'send1',
+  status: 'sending',
+  pauseReason: null,
+  running: true,
+  templateName: 'Payment reminder',
+  senderName: 'Asha (Accounts)',
+  accountName: 'Office Gmail',
+  fileName: 'customers.xlsx',
+  counts: { pending: 2, sending: 1, sent: 7, failed: 0, skipped: 0, uncertain: 0 },
+  current: { rowNo: 9, to: 'ben@example.com' },
+  etaMs: 150_000,
+  createdAt: '2026-09-25T09:00:00.000Z',
+  startedAt: '2026-09-25T09:00:01.000Z',
+  finishedAt: null,
+};
 
 type DeepPartial<T> = { [K in keyof T]?: Partial<T[K]> };
 
@@ -149,6 +167,18 @@ export function mockApi(overrides: DeepPartial<PostloomApi> = {}): PostloomApi {
         });
       }),
       ...overrides.recipients,
+    },
+    sends: {
+      start: vi.fn(() => ok(sampleSend)),
+      get: vi.fn(() => ok(sampleSend)),
+      list: vi.fn(() => ok([])),
+      pause: vi.fn(() => ok(sampleSend)),
+      resume: vi.fn(() => ok(sampleSend)),
+      stop: vi.fn(() => ok(sampleSend)),
+      retryFailed: vi.fn(() => ok(sampleSend)),
+      resolveUncertain: vi.fn(() => ok(sampleSend)),
+      problems: vi.fn(() => ok([])),
+      ...overrides.sends,
     },
     settings: {
       get: vi.fn(() => ok(DEFAULT_PREFERENCES)),

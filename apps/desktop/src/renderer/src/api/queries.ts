@@ -10,6 +10,7 @@ import type {
   FieldMapInfo,
   Preferences,
   SaveTemplateInput,
+  SendSummary,
   SendTemplateTestInput,
   TemplateDetail,
 } from '@postloom/contracts';
@@ -358,5 +359,73 @@ export function useListRow(input: (ListChoices & { rowNo: number }) | null) {
     enabled: input !== null,
     placeholderData: keepPreviousData,
     staleTime: Infinity,
+  });
+}
+
+// -------------------------------------------------------------------- Sends
+
+const sendKey = (id: string) => ['sends', id] as const;
+
+/** Starts sending; the check runs again in the main process first. */
+export function useStartSend() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CheckListInput) => unwrap(window.postloom.sends.start(input)),
+    onSuccess: (send: SendSummary) => {
+      client.setQueryData(sendKey(send.id), send);
+      void client.invalidateQueries({ queryKey: ['sends'], exact: true });
+    },
+  });
+}
+
+/** A send, refreshed a few times a second while it's going out. */
+export function useSend(id: string) {
+  return useQuery({
+    queryKey: sendKey(id),
+    queryFn: () => unwrap(window.postloom.sends.get({ id })),
+    refetchInterval: (query) =>
+      query.state.data?.running || query.state.data?.status === 'sending' ? 500 : false,
+  });
+}
+
+/** Recent sends, newest first. */
+export function useSends() {
+  return useQuery({
+    queryKey: ['sends'] as const,
+    queryFn: () => unwrap(window.postloom.sends.list()),
+  });
+}
+
+export function useSendProblems(id: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['sends', id, 'problems'] as const,
+    queryFn: () => unwrap(window.postloom.sends.problems({ id })),
+    enabled,
+  });
+}
+
+type SendAction = 'pause' | 'resume' | 'stop' | 'retryFailed';
+
+/** Pause, Resume, Stop and Retry failed. */
+export function useSendAction(action: SendAction) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => unwrap(window.postloom.sends[action]({ id })),
+    onSuccess: (send: SendSummary) => {
+      client.setQueryData(sendKey(send.id), send);
+      void client.invalidateQueries({ queryKey: ['sends', send.id, 'problems'] });
+    },
+  });
+}
+
+export function useResolveUncertain() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: string; action: 'resend' | 'skip' }) =>
+      unwrap(window.postloom.sends.resolveUncertain(input)),
+    onSuccess: (send: SendSummary) => {
+      client.setQueryData(sendKey(send.id), send);
+      void client.invalidateQueries({ queryKey: ['sends', send.id, 'problems'] });
+    },
   });
 }

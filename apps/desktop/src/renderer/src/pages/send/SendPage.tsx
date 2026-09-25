@@ -1,10 +1,10 @@
-import { Button, Group, Stack } from '@mantine/core';
+import { Alert, Button, Group, Stack, Text } from '@mantine/core';
 import type { ColumnMappingInfo, FieldMapInfo } from '@postloom/contracts';
-import { IconArrowLeft, IconArrowRight } from '@tabler/icons-react';
+import { IconArrowLeft, IconArrowRight, IconPlayerPause } from '@tabler/icons-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSearchParams } from 'react-router';
-import { useInspectList, useSenders, useTemplate } from '../../api/queries';
+import { Link, useSearchParams } from 'react-router';
+import { useInspectList, useSenders, useSends, useTemplate } from '../../api/queries';
 import { PageHeader } from '../../components/PageHeader';
 import { WizardSteps } from '../../components/WizardSteps';
 import { CheckStep } from './CheckStep';
@@ -86,6 +86,8 @@ export function SendPage() {
         current={current}
         orientation="horizontal"
       />
+
+      {step === 'recipients' && <UnfinishedSend />}
 
       {step === 'recipients' && (
         <RecipientsStep
@@ -190,5 +192,38 @@ export function SendPage() {
         )}
       </Group>
     </Stack>
+  );
+}
+
+/** A send that's paused, stopped part-way or interrupted, to carry on with. */
+function UnfinishedSend() {
+  const { t } = useTranslation();
+  const sends = useSends();
+  const unfinished = sends.data?.find(
+    (send) =>
+      (send.status === 'sending' || send.status === 'paused') &&
+      send.counts.pending + send.counts.sending + send.counts.uncertain > 0,
+  );
+  if (!unfinished) return null;
+  return (
+    <Alert
+      color="yellow"
+      icon={<IconPlayerPause />}
+      title={t('progress.unfinishedTitle')}
+      role="status"
+    >
+      <Group justify="space-between">
+        <Text size="sm">
+          {t('progress.unfinishedBody', {
+            template: unfinished.templateName,
+            file: unfinished.fileName,
+            count: unfinished.counts.pending + unfinished.counts.sending,
+          })}
+        </Text>
+        <Button size="xs" component={Link} to={`/send/${unfinished.id}`}>
+          {t('progress.open')}
+        </Button>
+      </Group>
+    </Alert>
   );
 }

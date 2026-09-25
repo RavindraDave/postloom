@@ -134,7 +134,10 @@
     "databaseUpgradeFailed": "Postloom couldn't update its saved information. Nothing was lost, and a backup was kept.",
     "screenTitle": "Something went wrong on this screen",
     "screenBody": "Your saved work is safe. Try again, and if it keeps happening, use Help → Export diagnostics.",
-    "screenRetry": "Try again"
+    "screenRetry": "Try again",
+    "sendHasProblems": "Something on the Check step must be fixed before sending. Go back and fix it, then try again.",
+    "sendNobody": "Nobody on this list will get an email. Put some rows back or choose another list.",
+    "sendAccountBusy": "This email account is already sending. Wait for that send to finish (or pause it), then try again."
   },
   "common": {
     "loading": "Loading…",
@@ -645,7 +648,70 @@
       "time": "About {{minutes}} minute, with a pause between emails so your provider stays happy.",
       "time_other": "About {{minutes}} minutes, with a pause between emails so your provider stays happy.",
       "send": "Send now",
-      "comingSoon": "Sending arrives in the next update. Everything up to here is ready to try."
+      "starting": "Starting…",
+      "notSaved": "Once you press Send now, emails start going out. You can pause or stop at any time."
     }
+  },
+  "progress": {
+    "back": "Send emails",
+    "subtitle": "From {{sender}} ({{account}}) · {{file}}",
+    "sending": "Sending… {{sent}} of {{total}}",
+    "now": "Now: row {{row}}, {{to}}",
+    "eta": "About {{count}} minute left",
+    "eta_other": "About {{count}} minutes left",
+    "keepOpen": "You can keep using your computer. Postloom keeps sending in the background.",
+    "pause": "Pause",
+    "resume": "Carry on sending",
+    "stop": "Stop",
+    "stopTitle": "Stop sending?",
+    "stopBody": "Postloom stops after the email going out now. You can carry on with the rest later.",
+    "stopConfirm": "Stop sending",
+    "keepSending": "Keep sending",
+    "pausing": "Pausing after the current email…",
+    "counts": {
+      "sent": "Sent",
+      "failed": "Couldn't send",
+      "left": "Left to send",
+      "leftOut": "Left out"
+    },
+    "paused": {
+      "user": "Paused. Nothing more is sent until you carry on.",
+      "dailyLimit": "Paused: this account has reached its daily limit. Carry on tomorrow, or raise the limit in Senders & accounts.",
+      "auth": "Paused: your email provider stopped accepting the password. Update it in Senders & accounts, then carry on.",
+      "connection": "Paused: Postloom couldn't reach your email provider. Check your internet connection, then carry on.",
+      "interrupted": "Postloom closed while sending. Check the emails below that may or may not have gone out, then carry on.",
+      "sleep": "Paused while the computer was asleep. Sending carries on when it wakes up."
+    },
+    "stopped": "Stopped. {{count}} person hasn't been emailed yet.",
+    "stopped_other": "Stopped. {{count}} people haven't been emailed yet.",
+    "done": "Done! {{count}} email sent.",
+    "done_other": "Done! {{count}} emails sent.",
+    "doneFailed": "{{count}} couldn't be sent. See why below.",
+    "retryFailed": "Try the failed ones again ({{count}})",
+    "uncertainTitle": "{{count}} email may or may not have been sent",
+    "uncertainTitle_other": "{{count}} emails may or may not have been sent",
+    "uncertainBody": "The connection dropped while they were going out, so Postloom can't tell. Sending again might give someone the same email twice.",
+    "resend": "Send them again",
+    "skip": "Skip them",
+    "problemsTitle": "People not emailed",
+    "row": "Row",
+    "address": "Address",
+    "why": "Why",
+    "reasons": {
+      "rejected": "Their email provider refused it (the address may not exist).",
+      "temporary": "Their email provider kept saying “try later”.",
+      "invalid": "The email couldn't be made (a line break in an address?).",
+      "template": "The email couldn't be made from the template.",
+      "uncertain": "May or may not have been sent (the connection dropped).",
+      "uncertainSkipped": "Skipped: may or may not have been sent.",
+      "doNotEmail": "On your “Do not email” list.",
+      "skipped": "You left this row out.",
+      "disabled": "Not marked to send.",
+      "duplicate": "The same address as an earlier row.",
+      "other": "Couldn't be sent."
+    },
+    "unfinishedTitle": "A send isn't finished",
+    "unfinishedBody": "“{{template}}” to {{file}}: {{count}} left to send.",
+    "open": "Open"
   }
 }
