@@ -16,3 +16,11 @@ type Story = StoryObj<typeof meta>;
 
 export const SecondStep: Story = {};
 export const LastStep: Story = { args: { current: 4 } };
+export const AcrossTheTop: Story = {
+  args: {
+    label: 'Send steps',
+    steps: ['Who to send to', 'Template and sender', 'Check', 'Send'],
+    current: 2,
+    orientation: 'horizontal',
+  },
+};

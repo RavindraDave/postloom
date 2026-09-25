@@ -1,0 +1,39 @@
+.mappingGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.checkLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.preview {
+  position: sticky;
+  top: 0;
+}
+
+.envelope {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 12px;
+  margin: 0;
+}
+
+.envelope dt {
+  color: var(--pl-muted);
+}
+
+.envelope dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+th[data-highlight],
+td[data-highlight] {
+  background: var(--pl-accent-soft);
+}

@@ -6,12 +6,14 @@ interface WizardStepsProps {
   steps: string[];
   /** Index of the current step. */
   current: number;
+  /** Down the side (setup) or across the top (send). */
+  orientation?: 'vertical' | 'horizontal';
 }
 
 /** Done / current / to-do steps; the current one has `aria-current="step"`. */
-export function WizardSteps({ label, steps, current }: WizardStepsProps) {
+export function WizardSteps({ label, steps, current, orientation = 'vertical' }: WizardStepsProps) {
   return (
-    <ol className={classes.list} aria-label={label}>
+    <ol className={classes.list} aria-label={label} data-orientation={orientation}>
       {steps.map((step, index) => {
         const state = index < current ? 'done' : index === current ? 'current' : 'todo';
         return (

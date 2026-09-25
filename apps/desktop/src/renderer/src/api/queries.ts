@@ -6,6 +6,8 @@ import type {
   UpdateAccountInput,
   UpdateSenderInput,
   BrandInput,
+  ColumnMappingInfo,
+  FieldMapInfo,
   Preferences,
   SaveTemplateInput,
   SendTemplateTestInput,
@@ -18,7 +20,7 @@ import {
   type WriteDocument,
 } from '@postloom/editor';
 import { APP_ASSET_URL_PREFIX } from '@postloom/editor/tiptap';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { unwrap } from './ipc';
 
 export const queryKeys = {
@@ -301,4 +303,60 @@ export function useSetBrand() {
 /** Opens the computer's file picker for an HTML email; resolves to null when cancelled. */
 export function usePickHtml() {
   return useMutation({ mutationFn: () => unwrap(window.postloom.templates.pickHtml()) });
+}
+
+// ------------------------------------------------------------- Sending lists
+
+export interface ListRef {
+  token: string;
+  sheet: string;
+  templateId?: string;
+}
+
+export interface ListChoices extends ListRef {
+  mapping: ColumnMappingInfo;
+  fieldMap: FieldMapInfo;
+}
+
+/** Opens the computer's file picker for a spreadsheet; resolves to null when cancelled. */
+export function usePickList() {
+  return useMutation({ mutationFn: () => unwrap(window.postloom.recipients.pick()) });
+}
+
+/** A sheet's columns, first rows and the best guess at matching them. */
+export function useInspectList(ref: ListRef | null) {
+  return useQuery({
+    queryKey: ['lists', 'inspect', ref] as const,
+    queryFn: () => unwrap(window.postloom.recipients.inspect(ref as ListRef)),
+    enabled: ref !== null,
+    staleTime: Infinity,
+  });
+}
+
+export type CheckListInput = ListChoices & {
+  templateId: string;
+  senderId: string;
+  skipRows: number[];
+  sendDuplicatesOnce: boolean;
+};
+
+/** Checks everyone on the list with the current choices. */
+export function useCheckList(input: CheckListInput | null) {
+  return useQuery({
+    queryKey: ['lists', 'check', input] as const,
+    queryFn: () => unwrap(window.postloom.recipients.check(input as CheckListInput)),
+    enabled: input !== null,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** One person's addresses and details, for the preview. */
+export function useListRow(input: (ListChoices & { rowNo: number }) | null) {
+  return useQuery({
+    queryKey: ['lists', 'row', input] as const,
+    queryFn: () => unwrap(window.postloom.recipients.row(input as ListChoices & { rowNo: number })),
+    enabled: input !== null,
+    placeholderData: keepPreviousData,
+    staleTime: Infinity,
+  });
 }

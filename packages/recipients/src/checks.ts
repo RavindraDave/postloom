@@ -59,7 +59,8 @@ export function checkRecipients(input: CheckInput): CheckResult {
   for (const field of missing) {
     problems.push({
       id: 'missingColumn',
-      severity: 'mustFix',
+      // With an "if empty" text the email still reads well, just less personal.
+      severity: field.hasFallback ? 'worthALook' : 'mustFix',
       rows: [],
       values: { field: field.name },
     });

@@ -157,6 +157,13 @@ describe('checking everyone before sending', () => {
     });
   });
 
+  it('only mentions an unmatched detail that has an "if empty" text', () => {
+    const result = checkRecipients(
+      input({ fields: [{ name: 'Company', hasFallback: true }], fieldMap: { Company: null } }),
+    );
+    expect(result.problems[0]).toMatchObject({ id: 'missingColumn', severity: 'worthALook' });
+  });
+
   it('does not worry about empty details that have an "if empty" text', () => {
     const result = checkRecipients(input({ fields: [{ name: 'First Name', hasFallback: true }] }));
     expect(result.problems.some((problem) => problem.id === 'emptyDetail')).toBe(false);
