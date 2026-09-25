@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import {
   AppError,
   DEFAULT_DAILY_LIMIT,
+  MAX_ATTACHMENT_BYTES,
   PROVIDER_PRESETS,
   resolveDailyLimitWithSource,
 } from '@postloom/core';
@@ -20,13 +21,21 @@ import {
   type RecipientTable,
 } from '@postloom/recipients';
 import type { PickedFile } from './assets';
+import {
+  createAttachmentResolver,
+  nodeFileSystem,
+  type AttachmentFile,
+  type FileSystem,
+} from './attachment-files';
 import { readDocument } from './documents';
 import type { IpcHandlers } from './ipc-router';
 
 export interface RecipientDeps {
   repos: Repositories;
   /** Shows the computer's file picker (spreadsheets only); null if cancelled. */
-  pickSpreadsheetFile: () => Promise<PickedFile | null>;
+  pickSpreadsheetFile: () => Promise<(PickedFile & { folder?: string }) | null>;
+  /** File access for attachments (tests fake it). */
+  fs?: FileSystem;
   /** Today's date in UTC as YYYY-MM-DD (for the daily limit). */
   todayUtc?: () => string;
 }
@@ -40,6 +49,8 @@ interface PickedList {
   fileName: string;
   /** A fingerprint of the file, kept with each send (never the file or its path). */
   sha256: string;
+  /** The spreadsheet's folder: relative attachment paths start here. */
+  folder: string | null;
   sheets: Map<string, RecipientTable>;
 }
 
@@ -57,12 +68,18 @@ export interface ListChoices {
 
 /** The address columns chosen last time (lists usually look the same). */
 const MAPPING_KEY = 'send:mapping';
+/** Folders the person has approved for attachments (besides the list's own). */
+const APPROVED_FOLDERS_KEY = 'send:approvedFolders';
 /** Which column fills each detail, remembered per template. */
 const fieldMapKey = (templateId: string) => `send:fields:${templateId}`;
 
 type RecipientHandlers = Pick<
   IpcHandlers,
-  'recipients:pick' | 'recipients:inspect' | 'recipients:check' | 'recipients:row'
+  | 'recipients:pick'
+  | 'recipients:inspect'
+  | 'recipients:check'
+  | 'recipients:row'
+  | 'recipients:approveFolders'
 >;
 
 /**
@@ -74,8 +91,18 @@ export function createListService({
   repos,
   pickSpreadsheetFile,
   todayUtc = () => new Date().toISOString().slice(0, 10),
+  fs = nodeFileSystem,
 }: RecipientDeps) {
   const lists = new Map<string, PickedList>();
+  /** Folders flagged by the latest check of each list, for "Trust these folders". */
+  const flagged = new Map<string, string[]>();
+
+  const resolverFor = async (token: string) =>
+    createAttachmentResolver(
+      lists.get(token)?.folder ?? null,
+      await repos.settings.get<string[]>(APPROVED_FOLDERS_KEY, []),
+      fs,
+    );
 
   const sheetFor = (token: string, sheet: string): RecipientTable => {
     const table = lists.get(token)?.sheets.get(sheet);
@@ -125,7 +152,68 @@ export function createListService({
     });
     await repos.settings.set(MAPPING_KEY, input.mapping);
     await repos.settings.set(fieldMapKey(input.templateId), input.fieldMap);
-    return { ...result, recipients, account, sender, dailyLimit, remainingToday };
+
+    // Attachments: every file must be there, not a key or password file, and
+    // not too big for one email; files from unapproved folders are worth a look.
+    const resolveFile = await resolverFor(input.token);
+    const files = new Map<number, AttachmentFile[]>();
+    const missing: number[] = [];
+    const blocked: number[] = [];
+    const tooBig: number[] = [];
+    const outside = new Map<string, number[]>();
+    let fileCount = 0;
+    let bytes = 0;
+    for (const person of result.toSend) {
+      const found = person.attachments.map(resolveFile);
+      files.set(person.rowNo, found);
+      if (found.some((file) => file.problem === 'missing')) missing.push(person.rowNo);
+      if (found.some((file) => file.problem === 'blocked')) blocked.push(person.rowNo);
+      const size = found.reduce((sum, file) => sum + file.size, 0);
+      if (size > MAX_ATTACHMENT_BYTES) tooBig.push(person.rowNo);
+      fileCount += found.length;
+      bytes += size;
+      for (const file of found) {
+        if (!file.outsideFolder) continue;
+        const rows = outside.get(file.outsideFolder) ?? [];
+        if (!rows.includes(person.rowNo)) rows.push(person.rowNo);
+        outside.set(file.outsideFolder, rows);
+      }
+    }
+    const problems = [...result.problems];
+    if (blocked.length)
+      problems.push({ id: 'attachmentBlocked', severity: 'mustFix', rows: blocked });
+    if (missing.length)
+      problems.push({ id: 'attachmentMissing', severity: 'mustFix', rows: missing });
+    if (tooBig.length) {
+      problems.push({
+        id: 'attachmentTooBig',
+        severity: 'mustFix',
+        rows: tooBig,
+        values: { limit: Math.round(MAX_ATTACHMENT_BYTES / (1024 * 1024)) },
+      });
+    }
+    const outsideFolders = [...outside.keys()].sort();
+    if (outsideFolders.length) {
+      problems.push({
+        id: 'attachmentOutside',
+        severity: 'worthALook',
+        rows: [...new Set([...outside.values()].flat())].sort((a, b) => a - b),
+        values: { folder: outsideFolders[0] ?? '', folders: outsideFolders.length },
+      });
+    }
+    flagged.set(input.token, outsideFolders);
+
+    return {
+      ...result,
+      problems,
+      recipients,
+      account,
+      sender,
+      dailyLimit,
+      remainingToday,
+      files,
+      attachments: { files: fileCount, bytes, outsideFolders },
+    };
   };
 
   const file = (token: string) => {
@@ -148,6 +236,7 @@ export function createListService({
       lists.set(token, {
         fileName: picked.name,
         sha256: createHash('sha256').update(picked.bytes).digest('hex'),
+        folder: picked.folder ?? null,
         sheets: new Map(sheets.map((sheet) => [sheet.name, sheet.table])),
       });
       // Keep only the last few lists: a big spreadsheet takes real memory.
@@ -182,20 +271,31 @@ export function createListService({
     },
 
     // Runs inside a promise so a missing row rejects rather than throws.
-    'recipients:row': ({ rowNo, ...input }) =>
-      Promise.resolve().then(() => {
-        const recipient = recipientsFor(input).find((row) => row.rowNo === rowNo);
-        if (!recipient) {
-          throw new AppError({ code: 'NOT_FOUND', messageKey: 'errors.rowNotFound' });
-        }
-        return {
-          rowNo: recipient.rowNo,
-          to: recipient.to,
-          cc: recipient.cc,
-          bcc: recipient.bcc,
-          values: recipient.values,
-        };
-      }),
+    'recipients:row': async ({ rowNo, ...input }) => {
+      const recipient = recipientsFor(input).find((row) => row.rowNo === rowNo);
+      if (!recipient) {
+        throw new AppError({ code: 'NOT_FOUND', messageKey: 'errors.rowNotFound' });
+      }
+      const resolveFile = await resolverFor(input.token);
+      return {
+        rowNo: recipient.rowNo,
+        to: recipient.to,
+        cc: recipient.cc,
+        bcc: recipient.bcc,
+        values: recipient.values,
+        attachments: recipient.attachments.map((typed) => {
+          const file = resolveFile(typed);
+          return { name: file.name, size: file.size, problem: file.problem };
+        }),
+      };
+    },
+
+    'recipients:approveFolders': async ({ token }) => {
+      const folders = flagged.get(token) ?? [];
+      const approved = await repos.settings.get<string[]>(APPROVED_FOLDERS_KEY, []);
+      await repos.settings.set(APPROVED_FOLDERS_KEY, [...new Set([...approved, ...folders])]);
+      return { ok: true as const };
+    },
 
     'recipients:check': async (input) => {
       const result = await check(input);
@@ -207,6 +307,7 @@ export function createListService({
         leftOut,
         dailyLimit: result.dailyLimit,
         remainingToday: result.remainingToday,
+        attachments: result.attachments,
       };
     },
   };

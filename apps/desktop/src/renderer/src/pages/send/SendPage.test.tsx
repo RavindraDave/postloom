@@ -136,6 +136,64 @@ describe('SendPage', () => {
     expect(screen.getByRole('link', { name: 'Open' })).toHaveAttribute('href', '/send/send1');
   });
 
+  it('shows attachments, and trusts a new folder when asked', async () => {
+    const api = mockApi({
+      recipients: {
+        check: vi.fn(() =>
+          ok({
+            problems: [
+              {
+                id: 'attachmentOutside' as const,
+                severity: 'worthALook' as const,
+                rows: [3],
+                values: { folder: '/home/asha/Brochures', folders: 1 },
+              },
+            ],
+            toSendRows: [2, 3, 4],
+            leftOut: { skipped: 0, disabled: 0, doNotEmail: 0, duplicate: 0 },
+            dailyLimit: 450,
+            remainingToday: 450,
+            attachments: { files: 2, bytes: 1_572_864, outsideFolders: ['/home/asha/Brochures'] },
+          }),
+        ),
+        row: vi.fn((input: { rowNo: number }) =>
+          ok({
+            rowNo: input.rowNo,
+            to: ['asha@example.com'],
+            cc: [],
+            bcc: [],
+            values: { 'First Name': 'Asha' },
+            attachments: [
+              { name: 'INV-1.pdf', size: 1_048_576, problem: null },
+              { name: 'gone.pdf', size: 0, problem: 'missing' as const },
+            ],
+          }),
+        ),
+      },
+    });
+    renderSend('/send?template=t1');
+    await pickList();
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await screen.findByRole('combobox', { name: 'First Name' });
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    expect(await screen.findByText('With 2 attached files (1.5 MB).')).toBeInTheDocument();
+    expect(await screen.findByText('INV-1.pdf')).toBeInTheDocument();
+    expect(screen.getByText('(1.0 MB)')).toBeInTheDocument();
+    expect(screen.getByText('(Not found)')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Some files come from a folder you haven't used before: /home/asha/Brochures",
+      ),
+    ).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole('button', { name: 'These are fine, trust these folders' }),
+    );
+    await waitFor(() => {
+      expect(api.recipients.approveFolders).toHaveBeenCalledWith({ token: SAMPLE_LIST.token });
+    });
+  });
+
   it('leaves out rows with problems when asked, and can put them back', async () => {
     const check = vi.fn((input: { skipRows: number[] }) =>
       ok({
@@ -147,6 +205,7 @@ describe('SendPage', () => {
         leftOut: { skipped: input.skipRows.length, disabled: 0, doNotEmail: 0, duplicate: 0 },
         dailyLimit: 450,
         remainingToday: 450,
+        attachments: { files: 0, bytes: 0, outsideFolders: [] },
       }),
     );
     mockApi({ recipients: { check } });

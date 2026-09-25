@@ -570,7 +570,9 @@
       "chooseTo": "Choose the column with the email addresses to continue.",
       "sampleTitle": "The first rows of your list",
       "sampleMore": "Showing the first {{shown}} of {{count}} rows.",
-      "row": "Row"
+      "row": "Row",
+      "attachments": "Files to attach",
+      "attachmentsHint": "File paths, several separated by ; (paths can start from the list's folder)."
     },
     "template": {
       "template": "Template",
@@ -624,7 +626,15 @@
         "doNotEmail_other": "{{count}} people are on your “Do not email” list and will be left out.",
         "disabled": "{{count}} row isn't marked to send and will be left out.",
         "disabled_other": "{{count}} rows aren't marked to send and will be left out.",
-        "largeSend": "Sending {{count}} emails will take a while. You can keep using your computer."
+        "largeSend": "Sending {{count}} emails will take a while. You can keep using your computer.",
+        "attachmentMissing": "{{count}} row names a file to attach that can't be found.",
+        "attachmentMissing_other": "{{count}} rows name files to attach that can't be found.",
+        "attachmentBlocked": "{{count}} row tries to attach a private file (a key or password file). Postloom never sends those.",
+        "attachmentBlocked_other": "{{count}} rows try to attach private files (keys or password files). Postloom never sends those.",
+        "attachmentTooBig": "{{count}} row has more than {{limit}} MB of attachments, too much for one email.",
+        "attachmentTooBig_other": "{{count}} rows have more than {{limit}} MB of attachments, too much for one email.",
+        "attachmentOutside": "Some files come from a folder you haven't used before: {{folder}}",
+        "attachmentOutside_other": "Some files come from folders you haven't used before, like {{folder}}"
       },
       "overLimitHelp": "Leave out the rows over the limit and send them tomorrow, or raise the account's daily limit in Senders & accounts.",
       "previewTitle": "Preview each person's email",
@@ -639,7 +649,13 @@
       "sendTest": "Send this person's email to me",
       "testSent": "Test sent to {{address}}, with the details from row {{row}}. Check your inbox.",
       "testFirst": "Send yourself a test first, to see exactly what people will get.",
-      "skipTest": "Continue without a test"
+      "skipTest": "Continue without a test",
+      "trustFolders": "These are fine, trust these folders",
+      "attachmentsSummary": "With {{count}} attached file ({{size}}).",
+      "attachmentsSummary_other": "With {{count}} attached files ({{size}}).",
+      "attachmentsTitle": "Attached",
+      "fileMissing": "Not found",
+      "fileBlocked": "Private file, won't be sent"
     },
     "confirm": {
       "title": "Ready to send",
@@ -708,7 +724,10 @@
       "skipped": "You left this row out.",
       "disabled": "Not marked to send.",
       "duplicate": "The same address as an earlier row.",
-      "other": "Couldn't be sent."
+      "other": "Couldn't be sent.",
+      "attachmentMissing": "A file to attach had gone by the time it was sent.",
+      "attachmentBlocked": "A file to attach was a private file (a key or password file).",
+      "attachmentTooBig": "The attachments were too big for one email."
     },
     "unfinishedTitle": "A send isn't finished",
     "unfinishedBody": "“{{template}}” to {{file}}: {{count}} left to send.",

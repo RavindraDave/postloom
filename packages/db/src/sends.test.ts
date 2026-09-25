@@ -65,6 +65,7 @@ async function newSend(people = 3): Promise<NewSend> {
       cc: i === 0 ? ['boss@example.com', 'team@example.com'] : [],
       bcc: [],
       values: { 'First Name': `Person ${String(i + 1)}` },
+      attachments: i === 0 ? ['/files/INV-1.pdf', '/files/terms.pdf'] : [],
     })),
   };
 }
@@ -85,6 +86,7 @@ describe('sends', () => {
       cc: ['boss@example.com', 'team@example.com'],
       bcc: [],
       values: { 'First Name': 'Person 1' },
+      attachments: ['/files/INV-1.pdf', '/files/terms.pdf'],
       status: 'pending',
       attempts: 0,
     });

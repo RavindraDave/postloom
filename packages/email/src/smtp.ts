@@ -28,6 +28,13 @@ export interface OutgoingEmail {
   text: string;
   /** Pictures sent inside the email, referenced from the HTML as `cid:<cid>`. */
   inlineImages?: InlineImage[] | undefined;
+  /** Files attached to the email. */
+  attachments?: FileAttachment[] | undefined;
+}
+
+export interface FileAttachment {
+  filename: string;
+  content: Uint8Array;
 }
 
 export interface InlineImage {
@@ -112,15 +119,22 @@ export function toMailOptions(email: OutgoingEmail) {
     subject: email.subject,
     html: email.html,
     text: email.text,
-    ...(email.inlineImages?.length
+    ...(email.inlineImages?.length || email.attachments?.length
       ? {
-          attachments: email.inlineImages.map((image) => ({
-            cid: image.cid,
-            contentType: image.contentType,
-            content: Buffer.from(image.content),
-            filename: image.filename,
-            contentDisposition: 'inline' as const,
-          })),
+          attachments: [
+            ...(email.inlineImages ?? []).map((image) => ({
+              cid: image.cid,
+              contentType: image.contentType,
+              content: Buffer.from(image.content),
+              filename: image.filename,
+              contentDisposition: 'inline' as const,
+            })),
+            ...(email.attachments ?? []).map((file) => ({
+              filename: file.filename,
+              content: Buffer.from(file.content),
+              contentDisposition: 'attachment' as const,
+            })),
+          ],
         }
       : {}),
   };
@@ -136,6 +150,7 @@ export function assertNoHeaderInjection(email: OutgoingEmail): void {
     ...email.to,
     ...(email.cc ?? []),
     ...(email.bcc ?? []),
+    ...(email.attachments ?? []).map((file) => file.filename),
   ];
   if (headerValues.some((value) => HEADER_BREAK.test(value))) {
     throw new AppError({

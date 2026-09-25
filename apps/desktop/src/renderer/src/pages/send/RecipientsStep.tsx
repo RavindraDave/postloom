@@ -32,7 +32,7 @@ interface RecipientsStepProps {
   onMapping: (mapping: ColumnMappingInfo) => void;
 }
 
-const MAPPING_KEYS = ['to', 'cc', 'bcc', 'enabled'] as const;
+const MAPPING_KEYS = ['to', 'cc', 'bcc', 'enabled', 'attachments'] as const;
 
 /** Step 1: pick the spreadsheet, the sheet and the address columns. */
 export function RecipientsStep({
@@ -146,7 +146,9 @@ export function RecipientsStep({
                       ? t('send.list.toHint')
                       : key === 'enabled'
                         ? t('send.list.enabledHint')
-                        : undefined
+                        : key === 'attachments'
+                          ? t('send.list.attachmentsHint')
+                          : undefined
                   }
                   placeholder={t('send.list.none')}
                   clearable={key !== 'to'}

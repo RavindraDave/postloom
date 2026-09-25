@@ -29,6 +29,7 @@ import {
   useEmailPreview,
   useListRow,
   useSendTemplateTest,
+  useTrustFolders,
   type ListChoices,
 } from '../../api/queries';
 import { EmailPreview, type PreviewDevice } from '../../components/EmailPreview';
@@ -57,7 +58,16 @@ const LEAVE_OUT: ReadonlySet<RecipientProblemInfo['id']> = new Set([
   'invalidAddress',
   'overDailyLimit',
   'emptyDetail',
+  'attachmentMissing',
+  'attachmentBlocked',
+  'attachmentTooBig',
 ]);
+
+/** A file size in words people know ("1.4 MB", "320 KB"). */
+export function formatSize(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${String(Math.max(1, Math.round(bytes / 1024)))} KB`;
+}
 const ROWS_SHOWN = 12;
 
 /** Step 3: check everyone, fix what's wrong, and look at each person's email. */
@@ -77,6 +87,7 @@ export function CheckStep({
 }: CheckStepProps) {
   const { t } = useTranslation();
   const check = useCheckList({ ...choices, senderId, skipRows, sendDuplicatesOnce });
+  const trust = useTrustFolders();
   const sender = senders.find((option) => option.id === senderId);
   const [allowWithoutTest, setAllowWithoutTest] = useState(false);
 
@@ -116,6 +127,14 @@ export function CheckStep({
                 sender: sender?.fromName ?? '',
               })}
             </Text>
+            {result.attachments.files > 0 && (
+              <Text c="var(--pl-ink-soft)">
+                {t('send.check.attachmentsSummary', {
+                  count: result.attachments.files,
+                  size: formatSize(result.attachments.bytes),
+                })}
+              </Text>
+            )}
             {leftOut.length > 0 && (
               <Text c="var(--pl-ink-soft)">
                 {t('send.check.leftOut', { list: leftOut.join(', ') })}
@@ -161,6 +180,9 @@ export function CheckStep({
                     }}
                     onMatchColumns={onMatchColumns}
                     onSendDuplicatesOnce={onSendDuplicatesOnce}
+                    onTrustFolders={() => {
+                      trust.mutate(choices.token);
+                    }}
                   />
                 ))}
               </Stack>
@@ -214,12 +236,14 @@ function ProblemCard({
   onLeaveOut,
   onMatchColumns,
   onSendDuplicatesOnce,
+  onTrustFolders,
 }: {
   problem: RecipientProblemInfo;
   sendDuplicatesOnce: boolean;
   onLeaveOut: () => void;
   onMatchColumns: () => void;
   onSendDuplicatesOnce: (value: boolean) => void;
+  onTrustFolders: () => void;
 }) {
   const { t } = useTranslation();
   const shown = problem.rows.slice(0, ROWS_SHOWN).join(', ');
@@ -250,6 +274,11 @@ function ProblemCard({
           {LEAVE_OUT.has(problem.id) && (
             <Button size="xs" variant="default" onClick={onLeaveOut}>
               {t('send.check.leaveOut')}
+            </Button>
+          )}
+          {problem.id === 'attachmentOutside' && (
+            <Button size="xs" variant="default" onClick={onTrustFolders}>
+              {t('send.check.trustFolders')}
             </Button>
           )}
           {problem.id === 'missingColumn' && (
@@ -381,6 +410,35 @@ function PersonPreview({
             )}
             <dt>{t('send.template.subject')}</dt>
             <dd>{renderSubject(template.subject, row.data.values) || template.name}</dd>
+            {row.data.attachments.length > 0 && (
+              <>
+                <dt>{t('send.check.attachmentsTitle')}</dt>
+                <dd>
+                  {row.data.attachments.map((file) => (
+                    <div key={file.name}>
+                      {file.name}
+                      {file.problem ? (
+                        <Text span c="red" size="sm">
+                          {' '}
+                          (
+                          {t(
+                            file.problem === 'missing'
+                              ? 'send.check.fileMissing'
+                              : 'send.check.fileBlocked',
+                          )}
+                          )
+                        </Text>
+                      ) : (
+                        <Text span c="var(--pl-muted)" size="sm">
+                          {' '}
+                          ({formatSize(file.size)})
+                        </Text>
+                      )}
+                    </div>
+                  ))}
+                </dd>
+              </>
+            )}
           </dl>
         )}
 

@@ -14,7 +14,7 @@ import {
 } from 'electron';
 import { readFileSync } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
-import { basename } from 'node:path';
+import { basename, dirname } from 'node:path';
 import { join } from 'node:path';
 import { serveAppProtocol, registerAppScheme, type AssetReader } from './app-protocol';
 import type { PickedFile } from './assets';
@@ -221,7 +221,7 @@ async function pickHtmlFile(): Promise<{ name: string; html: string } | null> {
 }
 
 /** The computer's own file picker, for a list of people (Excel or CSV). */
-async function pickSpreadsheetFile(): Promise<PickedFile | null> {
+async function pickSpreadsheetFile(): Promise<(PickedFile & { folder: string }) | null> {
   const testFile = app.isPackaged ? undefined : process.env['POSTLOOM_TEST_PICK_SPREADSHEET'];
   let path = testFile;
   if (!path) {
@@ -240,7 +240,12 @@ async function pickSpreadsheetFile(): Promise<PickedFile | null> {
   if ((await stat(path)).size > MAX_SPREADSHEET_BYTES) {
     throw new AppError({ code: 'VALIDATION_FAILED', messageKey: 'errors.spreadsheetTooBig' });
   }
-  return { name: basename(path), bytes: new Uint8Array(await readFile(path)) };
+  return {
+    name: basename(path),
+    bytes: new Uint8Array(await readFile(path)),
+    // Relative attachment paths in the list start from its folder.
+    folder: dirname(path),
+  };
 }
 
 /**

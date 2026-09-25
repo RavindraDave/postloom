@@ -36,6 +36,7 @@ const api: PostloomApi = {
     inspect: (input) => invoke('recipients:inspect', input),
     check: (input) => invoke('recipients:check', input),
     row: (input) => invoke('recipients:row', input),
+    approveFolders: (input) => invoke('recipients:approveFolders', input),
   },
   sends: {
     start: (input) => invoke('sends:start', input),

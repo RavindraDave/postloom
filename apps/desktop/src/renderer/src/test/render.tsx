@@ -142,7 +142,7 @@ export function mockApi(overrides: DeepPartial<PostloomApi> = {}): PostloomApi {
           headers: ['Email', 'First Name', 'Invoice No'],
           sample: sampleRows,
           rowCount: 3,
-          mapping: { to: 'Email', cc: null, bcc: null, enabled: null },
+          mapping: { to: 'Email', cc: null, bcc: null, enabled: null, attachments: null },
           fields: [{ name: 'First Name', hasFallback: false }],
           fieldMap: { 'First Name': 'First Name' },
         }),
@@ -154,6 +154,7 @@ export function mockApi(overrides: DeepPartial<PostloomApi> = {}): PostloomApi {
           leftOut: { skipped: 0, disabled: 0, doNotEmail: 0, duplicate: 0 },
           dailyLimit: 450,
           remainingToday: 450,
+          attachments: { files: 0, bytes: 0, outsideFolders: [] },
         }),
       ),
       row: vi.fn((input: { rowNo: number }) => {
@@ -164,8 +165,10 @@ export function mockApi(overrides: DeepPartial<PostloomApi> = {}): PostloomApi {
           cc: [],
           bcc: [],
           values: { 'First Name': row?.cells[1] ?? '', 'Invoice No': row?.cells[2] ?? '' },
+          attachments: [],
         });
       }),
+      approveFolders: vi.fn(() => ok({ ok: true as const })),
       ...overrides.recipients,
     },
     sends: {

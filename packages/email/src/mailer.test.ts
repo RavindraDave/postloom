@@ -110,6 +110,16 @@ describe('mailer', () => {
     expect(connections).toBe(1);
   });
 
+  it('attaches files', async () => {
+    const port = await startServer();
+    mailer = openMailer(account(port));
+    await mailer.send({
+      ...email('a@example.com'),
+      attachments: [{ filename: 'INV-1.pdf', content: new TextEncoder().encode('%PDF-1.7') }],
+    });
+    expect(received[0]?.data).toContain('Content-Disposition: attachment; filename=INV-1.pdf');
+  });
+
   it('says "try again later" when the server refuses for now (4xx)', async () => {
     const port = await startServer({
       onRcptTo(_address, _session, callback) {

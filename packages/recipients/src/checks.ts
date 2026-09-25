@@ -13,7 +13,12 @@ export type RecipientProblemId =
   | 'duplicate'
   | 'doNotEmail'
   | 'disabled'
-  | 'largeSend';
+  | 'largeSend'
+  // Attachment problems are found in the main process, which can see the files.
+  | 'attachmentMissing'
+  | 'attachmentBlocked'
+  | 'attachmentTooBig'
+  | 'attachmentOutside';
 
 export interface RecipientProblem {
   id: RecipientProblemId;

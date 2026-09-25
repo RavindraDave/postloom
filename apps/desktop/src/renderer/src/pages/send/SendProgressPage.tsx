@@ -42,6 +42,9 @@ function reasonKey(errorCode: string | null): string {
     'skipped',
     'disabled',
     'duplicate',
+    'attachmentMissing',
+    'attachmentBlocked',
+    'attachmentTooBig',
   ];
   if (known.includes(code)) return `progress.reasons.${code}`;
   return code ? 'progress.reasons.uncertain' : 'progress.reasons.other';

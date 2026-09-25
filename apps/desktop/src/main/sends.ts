@@ -178,6 +178,9 @@ export function createSendService(deps: SendServiceDeps) {
           cc: person.cc,
           bcc: person.bcc,
           values: person.values,
+          attachments: (checked.files.get(person.rowNo) ?? []).flatMap((file) =>
+            file.path ? [file.path] : [],
+          ),
           skipped: reasons.get(person.rowNo),
         })),
       });

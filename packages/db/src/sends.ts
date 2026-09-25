@@ -36,6 +36,8 @@ export interface SendRecipient {
   cc: string[];
   bcc: string[];
   values: Record<string, string>;
+  /** Files to attach (real paths, checked when the send started). */
+  attachments: string[];
   status: RecipientStatus;
   attempts: number;
   messageId: string | null;
@@ -59,6 +61,7 @@ export interface NewSend {
     cc: string[];
     bcc: string[];
     values: Record<string, string>;
+    attachments?: string[] | undefined;
     /** Rows left out (and why) are kept too, for the report. */
     skipped?: string | undefined;
   }[];
@@ -109,6 +112,7 @@ function toRecipient(row: Selectable<SendRecipientsTable>): SendRecipient {
     cc: splitAddresses(row.cc),
     bcc: splitAddresses(row.bcc),
     values: JSON.parse(row.data_json) as Record<string, string>,
+    attachments: row.attachments_json ? (JSON.parse(row.attachments_json) as string[]) : [],
     status: row.status as RecipientStatus,
     attempts: row.attempts,
     messageId: row.message_id,
@@ -181,6 +185,9 @@ export function createSendRepository(db: Kysely<Database>, now: () => string, ne
                 cc: person.cc.length ? joinAddresses(person.cc) : null,
                 bcc: person.bcc.length ? joinAddresses(person.bcc) : null,
                 data_json: JSON.stringify(person.values),
+                attachments_json: person.attachments?.length
+                  ? JSON.stringify(person.attachments)
+                  : null,
                 status: person.skipped ? 'skipped' : 'pending',
                 error_code: person.skipped ?? null,
                 error_message: null,

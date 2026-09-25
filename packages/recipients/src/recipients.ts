@@ -15,6 +15,16 @@ export interface Recipient {
   values: Record<string, string>;
   /** Addresses in this row that aren't valid, as typed. */
   invalidAddresses: string[];
+  /** Files to attach, as typed in the spreadsheet (checked later, in the main process). */
+  attachments: string[];
+}
+
+/** Splits a cell of file paths: one per line, or separated by `;`. */
+export function splitPaths(cell: string): string[] {
+  return cell
+    .split(/[;\r\n]+/)
+    .map((path) => path.trim().replace(/^"(.*)"$/, '$1'))
+    .filter(Boolean);
 }
 
 const NO_VALUES = new Set(['no', 'n', 'false', '0', 'off', 'skip', 'x']);
@@ -46,6 +56,7 @@ export function buildRecipients(
   const ccColumn = column(mapping.cc);
   const bccColumn = column(mapping.bcc);
   const enabledColumn = column(mapping.enabled);
+  const attachmentColumn = column(mapping.attachments);
 
   return table.rows.map(({ rowNo, cells }) => {
     const cell = (index: number) => (index >= 0 ? (cells[index] ?? '') : '');
@@ -67,6 +78,7 @@ export function buildRecipients(
       enabled: enabledColumn < 0 || !NO_VALUES.has(cell(enabledColumn).trim().toLowerCase()),
       values,
       invalidAddresses: [...to.invalid, ...cc.invalid, ...bcc.invalid],
+      attachments: splitPaths(cell(attachmentColumn)),
     };
   });
 }

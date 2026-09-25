@@ -129,6 +129,7 @@ export interface SendRecipientsTable {
   error_code: string | null;
   error_message: string | null;
   updated_at: string;
+  attachments_json: string | null;
 }
 
 export interface SuppressionListTable {
