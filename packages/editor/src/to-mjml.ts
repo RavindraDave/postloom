@@ -1,4 +1,4 @@
-import type { BlockNode, InlineNode, Mark, WriteDocument } from './document';
+import type { BlockNode, InlineNode, ListNode, Mark, WriteDocument } from './document';
 
 export interface BrandLook {
   /** Button and accent colour, as #RRGGBB. */
@@ -62,24 +62,43 @@ export function writeDocumentToMjml(
 function renderBlock(block: BlockNode, look: BrandLook, fieldMode: FieldMode): string {
   switch (block.type) {
     case 'paragraph':
-      return `<mj-text><p style="margin:0">${renderInline(block.content, fieldMode)}</p></mj-text>`;
+      return `<mj-text${alignAttribute(block.attrs?.textAlign)}><p style="margin:0">${renderInline(block.content, fieldMode)}</p></mj-text>`;
     case 'heading':
-      return `<mj-text font-size="${HEADING_SIZES[block.attrs.level]}" font-weight="700" line-height="1.3">${renderInline(block.content, fieldMode)}</mj-text>`;
-    case 'bulletList': {
-      const items = block.content
-        .map(
-          (item) =>
-            `<li>${item.content.map((p) => renderInline(p.content, fieldMode)).join('<br />')}</li>`,
-        )
-        .join('');
-      return `<mj-text><ul style="margin:0;padding-left:22px">${items}</ul></mj-text>`;
-    }
+      return `<mj-text${alignAttribute(block.attrs.textAlign)} font-size="${HEADING_SIZES[block.attrs.level]}" font-weight="700" line-height="1.3">${renderInline(block.content, fieldMode)}</mj-text>`;
+    case 'bulletList':
+    case 'orderedList':
+      return `<mj-text>${renderList(block, fieldMode)}</mj-text>`;
     case 'button': {
       const href = safeHref(block.attrs.href);
       const hrefAttribute = href ? ` href="${escapeAttribute(href)}"` : '';
       return `<mj-button${hrefAttribute} background-color="${look.primaryColor}" color="#FFFFFF" font-weight="700" border-radius="5px" align="left" padding="14px 0">${escapeText(block.attrs.label)}</mj-button>`;
     }
+    case 'horizontalRule':
+      return '<mj-divider border-color="#DDDDDD" border-width="1px" padding="14px 0" />';
   }
+}
+
+function renderList(list: ListNode, fieldMode: FieldMode): string {
+  const items = list.content
+    .map((item) => {
+      const parts = item.content.map((child) =>
+        child.type === 'paragraph'
+          ? renderInline(child.content, fieldMode)
+          : renderList(child, fieldMode),
+      );
+      return `<li>${parts.join('<br />')}</li>`;
+    })
+    .join('');
+  if (list.type === 'bulletList') {
+    return `<ul style="margin:0;padding-left:22px">${items}</ul>`;
+  }
+  const start = list.attrs?.start;
+  const startAttribute = start !== undefined && start !== 1 ? ` start="${String(start)}"` : '';
+  return `<ol${startAttribute} style="margin:0;padding-left:22px">${items}</ol>`;
+}
+
+function alignAttribute(align: 'left' | 'center' | 'right' | null | undefined): string {
+  return align && align !== 'left' ? ` align="${align}"` : '';
 }
 
 function renderInline(nodes: InlineNode[] | undefined, fieldMode: FieldMode): string {

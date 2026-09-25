@@ -1,8 +1,9 @@
 import { getSchema } from '@tiptap/core';
 import { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { describe, expect, it } from 'vitest';
-import { writeDocumentSchema } from './document';
+import { fromEditorJson } from './document';
 import { paymentReminder } from './fixtures';
+import { STARTER_GALLERY } from './starters';
 import { writeModeExtensions } from './tiptap';
 
 // Feasibility check for Write mode (Council step 5): TipTap must accept field
@@ -21,8 +22,88 @@ describe('Write mode editor schema', () => {
     const node = ProseMirrorNode.fromJSON(schema, paymentReminder);
     node.check();
 
-    const roundTripped = normalise(node.toJSON());
-    expect(writeDocumentSchema.parse(roundTripped)).toEqual(paymentReminder);
+    expect(fromEditorJson(node.toJSON())).toEqual(paymentReminder);
+  });
+
+  it('round-trips every starter, including alignment, numbered lists and dividers', () => {
+    for (const starter of STARTER_GALLERY) {
+      const node = ProseMirrorNode.fromJSON(schema, starter.document);
+      node.check();
+      expect(fromEditorJson(node.toJSON())).toEqual(starter.document);
+    }
+    const extras = {
+      type: 'doc',
+      content: [
+        {
+          type: 'paragraph',
+          attrs: { textAlign: 'center' },
+          content: [{ type: 'text', text: 'Hi' }],
+        },
+        {
+          type: 'orderedList',
+          attrs: { start: 3 },
+          content: [
+            {
+              type: 'listItem',
+              content: [
+                { type: 'paragraph', content: [{ type: 'text', text: 'Three' }] },
+                {
+                  type: 'bulletList',
+                  content: [
+                    {
+                      type: 'listItem',
+                      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Nested' }] }],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        { type: 'horizontalRule' },
+      ],
+    };
+    const node = ProseMirrorNode.fromJSON(schema, extras);
+    node.check();
+    expect(fromEditorJson(node.toJSON())).toEqual(extras);
+  });
+
+  it('keeps only the link address from the editor', () => {
+    const doc = fromEditorJson({
+      type: 'doc',
+      content: [
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'text',
+              text: 'site',
+              marks: [
+                {
+                  type: 'link',
+                  attrs: {
+                    href: 'https://x.example',
+                    target: '_blank',
+                    rel: 'noopener',
+                    class: null,
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    expect(doc.content[0]).toEqual({
+      type: 'paragraph',
+      content: [
+        {
+          type: 'text',
+          text: 'site',
+          marks: [{ type: 'link', attrs: { href: 'https://x.example' } }],
+        },
+      ],
+    });
   });
 
   it('leaves out formatting that email clients render badly', () => {
@@ -31,18 +112,3 @@ describe('Write mode editor schema', () => {
     expect(schema.marks['strike']).toBeUndefined();
   });
 });
-
-/**
- * ProseMirror writes every attribute, including defaults (e.g. an empty
- * fallback); the stored document omits empty ones.
- */
-function normalise(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(normalise);
-  if (value && typeof value === 'object') {
-    const entries = Object.entries(value as Record<string, unknown>)
-      .filter(([key, v]) => !(key === 'fallback' && v === ''))
-      .map(([key, v]) => [key, normalise(v)]);
-    return Object.fromEntries(entries);
-  }
-  return value;
-}

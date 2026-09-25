@@ -1,4 +1,4 @@
-import { AppError, type Template } from '@postloom/core';
+import type { Template } from '@postloom/core';
 import {
   DEFAULT_PREFERENCES,
   preferencesSchema,
@@ -9,8 +9,10 @@ import {
 } from '@postloom/contracts';
 import type { Repositories } from '@postloom/db';
 import { collectFields, writeDocumentSchema, type WriteDocument } from '@postloom/editor';
-import { compileMjml } from '@postloom/email';
+import { compileMjml, sendEmail } from '@postloom/email';
 import { createAccountHandlers, type AccountDeps } from './accounts';
+import { readDocument } from './documents';
+import { createTemplateTestHandler } from './template-test';
 import type { IpcHandlers } from './ipc-router';
 
 const PREFERENCES_KEY = 'preferences';
@@ -34,6 +36,12 @@ export function createHandlers({ appInfo, repos, ...accountDeps }: HandlerDeps):
 
   return {
     ...createAccountHandlers({ repos, ...accountDeps }),
+    ...createTemplateTestHandler({
+      repos,
+      vault: accountDeps.vault,
+      extraCa: accountDeps.extraCa,
+      send: accountDeps.smtp?.send ?? sendEmail,
+    }),
 
     'app:getInfo': () => Promise.resolve(appInfo),
 
@@ -60,7 +68,7 @@ export function createHandlers({ appInfo, repos, ...accountDeps }: HandlerDeps):
           defaultSenderProfileId: null,
         }),
       ),
-    'templates:save': async ({ id, name, subject, document, snapshot }) =>
+    'templates:save': async ({ id, name, subject, document, defaultSenderProfileId, snapshot }) =>
       toDetail(
         await repos.templates.update(
           id,
@@ -68,6 +76,7 @@ export function createHandlers({ appInfo, repos, ...accountDeps }: HandlerDeps):
             ...(name !== undefined && { name }),
             ...(subject !== undefined && { subject }),
             ...(document !== undefined && { document }),
+            ...(defaultSenderProfileId !== undefined && { defaultSenderProfileId }),
           },
           { snapshot: snapshot ?? false },
         ),
@@ -90,19 +99,6 @@ export function createHandlers({ appInfo, repos, ...accountDeps }: HandlerDeps):
     'templates:restoreVersion': async ({ id, versionNo }) =>
       toDetail(await repos.templates.restoreVersion(id, versionNo)),
   };
-}
-
-/** Stored documents are re-validated before use: the database is not trusted blindly. */
-function readDocument(template: Template): WriteDocument {
-  const parsed = writeDocumentSchema.safeParse(template.document);
-  if (!parsed.success) {
-    throw new AppError({
-      code: 'TEMPLATE_INVALID',
-      messageKey: 'errors.templateInvalid',
-      details: { templateId: template.id },
-    });
-  }
-  return parsed.data;
 }
 
 function toSummary(template: Template): TemplateSummary {

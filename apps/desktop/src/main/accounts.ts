@@ -41,6 +41,25 @@ type AccountHandlers = Pick<
   | 'senders:delete'
 >;
 
+/** Decrypts the saved password just in time; it never leaves the main process. */
+export async function loadSmtpConfig(
+  account: EmailAccount,
+  { repos, vault, extraCa }: Pick<AccountDeps, 'repos' | 'vault' | 'extraCa'>,
+): Promise<SmtpAccountConfig> {
+  const cipher = await repos.accounts.getSecret(account.id);
+  if (!cipher) {
+    throw new AppError({ code: 'EMAIL_AUTH_FAILED', messageKey: 'errors.passwordMissing' });
+  }
+  return {
+    host: account.host,
+    port: account.port,
+    security: account.security,
+    username: account.username,
+    password: vault.decrypt(cipher),
+    extraCa,
+  };
+}
+
 const CONNECTION_FIELDS = ['host', 'port', 'security', 'username'] as const;
 
 const TEST_EMAIL: WriteDocument = {
@@ -94,21 +113,7 @@ export function createAccountHandlers({
     return toAccountInfo(account, (await senderCounts()).get(id) ?? 0);
   };
 
-  /** Decrypts the saved password just in time; it never leaves the main process. */
-  const savedConfig = async (account: EmailAccount): Promise<SmtpAccountConfig> => {
-    const cipher = await repos.accounts.getSecret(account.id);
-    if (!cipher) {
-      throw new AppError({ code: 'EMAIL_AUTH_FAILED', messageKey: 'errors.passwordMissing' });
-    }
-    return {
-      host: account.host,
-      port: account.port,
-      security: account.security,
-      username: account.username,
-      password: vault.decrypt(cipher),
-      extraCa,
-    };
-  };
+  const savedConfig = (account: EmailAccount) => loadSmtpConfig(account, { repos, vault, extraCa });
 
   const toSenderInfo = async (
     sender: SenderProfile,
