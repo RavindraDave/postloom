@@ -216,7 +216,11 @@ test('the email preview runs without scripts or same-origin access', async ({ pa
     };
   });
 
-  expect(result).toEqual({ title: 'Postloom', apiStillThere: true, canReachInside: false });
+  expect(result).toEqual({
+    title: 'Templates - Postloom',
+    apiStillThere: true,
+    canReachInside: false,
+  });
   // The hostile document really loaded; its script just couldn't do anything.
   await expect(
     page.frameLocator('iframe[title="Email preview"]').getByText('Scripted'),

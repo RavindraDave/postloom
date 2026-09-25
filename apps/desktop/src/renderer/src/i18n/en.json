@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "Postloom",
-    "tagline": "Personal emails, woven for you"
+    "tagline": "Personal emails, woven for you",
+    "windowTitle": "{{page}} - Postloom"
   },
   "nav": {
     "label": "Main",
@@ -11,7 +12,8 @@
     "senders": "Senders & accounts",
     "history": "History",
     "settings": "Settings",
-    "help": "Help"
+    "help": "Help",
+    "skip": "Skip to content"
   },
   "home": {
     "title": "Welcome to Postloom",
@@ -709,7 +711,8 @@
       "notSaved": "Once you press Send now, emails start going out. You can pause or stop at any time.",
       "countdown": "Sending in {{count}} second…",
       "countdown_other": "Sending in {{count}} seconds…",
-      "cancel": "Don't send yet"
+      "cancel": "Don't send yet",
+      "countdownAnnounce": "Sending starts in {{count}} seconds. Press Don't send yet to stop it."
     }
   },
   "progress": {

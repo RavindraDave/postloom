@@ -12,8 +12,9 @@ import {
   Table,
   Text,
   Title,
+  VisuallyHidden,
 } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+import { useDisclosure, useReducedMotion } from '@mantine/hooks';
 import type { SendProblem, SendSummary } from '@postloom/contracts';
 import {
   IconAlertTriangle,
@@ -25,6 +26,7 @@ import {
   IconPlayerStop,
   IconQuestionMark,
 } from '@tabler/icons-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
 import { errorKey } from '../../api/ipc';
@@ -78,6 +80,7 @@ function SendProgress({ send }: { send: SendSummary }) {
   const { t } = useTranslation();
   const { counts } = send;
   const total = counts.pending + counts.sending + counts.sent + counts.failed + counts.uncertain;
+  const reduceMotion = useReducedMotion();
   const settled = counts.sent + counts.failed + counts.uncertain;
   const showProblems = !send.running && counts.failed + counts.uncertain + counts.skipped > 0;
   const problems = useSendProblems(send.id, showProblems);
@@ -103,13 +106,14 @@ function SendProgress({ send }: { send: SendSummary }) {
 
       <Paper withBorder radius="lg" p="lg">
         <Stack gap="md">
+          <Announcer send={send} total={total} />
           <Status send={send} total={total} />
           <Progress
             value={total ? (settled / total) * 100 : 100}
             size="lg"
             radius="xl"
             aria-label={t('progress.sending', { sent: counts.sent, total })}
-            animated={send.running}
+            animated={send.running && !reduceMotion}
           />
           <SimpleGrid cols={{ base: 2, sm: 4 }}>
             <Count label={t('progress.counts.sent')} value={counts.sent} testId="count-sent" />
@@ -155,6 +159,38 @@ function Count({ label, value, testId }: { label: string; value: number; testId:
   );
 }
 
+/**
+ * What screen readers hear: the start, every tenth of the way, and each pause,
+ * stop and finish, rather than each email as it goes (PLAN.md §4.3).
+ */
+function Announcer({ send, total }: { send: SendSummary; total: number }) {
+  const { t } = useTranslation();
+  const { counts } = send;
+  const settled = counts.sent + counts.failed + counts.uncertain;
+  const tenth = total ? Math.floor((settled / total) * 10) : 0;
+  const moment = send.running
+    ? `running:${String(tenth)}`
+    : `${send.status}:${send.pauseReason ?? ''}`;
+  const message = send.running
+    ? t('progress.sending', { sent: counts.sent, total })
+    : send.status === 'finished'
+      ? t('progress.done', { count: counts.sent })
+      : send.status === 'stopped'
+        ? t('progress.stopped', { count: counts.pending + counts.sending })
+        : send.status === 'paused'
+          ? t(`progress.paused.${send.pauseReason ?? 'user'}`)
+          : '';
+  // Only a new moment changes what is read out (state adjusted while rendering).
+  const [spoken, setSpoken] = useState({ moment, message });
+  if (spoken.moment !== moment) setSpoken({ moment, message });
+
+  return (
+    <VisuallyHidden role="status" aria-live="polite" aria-atomic>
+      {spoken.message}
+    </VisuallyHidden>
+  );
+}
+
 function Status({ send, total }: { send: SendSummary; total: number }) {
   const { t } = useTranslation();
   const { counts } = send;
@@ -162,7 +198,7 @@ function Status({ send, total }: { send: SendSummary; total: number }) {
 
   if (send.running) {
     return (
-      <Stack gap={4} aria-live="polite">
+      <Stack gap={4}>
         <Text fw={700} size="lg">
           {t('progress.sending', { sent: counts.sent, total })}
         </Text>
@@ -184,7 +220,7 @@ function Status({ send, total }: { send: SendSummary; total: number }) {
   }
   if (send.status === 'finished') {
     return (
-      <Stack gap={4} role="status">
+      <Stack gap={4}>
         <Group gap="xs">
           <IconCircleCheck size={24} color="var(--mantine-color-loom-7)" aria-hidden />
           <Text fw={700} size="lg">
@@ -199,7 +235,7 @@ function Status({ send, total }: { send: SendSummary; total: number }) {
   }
   if (send.status === 'stopped') {
     return (
-      <Text fw={700} size="lg" role="status">
+      <Text fw={700} size="lg">
         {t('progress.stopped', { count: left })}
       </Text>
     );
@@ -209,7 +245,6 @@ function Status({ send, total }: { send: SendSummary; total: number }) {
       <Alert
         color={send.pauseReason === 'user' || send.pauseReason === 'sleep' ? 'gray' : 'yellow'}
         icon={<IconPlayerPause />}
-        role="status"
       >
         {t(`progress.paused.${send.pauseReason ?? 'user'}`)}
       </Alert>

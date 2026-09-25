@@ -61,3 +61,27 @@
   background: var(--pl-ground);
   min-height: 100vh;
 }
+
+/* Hidden until it has keyboard focus, then shown over the sidebar. */
+.skip {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 1000;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: var(--mantine-color-loom-7);
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+
+.skip:focus-visible {
+  transform: none;
+}
+
+/* The content area takes focus after a page change, without a ring round the whole page. */
+.main:focus {
+  outline: none;
+}

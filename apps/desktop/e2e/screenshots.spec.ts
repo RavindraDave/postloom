@@ -264,7 +264,10 @@ test('capture the send wizard', async ({ userDataDir }) => {
   await page.getByTestId('count-sent').filter({ hasText: '1' }).waitFor({ timeout: 20_000 });
   await page.waitForTimeout(300);
   await page.screenshot({ path: `${out}/send-progress-light.png` });
-  await page.getByText(/^Done!/).waitFor({ timeout: 60_000 });
+  await page
+    .getByRole('status')
+    .filter({ hasText: /^Done!/ })
+    .waitFor({ timeout: 60_000 });
   for (const scheme of ['light', 'dark'] as const) {
     await page.emulateMedia({ colorScheme: scheme });
     await page.waitForTimeout(400);

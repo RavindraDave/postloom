@@ -33,7 +33,7 @@ const paused = (reason: SendSummary['pauseReason'], extra: Partial<SendSummary> 
 describe('SendProgressPage', () => {
   it('shows live progress with who is being emailed now', async () => {
     const api = renderProgress(sampleSend);
-    expect(await screen.findByText('Sending… 7 of 10')).toBeInTheDocument();
+    expect(await screen.findByRole('status')).toHaveTextContent('Sending… 7 of 10');
     expect(screen.getByText('Now: row 9, ben@example.com')).toBeInTheDocument();
     expect(screen.getByText('About 3 minutes left')).toBeInTheDocument();
     expect(screen.getByTestId('count-sent')).toHaveTextContent('7');
@@ -62,7 +62,7 @@ describe('SendProgressPage', () => {
     ['user', 'Nothing more is sent until you carry on'],
   ] as const)('explains a pause for %s, with a way to carry on', async (reason, text) => {
     const api = renderProgress(paused(reason));
-    expect(await screen.findByText(new RegExp(text))).toBeInTheDocument();
+    expect(await screen.findByRole('status')).toHaveTextContent(new RegExp(text));
     await userEvent.click(screen.getByRole('button', { name: 'Carry on sending' }));
     await waitFor(() => {
       expect(api.sends.resume).toHaveBeenCalledWith({ id: 'send1' });
@@ -128,7 +128,7 @@ describe('SendProgressPage', () => {
         },
       },
     );
-    expect(await screen.findByText('Done! 8 emails sent.')).toBeInTheDocument();
+    expect(await screen.findByRole('status')).toHaveTextContent('Done! 8 emails sent.');
     expect(screen.getByText("1 couldn't be sent. See why below.")).toBeInTheDocument();
     const table = await screen.findByRole('table', { name: 'People not emailed' });
     expect(within(table).getByText(/the address may not exist/)).toBeInTheDocument();
@@ -152,8 +152,39 @@ describe('SendProgressPage', () => {
 
   it('says how many are left after a stop', async () => {
     renderProgress({ ...paused(null), status: 'stopped' });
-    expect(
-      await screen.findByText("Stopped. 3 people haven't been emailed yet."),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      "Stopped. 3 people haven't been emailed yet.",
+    );
+  });
+
+  it('reads progress out every tenth of the way, not for every email', async () => {
+    const running = (sent: number) => ({
+      ...sampleSend,
+      status: 'sending' as const,
+      running: true,
+      counts: {
+        ...sampleSend.counts,
+        pending: 100 - sent,
+        sending: 0,
+        sent,
+        failed: 0,
+        uncertain: 0,
+      },
+    });
+    let current = running(10);
+    renderProgress(current, { sends: { get: vi.fn(() => ok(current)) } });
+    expect(await screen.findByRole('status')).toHaveTextContent('Sending… 10 of 100');
+
+    // The screen updates as it checks again; what is read out waits for 20.
+    current = running(15);
+    await screen.findByText('Sending… 15 of 100', {}, { timeout: 3000 });
+    expect(screen.getByRole('status')).toHaveTextContent('Sending… 10 of 100');
+    current = running(20);
+    await waitFor(
+      () => {
+        expect(screen.getByRole('status')).toHaveTextContent('Sending… 20 of 100');
+      },
+      { timeout: 3000 },
+    );
   });
 });

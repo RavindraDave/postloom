@@ -43,11 +43,14 @@ describe('ConfirmStep', () => {
     renderConfirm();
 
     await user.click(await screen.findByRole('button', { name: 'Send now' }));
+    expect(screen.getByText(`Sending in ${String(LAST_CHANCE_SECONDS)} seconds…`)).toBeVisible();
+    // Screen readers hear it once, and the keyboard is on the way out.
     expect(screen.getByRole('status')).toHaveTextContent(
-      `Sending in ${String(LAST_CHANCE_SECONDS)} seconds…`,
+      "Sending starts in 10 seconds. Press Don't send yet to stop it.",
     );
+    expect(screen.getByRole('button', { name: "Don't send yet" })).toHaveFocus();
     tick(3);
-    expect(screen.getByRole('status')).toHaveTextContent('Sending in 7 seconds…');
+    expect(screen.getByText('Sending in 7 seconds…')).toBeVisible();
     await user.click(screen.getByRole('button', { name: "Don't send yet" }));
     tick(LAST_CHANCE_SECONDS);
     expect(api.sends.start).not.toHaveBeenCalled();

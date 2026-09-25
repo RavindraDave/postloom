@@ -8,11 +8,12 @@ import {
   IconTemplate,
   IconUsers,
 } from '@tabler/icons-react';
-import type { ComponentType } from 'react';
+import { useEffect, useRef, type ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NavLink as RouterNavLink, Outlet, useLocation } from 'react-router';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { LoomMark } from '../components/LoomMark';
+import { useWindowTitle } from '../components/useWindowTitle';
 import classes from './AppLayout.module.css';
 
 interface NavItem {
@@ -37,6 +38,22 @@ export const SECONDARY_NAV_ITEMS: NavItem[] = [
 export function AppLayout() {
   const { t } = useTranslation();
   const { pathname } = useLocation();
+  const main = useRef<HTMLElement>(null);
+  // Named after the section in the sidebar; Home is just "Postloom".
+  const section = [...NAV_ITEMS, ...SECONDARY_NAV_ITEMS].find(
+    ({ to }) => to !== '/' && (pathname === to || pathname.startsWith(`${to}/`)),
+  );
+  useWindowTitle(section ? t(section.labelKey) : null);
+  const firstPage = useRef(true);
+
+  // After moving to another page, start keyboard and screen-reader users at its content.
+  useEffect(() => {
+    if (firstPage.current) {
+      firstPage.current = false;
+      return;
+    }
+    main.current?.focus({ preventScroll: true });
+  }, [pathname]);
 
   const renderItem = ({ to, labelKey, icon: Icon }: NavItem) => {
     // Whole path segments only: '/send' must not match '/senders'.
@@ -57,6 +74,17 @@ export function AppLayout() {
 
   return (
     <AppShell navbar={{ width: 248, breakpoint: 0 }} padding={40}>
+      <a
+        href="#main-content"
+        className={classes.skip}
+        onClick={(event) => {
+          // The address holds the page (hash routing), so move focus instead of following the link.
+          event.preventDefault();
+          main.current?.focus();
+        }}
+      >
+        {t('nav.skip')}
+      </a>
       <AppShell.Navbar component="nav" aria-label={t('nav.label')} className={classes.navbar}>
         <div className={classes.brand}>
           <span className={classes.mark} aria-hidden>
@@ -71,7 +99,7 @@ export function AppLayout() {
         <div className={classes.spacer} />
         {SECONDARY_NAV_ITEMS.map(renderItem)}
       </AppShell.Navbar>
-      <AppShell.Main className={classes.main}>
+      <AppShell.Main ref={main} id="main-content" tabIndex={-1} className={classes.main}>
         <ErrorBoundary key={pathname}>
           <Outlet />
         </ErrorBoundary>

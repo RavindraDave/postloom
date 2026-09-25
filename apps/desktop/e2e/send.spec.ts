@@ -1,5 +1,6 @@
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { expectAccessible } from './a11y';
 import { expect, firstPage, launchApp, test } from './fixtures';
 import { startTestMailServer } from './mail-server';
 
@@ -67,6 +68,7 @@ test('checks a list, previews each person and sends a test with their details', 
   const mustFix = page.getByRole('region', { name: 'Must fix before sending' });
   await expect(mustFix).toContainText("1 row has an email address that isn't valid.");
   await expect(mustFix).toContainText('Row 3');
+  await expectAccessible(page, 'the check step, with a problem to fix');
   await mustFix.getByRole('button', { name: 'Leave these rows out' }).click();
   await expect(page.getByText('2 emails will be sent from Asha Kapoor.')).toBeVisible();
   await expect(page.getByText('Left out: 1 you chose.')).toBeVisible();
@@ -100,13 +102,15 @@ test('checks a list, previews each person and sends a test with their details', 
   // 4. Send for real, from the separate sending process.
   await page.getByRole('button', { name: 'Continue' }).first().click();
   await expect(page.getByText(/^Send 2 emails from .+ as .+\?$/)).toBeVisible();
+  await expectAccessible(page, 'the ready-to-send step');
   // "Always ask me before sending" is on: 10 seconds to change your mind.
   await page.getByRole('button', { name: 'Send now' }).click();
-  await expect(
-    page.getByRole('status').filter({ hasText: /^Sending in \d+ seconds?…$/ }),
-  ).toBeVisible();
+  await expect(page.getByText(/^Sending in \d+ seconds?…$/)).toBeVisible();
   await expect(page.getByRole('button', { name: "Don't send yet" })).toBeVisible();
-  await expect(page.getByText('Done! 2 emails sent.')).toBeVisible({ timeout: 40_000 });
+  await expect(page.getByRole('status').filter({ hasText: 'Done! 2 emails sent.' })).toBeVisible({
+    timeout: 40_000,
+  });
+  await expectAccessible(page, 'the send result');
   await expect(page.getByTestId('count-sent')).toHaveText('2');
   await expect(page.getByTestId('count-left-out')).toHaveText('1');
 

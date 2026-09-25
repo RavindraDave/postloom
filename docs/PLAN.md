@@ -664,7 +664,9 @@ Estimates assume one developer working with AI assistance; they're rough and get
   - Settings → Sending: the wait between emails and the most emails a day for any sender or account without their own (the "app" level of §7.2; the stricter daily limit still wins), and "Always ask me before sending", which gives 10 seconds to change your mind after Send now;
   - Settings → About: the version and a link to Help.
 
-  Still to do: the accessibility and performance pass, and opt-in crash reporting (D7, needs a Sentry project). Updates are handled by the Microsoft Store on Windows and by a new-version notice on macOS (D10, Phase 6).
+  - Accessibility: automated WCAG 2.2 AA checks (axe) on every screen in light and dark, including screens with real content; "Skip to content"; focus moves to the page on a page change; window titles name the page; send progress is read out at the start, every tenth and at the end rather than for every email; the countdown before sending is announced once and focus moves to "Don't send yet"; "reduce motion" is respected. The by-hand screen-reader pass before each release is in [design/accessibility-checklist.md](design/accessibility-checklist.md).
+
+  Still to do: the performance pass, the first by-hand screen-reader pass (owner), and opt-in crash reporting (D7, needs a Sentry project). Updates are handled by the Microsoft Store on Windows and by a new-version notice on macOS (D10, Phase 6).
 
 **Total:** roughly 19-23 weeks to 1.0 stable. Phases 2 and 3 can overlap once Phase 1 is done.
 
