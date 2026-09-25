@@ -174,7 +174,10 @@ test('capture setup and senders screens', async ({ userDataDir }) => {
 });
 
 test('capture the send wizard', async ({ userDataDir }) => {
-  const mail = await startTestMailServer({ username: 'asha@brightlane.example', password: 'pw' });
+  const mail = await startTestMailServer(
+    { username: 'asha@brightlane.example', password: 'pw' },
+    { acceptDelayMs: 1_500, rejectRecipients: ['lena@example.com'] },
+  );
   const caFile = join(userDataDir, 'test-ca.pem');
   writeFileSync(caFile, mail.caPem);
   const listFile = join(userDataDir, 'October invoices.csv');
@@ -245,6 +248,26 @@ test('capture the send wizard', async ({ userDataDir }) => {
     await page.emulateMedia({ colorScheme: scheme });
     await page.waitForTimeout(400);
     await page.screenshot({ path: `${out}/send-check-${scheme}.png` });
+  }
+
+  // Leave out the bad address, skip the test, and send.
+  await page.emulateMedia({ colorScheme: 'light' });
+  const mustFix = page.getByRole('region', { name: 'Must fix before sending' });
+  await mustFix.getByRole('button', { name: 'Leave these rows out' }).click();
+  await page.getByRole('button', { name: 'Continue without a test' }).click();
+  await page.getByRole('button', { name: 'Continue' }).first().click();
+  await page.getByRole('button', { name: 'Send now' }).waitFor();
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${out}/send-confirm-light.png` });
+  await page.getByRole('button', { name: 'Send now' }).click();
+  await page.getByTestId('count-sent').filter({ hasText: '1' }).waitFor({ timeout: 20_000 });
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${out}/send-progress-light.png` });
+  await page.getByText(/^Done!/).waitFor({ timeout: 60_000 });
+  for (const scheme of ['light', 'dark'] as const) {
+    await page.emulateMedia({ colorScheme: scheme });
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: `${out}/send-done-${scheme}.png` });
   }
 
   await app.close();

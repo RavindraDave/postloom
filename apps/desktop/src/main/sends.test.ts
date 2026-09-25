@@ -13,6 +13,7 @@ let handlers: IpcHandlers;
 let repos: ReturnType<typeof createRepositories>;
 let delivered: OutgoingEmail[];
 let respond: (email: OutgoingEmail) => Error | null;
+let listText: string;
 const notify = vi.fn();
 
 const LIST = [
@@ -27,6 +28,7 @@ beforeEach(async () => {
   repos = createRepositories(opened.db);
   delivered = [];
   respond = () => null;
+  listText = LIST;
   notify.mockReset();
   const mailer: Mailer = {
     send: (email) => {
@@ -47,7 +49,7 @@ beforeEach(async () => {
     vault: fakeVault(),
     smtp: { verify: () => Promise.resolve(), send: () => Promise.reject(new Error('unused')) },
     pickSpreadsheetFile: () =>
-      Promise.resolve({ name: 'invoices.csv', bytes: new TextEncoder().encode(LIST) }),
+      Promise.resolve({ name: 'invoices.csv', bytes: new TextEncoder().encode(listText) }),
     openMailer: () => mailer,
     notify,
   });
@@ -146,6 +148,16 @@ describe('sending', () => {
     expect(await handlers['sends:problems']({ id: started.id })).toEqual([
       { rowNo: 3, to: 'ben@example.com', status: 'skipped', errorCode: 'doNotEmail' },
       { rowNo: 4, to: 'cara@example.com', status: 'skipped', errorCode: 'skipped' },
+    ]);
+  });
+
+  it('shows what was typed for a left-out row with a bad address', async () => {
+    listText = `${LIST}\nnot an address,Dan,INV-4,£1,4 Oct`;
+    const { input } = await setUp();
+    const started = await handlers['sends:start']({ ...input, skipRows: [5] });
+    await until(started.id, (s) => s.status === 'finished' && !s.running);
+    expect(await handlers['sends:problems']({ id: started.id })).toEqual([
+      { rowNo: 5, to: 'not an address', status: 'skipped', errorCode: 'skipped' },
     ]);
   });
 

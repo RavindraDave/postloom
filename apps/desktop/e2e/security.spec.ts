@@ -27,6 +27,7 @@ test('the preload exposes only the typed Postloom API', async ({ page }) => {
     senders: Object.keys(window.postloom.senders).sort(),
     assets: Object.keys(window.postloom.assets).sort(),
     recipients: Object.keys(window.postloom.recipients).sort(),
+    sends: Object.keys(window.postloom.sends).sort(),
     templates: Object.keys(window.postloom.templates).sort(),
     everyEntryIsAFunction: [
       window.postloom.app,
@@ -36,13 +37,14 @@ test('the preload exposes only the typed Postloom API', async ({ page }) => {
       window.postloom.senders,
       window.postloom.assets,
       window.postloom.recipients,
+      window.postloom.sends,
     ]
       .flatMap((group): unknown[] => Object.values(group))
       .every((value) => typeof value === 'function'),
     hasIpcRenderer: 'ipcRenderer' in window || 'electron' in window,
   }));
   expect(api).toEqual({
-    top: ['accounts', 'app', 'assets', 'recipients', 'senders', 'settings', 'templates'],
+    top: ['accounts', 'app', 'assets', 'recipients', 'senders', 'sends', 'settings', 'templates'],
     app: ['getInfo', 'getSecurity'],
     settings: ['get', 'update'],
     // No channel ever returns a saved password.
@@ -51,6 +53,17 @@ test('the preload exposes only the typed Postloom API', async ({ page }) => {
     assets: ['pickImage', 'totalSize'],
     // The screen never gets a file path, only a token for the picked list.
     recipients: ['check', 'inspect', 'pick', 'row'],
+    sends: [
+      'get',
+      'list',
+      'pause',
+      'problems',
+      'resolveUncertain',
+      'resume',
+      'retryFailed',
+      'start',
+      'stop',
+    ],
     templates: [
       'create',
       'delete',

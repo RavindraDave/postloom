@@ -170,7 +170,11 @@ export function createSendService(deps: SendServiceDeps) {
         mapping: { sheet: input.sheet, columns: input.mapping, fields: input.fieldMap },
         recipients: checked.recipients.map((person) => ({
           rowNo: person.rowNo,
-          to: person.to,
+          // A left-out row keeps what was typed, so the report shows which row it was.
+          to:
+            reasons.has(person.rowNo) && person.to.length === 0
+              ? person.invalidAddresses.map((typed) => typed.replace(/[\r\n]+/g, ' '))
+              : person.to,
           cc: person.cc,
           bcc: person.bcc,
           values: person.values,
