@@ -674,6 +674,10 @@ Estimates assume one developer working with AI assistance; they're rough and get
 
   Still to do: the first by-hand screen-reader pass (owner), and opt-in crash reporting (D7, needs a Sentry project). Updates are handled by the Microsoft Store on Windows and by a new-version notice on macOS (D10, Phase 6).
 
+- **Phase 6 (in progress):** done so far:
+  - Releases: pushing a version tag (`v1.2.3`) builds the installers on all three systems and attaches them, with `.sha256` checksums, to a draft GitHub Release that is published by hand. The tag must match the app's version.
+  - macOS builds for Apple silicon and Intel, signed ad-hoc (D10), checked with `codesign --verify` in CI; the app icon; and [docs/install.md](install.md), which shows how to open the unsigned downloads on each system.
+
 **Total:** roughly 19-23 weeks to 1.0 stable. Phases 2 and 3 can overlap once Phase 1 is done.
 
 **Milestone demos** at the end of each phase: a short recorded walk-through plus the installers from CI.

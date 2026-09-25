@@ -74,6 +74,12 @@ jobs:
         run: pnpm package
       - name: Installer size budget
         run: node scripts/check-installer-size.mjs apps/desktop/release
+      - name: The macOS app is signed (ad-hoc) and intact
+        if: runner.os == 'macOS'
+        run: |
+          for app in apps/desktop/release/mac*/Postloom.app; do
+            codesign --verify --deep --strict --verbose=2 "$app"
+          done
       - name: Upload installers
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
