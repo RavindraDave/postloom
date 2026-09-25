@@ -1,4 +1,4 @@
-import { AppError, DEFAULT_SENDING_SETTINGS } from '@postloom/core';
+import { AppError } from '@postloom/core';
 import type { SendSummary } from '@postloom/contracts';
 import type { PauseReason, Repositories, SendRecord } from '@postloom/db';
 import { collectAssetIds, lookFromBrand, writeDocumentToMjml } from '@postloom/editor';
@@ -8,6 +8,7 @@ import { loadSmtpConfig, type AccountDeps } from './accounts';
 import { inlineImagesFor, senderBrand } from './brand';
 import { readDocument } from './documents';
 import type { IpcHandlers } from './ipc-router';
+import { appSendingDefaults } from './preferences';
 import type { ListService } from './recipients';
 import { buildReport } from './report';
 import type { RunnerEvents, RunnerResult, SendRunner } from './send-runner';
@@ -164,9 +165,7 @@ export function createSendService(deps: SendServiceDeps) {
         emailAccountId: account.id,
         settings: {
           delayMs:
-            checked.sender.delayMs ??
-            account.delayMs ??
-            DEFAULT_SENDING_SETTINGS.delayBetweenEmailsMs,
+            checked.sender.delayMs ?? account.delayMs ?? (await appSendingDefaults(repos)).delayMs,
           dailyLimit: checked.dailyLimit,
         },
         sourceFileName: fileName,

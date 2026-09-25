@@ -39,6 +39,10 @@ export const preferencesSchema = z.object({
   confirmBeforeSend: z.boolean(),
   /** How long finished sends stay in History, in days; 0 keeps them forever. */
   historyDays: z.union([z.literal(0), z.literal(30), z.literal(90), z.literal(365)]),
+  /** Wait between emails, for senders and accounts without their own (Settings → Sending). */
+  delayMs: z.number().int().min(0).max(600_000),
+  /** Most emails a day from any one account, unless the account or provider allows fewer. */
+  dailyLimit: z.number().int().min(1).max(100_000),
 });
 
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -46,6 +50,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
   textScale: 1,
   confirmBeforeSend: true,
   historyDays: 0,
+  delayMs: 2000,
+  dailyLimit: 450,
 };
 
 // ------------------------------------------------------------------ Templates

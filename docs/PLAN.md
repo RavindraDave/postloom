@@ -661,7 +661,10 @@ Estimates assume one developer working with AI assistance; they're rough and get
   - Help: ten short guides you can search (getting started, connecting Gmail, Outlook and other providers, templates, lists, sending, History, your data, and fixing problems), an ⓘ link to the right guide on each page, and "Run the setup again";
   - Export diagnostics: a file for support with only the version, the computer, the settings and counts. It never includes passwords, addresses, server names, people or email content.
 
-  Still to do: the accessibility and performance pass, and the rest of Settings (sending defaults, opt-in crash reporting, about).
+  - Settings → Sending: the wait between emails and the most emails a day for any sender or account without their own (the "app" level of §7.2; the stricter daily limit still wins), and "Always ask me before sending", which gives 10 seconds to change your mind after Send now;
+  - Settings → About: the version and a link to Help.
+
+  Still to do: the accessibility and performance pass, and opt-in crash reporting (D7, needs a Sentry project). Updates are handled by the Microsoft Store on Windows and by a new-version notice on macOS (D10, Phase 6).
 
 **Total:** roughly 19-23 weeks to 1.0 stable. Phases 2 and 3 can overlap once Phase 1 is done.
 

@@ -1,20 +1,22 @@
 import {
   Alert,
+  Button,
   Paper,
   SegmentedControl,
   Skeleton,
   Stack,
-  Switch,
   Text,
   Title,
 } from '@mantine/core';
 import type { Preferences } from '@postloom/contracts';
 import { IconAlertTriangle } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
 import { errorKey } from '../api/ipc';
-import { usePreferences, useUpdatePreferences } from '../api/queries';
+import { useAppInfo, usePreferences, useUpdatePreferences } from '../api/queries';
 import { PageHeader } from '../components/PageHeader';
 import { DataSettings } from './DataSettings';
+import { SendingDefaults } from './SendingDefaults';
 
 const TEXT_SCALES = [
   { value: '1', key: 'settings.textNormal' },
@@ -88,20 +90,7 @@ export function SettingsPage() {
           </Paper>
 
           <Paper withBorder radius="lg" p="lg">
-            <Stack gap="md">
-              <Title order={2} size="h3">
-                {t('settings.sending')}
-              </Title>
-              <Switch
-                size="md"
-                checked={preferences.data.confirmBeforeSend}
-                onChange={(event) => {
-                  change({ confirmBeforeSend: event.currentTarget.checked });
-                }}
-                label={t('settings.confirmBeforeSend')}
-                description={t('settings.confirmBeforeSendHint')}
-              />
-            </Stack>
+            <SendingDefaults preferences={preferences.data} onChange={change} />
           </Paper>
 
           <DataSettings
@@ -110,8 +99,30 @@ export function SettingsPage() {
               change({ historyDays });
             }}
           />
+
+          <About />
         </>
       )}
     </Stack>
+  );
+}
+
+/** Settings → About: the version, for when someone asks. */
+function About() {
+  const { t } = useTranslation();
+  const info = useAppInfo();
+  return (
+    <Paper withBorder radius="lg" p="lg">
+      <Stack gap="sm" align="flex-start">
+        <Title order={2} size="h3">
+          {t('settings.about')}
+        </Title>
+        {info.data && <Text fw={600}>{t('settings.version', { version: info.data.version })}</Text>}
+        <Text c="var(--pl-ink-soft)">{t('settings.aboutBody')}</Text>
+        <Button component={Link} to="/help" variant="default">
+          {t('settings.openHelp')}
+        </Button>
+      </Stack>
+    </Paper>
   );
 }

@@ -156,7 +156,7 @@
     "textLargest": "Largest",
     "sending": "Sending",
     "confirmBeforeSend": "Always ask me before sending",
-    "confirmBeforeSendHint": "Shows a summary of who gets what, with 10 seconds to change your mind.",
+    "confirmBeforeSendHint": "After you press Send, Postloom waits 10 seconds so you can change your mind. Turn this off to start straight away.",
     "data": {
       "title": "Your data",
       "intro": "Everything Postloom keeps is on this computer. Backups are taken every day automatically.",
@@ -189,7 +189,17 @@
       "clearConfirm": "Clear history",
       "cleared": "{{count}} send removed from History.",
       "cleared_other": "{{count}} sends removed from History."
-    }
+    },
+    "delay": "Wait between emails",
+    "delayHint": "For senders and accounts that don't have their own. A few seconds keeps email providers happy.",
+    "seconds": "seconds",
+    "dailyLimit": "Most emails a day from one account",
+    "dailyLimitHint": "Sending stops for the day at this number. If an account or its provider allows fewer, the lower number is used.",
+    "defaultsSaved": "Saved.",
+    "about": "About Postloom",
+    "version": "Version {{version}}",
+    "aboutBody": "Postloom sends personal emails from your own email account. Everything stays on this computer.",
+    "openHelp": "Open Help"
   },
   "accounts": {
     "providerLabel": "Email provider",
@@ -321,10 +331,10 @@
     "seconds_other": "{{count}} seconds",
     "fromSender": "Set for this sender",
     "fromAccount": "Same as the {{account}} account",
-    "fromApp": "Postloom's standard pace",
+    "fromApp": "From Settings (for every sender)",
     "limitFromAccount": "Set by the {{account}} account",
     "limitFromProvider": "{{provider}} allows about {{limit}} a day",
-    "limitFromApp": "Postloom's safe standard limit",
+    "limitFromApp": "From Settings (for every account)",
     "changeDelay": "Change for this sender",
     "useInherited": "Use the account's pace",
     "delayInputLabel": "Seconds between emails",
@@ -696,7 +706,10 @@
       "time_other": "About {{minutes}} minutes, with a pause between emails so your provider stays happy.",
       "send": "Send now",
       "starting": "Starting…",
-      "notSaved": "Once you press Send now, emails start going out. You can pause or stop at any time."
+      "notSaved": "Once you press Send now, emails start going out. You can pause or stop at any time.",
+      "countdown": "Sending in {{count}} second…",
+      "countdown_other": "Sending in {{count}} seconds…",
+      "cancel": "Don't send yet"
     }
   },
   "progress": {

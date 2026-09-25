@@ -215,6 +215,21 @@ describe('senders', () => {
     expect(own.templateCount).toBe(0);
   });
 
+  it('uses the pace and limit from Settings when nothing closer sets them', async () => {
+    await repos.settings.set('preferences', { delayMs: 4000, dailyLimit: 120 });
+    const account = await handlers['accounts:create'](gmail);
+    const sender = await handlers['senders:create']({
+      name: 'Newsletter',
+      emailAccountId: account.id,
+      fromName: 'Club News',
+      fromAddress: 'office@example.com',
+    });
+    expect(sender.effective).toEqual({
+      delayMs: { value: 4000, source: 'app' },
+      dailyLimit: { value: 120, source: 'app' },
+    });
+  });
+
   it('uses a stricter provider limit over the app default', async () => {
     const account = await handlers['accounts:create']({
       ...gmail,

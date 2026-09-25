@@ -1,6 +1,6 @@
 import { expect, firstPage, launchApp, test } from './fixtures';
 
-test('backs up on request and keeps the History setting after a restart', async ({
+test('backs up on request and keeps History and sending settings after a restart', async ({
   userDataDir,
 }) => {
   let app = await launchApp(userDataDir);
@@ -20,6 +20,11 @@ test('backs up on request and keeps the History setting after a restart', async 
     '1 year',
   );
 
+  const limit = page.getByRole('textbox', { name: /Most emails a day/ });
+  await limit.fill('200');
+  await limit.blur();
+  await expect(page.getByText('Version 0.1.0')).toBeVisible();
+
   await app.close();
   app = await launchApp(userDataDir);
   page = await firstPage(app);
@@ -28,5 +33,6 @@ test('backs up on request and keeps the History setting after a restart', async 
     '1 year',
   );
   await expect(page.getByRole('table', { name: 'Backups' }).getByText('You made it')).toBeVisible();
+  await expect(page.getByRole('textbox', { name: /Most emails a day/ })).toHaveValue('200');
   await app.close();
 });

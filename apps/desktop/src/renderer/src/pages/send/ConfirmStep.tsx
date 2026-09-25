@@ -1,10 +1,20 @@
-import { Alert, Button, Loader, Paper, Stack, Text, Title } from '@mantine/core';
+import { Alert, Button, Group, Loader, Paper, Stack, Text, Title } from '@mantine/core';
 import type { SenderInfo } from '@postloom/contracts';
 import { IconAlertTriangle, IconSend } from '@tabler/icons-react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { errorKey } from '../../api/ipc';
-import { useAccounts, useCheckList, useStartSend, type CheckListInput } from '../../api/queries';
+import {
+  useAccounts,
+  useCheckList,
+  usePreferences,
+  useStartSend,
+  type CheckListInput,
+} from '../../api/queries';
+
+/** "Always ask me before sending": the seconds to change your mind after pressing Send. */
+export const LAST_CHANCE_SECONDS = 10;
 
 interface ConfirmStepProps {
   check: CheckListInput;
@@ -21,6 +31,32 @@ export function ConfirmStep({ check, senderId, senders }: ConfirmStepProps) {
   const accounts = useAccounts();
   const sender = senders.find((option) => option.id === senderId);
   const account = accounts.data?.find((option) => option.id === sender?.emailAccountId);
+  const preferences = usePreferences();
+  // Seconds left before sending starts, or null when not counting down.
+  const [countdown, setCountdown] = useState<number | null>(null);
+
+  const startSending = () => {
+    start.mutate(check, {
+      onSuccess: (send) => void navigate(`/send/${send.id}`),
+    });
+  };
+
+  useEffect(() => {
+    if (countdown === null) return;
+    const timer = setTimeout(() => {
+      if (countdown > 1) {
+        setCountdown(countdown - 1);
+        return;
+      }
+      setCountdown(null);
+      startSending();
+    }, 1000);
+    return () => {
+      clearTimeout(timer);
+    };
+    // Only the countdown drives this; startSending is the same each time for this screen.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [countdown]);
 
   if (!result.data || !sender) return <Loader size="sm" />;
   const count = result.data.toSendRows.length;
@@ -46,18 +82,34 @@ export function ConfirmStep({ check, senderId, senders }: ConfirmStepProps) {
             {t(errorKey(start.error))}
           </Alert>
         )}
-        <Button
-          size="md"
-          leftSection={<IconSend size={18} />}
-          loading={start.isPending}
-          onClick={() => {
-            start.mutate(check, {
-              onSuccess: (send) => void navigate(`/send/${send.id}`),
-            });
-          }}
-        >
-          {t('send.confirm.send')}
-        </Button>
+        {countdown === null ? (
+          <Button
+            size="md"
+            leftSection={<IconSend size={18} />}
+            loading={start.isPending}
+            disabled={!preferences.data}
+            onClick={() => {
+              if (preferences.data?.confirmBeforeSend) setCountdown(LAST_CHANCE_SECONDS);
+              else startSending();
+            }}
+          >
+            {t('send.confirm.send')}
+          </Button>
+        ) : (
+          <Group>
+            <Text fw={600} role="status" aria-live="polite">
+              {t('send.confirm.countdown', { count: countdown })}
+            </Text>
+            <Button
+              variant="default"
+              onClick={() => {
+                setCountdown(null);
+              }}
+            >
+              {t('send.confirm.cancel')}
+            </Button>
+          </Group>
+        )}
       </Stack>
     </Paper>
   );

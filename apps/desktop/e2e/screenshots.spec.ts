@@ -1,6 +1,6 @@
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { firstPage, launchApp, test } from './fixtures';
+import { firstPage, launchApp, test, sendWithoutWaiting } from './fixtures';
 import { startTestMailServer } from './mail-server';
 import { makePng } from './png';
 
@@ -202,6 +202,7 @@ test('capture the send wizard', async ({ userDataDir }) => {
   await app.evaluate(({ BrowserWindow }) => {
     BrowserWindow.getAllWindows()[0]?.setSize(1280, 820);
   });
+  await sendWithoutWaiting(page);
 
   await page.getByRole('button', { name: 'Connect your email' }).click();
   await page.getByRole('button', { name: "Let's start" }).click();

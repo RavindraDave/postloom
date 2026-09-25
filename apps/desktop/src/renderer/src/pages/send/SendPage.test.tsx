@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { DEFAULT_PREFERENCES } from '@postloom/contracts';
 import { Route, Routes } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import { mockApi, ok, renderWithProviders, SAMPLE_LIST, sampleSend } from '../../test/render';
@@ -62,7 +63,10 @@ describe('SendPage', () => {
   });
 
   it('checks everyone, previews each person and sends a test with their details', async () => {
-    const api = mockApi();
+    // Straight away: the 10-second wait is covered in ConfirmStep.test.
+    const api = mockApi({
+      settings: { get: vi.fn(() => ok({ ...DEFAULT_PREFERENCES, confirmBeforeSend: false })) },
+    });
     renderSend('/send?template=t1');
     await pickList();
     await userEvent.click(screen.getByRole('button', { name: 'Continue' }));

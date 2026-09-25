@@ -32,8 +32,13 @@ describe('preferences', () => {
     expect(await handlers['settings:get'](undefined)).toEqual(updated);
   });
 
-  it('ignores stored values that are no longer valid', async () => {
+  it('ignores stored values that are no longer valid, and keeps the rest', async () => {
     await repos.settings.set('preferences', { colorScheme: 'purple', textScale: 1.15 });
+    expect(await handlers['settings:get'](undefined)).toEqual({
+      ...DEFAULT_PREFERENCES,
+      textScale: 1.15,
+    });
+    await repos.settings.set('preferences', 'not settings');
     expect(await handlers['settings:get'](undefined)).toEqual(DEFAULT_PREFERENCES);
   });
 });
