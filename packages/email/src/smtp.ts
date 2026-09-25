@@ -24,6 +24,15 @@ export interface OutgoingEmail {
   subject: string;
   html: string;
   text: string;
+  /** Pictures sent inside the email, referenced from the HTML as `cid:<cid>`. */
+  inlineImages?: InlineImage[] | undefined;
+}
+
+export interface InlineImage {
+  cid: string;
+  contentType: string;
+  content: Uint8Array;
+  filename: string;
 }
 
 export interface SendResult {
@@ -82,6 +91,17 @@ export async function sendEmail(
       subject: email.subject,
       html: email.html,
       text: email.text,
+      ...(email.inlineImages?.length
+        ? {
+            attachments: email.inlineImages.map((image) => ({
+              cid: image.cid,
+              contentType: image.contentType,
+              content: Buffer.from(image.content),
+              filename: image.filename,
+              contentDisposition: 'inline' as const,
+            })),
+          }
+        : {}),
     });
     return {
       messageId: info.messageId,

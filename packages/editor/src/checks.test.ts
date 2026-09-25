@@ -82,6 +82,22 @@ describe('template checklist', () => {
     expect(problem?.id).toBe('tooLarge');
   });
 
+  it('needs a description for every picture, and warns about heavy pictures', () => {
+    const problems = checkTemplate({
+      subject: 'Hi',
+      document: letter([
+        { type: 'image', attrs: { assetId: 'a1', alt: '', width: 300 } },
+        { type: 'image', attrs: { assetId: 'a2', alt: '  ', width: 300 } },
+        { type: 'image', attrs: { assetId: 'a3', alt: 'Shop front', width: 300 } },
+      ]),
+      imageBytes: 1_500_000,
+    });
+    expect(problems).toEqual([
+      { id: 'imageAltMissing', severity: 'mustFix', values: { count: 2 } },
+      { id: 'imagesHeavy', severity: 'worthALook', values: { size: 1465 } },
+    ]);
+  });
+
   it('asks people to replace the example links in starters that have them', () => {
     const invoice = STARTER_GALLERY.find((starter) => starter.id === 'invoice');
     const ids = checkTemplate({

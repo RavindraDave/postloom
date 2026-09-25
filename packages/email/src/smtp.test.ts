@@ -93,6 +93,32 @@ describe('SMTP sending', () => {
     expect(received[0]).toContain('text/plain');
   });
 
+  it('sends pictures inside the email, with reply-to', async () => {
+    const port = await startServer();
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
+    await sendEmail(account(port), {
+      ...email,
+      replyTo: 'accounts@example.com',
+      html: '<p><img src="cid:logo1@postloom" alt="Logo"></p>',
+      inlineImages: [
+        { cid: 'logo1@postloom', contentType: 'image/png', content: png, filename: 'logo.png' },
+      ],
+    });
+
+    const message = received[0] ?? '';
+    expect(message).toContain('Reply-To: accounts@example.com');
+    expect(message).toContain('multipart/related');
+    expect(message).toContain('Content-ID: <logo1@postloom>');
+    expect(message).toContain('Content-Disposition: inline; filename=logo.png');
+  });
+
+  it('refuses a reply-to address with a line break', async () => {
+    await expect(
+      sendEmail(account(1), { ...email, replyTo: 'a@example.com\r\nBcc: x@example.com' }),
+    ).rejects.toMatchObject({ code: 'VALIDATION_FAILED' });
+  });
+
   it('reports a wrong password as an authentication problem', async () => {
     const port = await startServer();
 

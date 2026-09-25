@@ -2,6 +2,7 @@ import { mergeAttributes, Node, type JSONContent } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import TextAlign from '@tiptap/extension-text-align';
 import type { WriteDocument } from './document';
+import { formatSubject, parseSubject, type SubjectPart } from './subject';
 
 /**
  * TipTap extensions for Write mode. The editor's JSON output matches
@@ -80,6 +81,59 @@ export const ButtonNode = Node.create({
   },
 });
 
+/** Where the app serves stored pictures (see the main process's app protocol). */
+export const APP_ASSET_URL_PREFIX = 'app://postloom/assets/';
+
+/** A stored picture in the letter. Its bytes are served by the app, never fetched from the web. */
+export const ImageNode = Node.create({
+  name: 'image',
+  group: 'block',
+  atom: true,
+  selectable: true,
+  draggable: true,
+
+  addAttributes() {
+    return {
+      assetId: { default: '' },
+      alt: { default: '' },
+      width: { default: 300 },
+      align: { default: null },
+      href: { default: null },
+    };
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: 'img[data-asset]',
+        getAttrs: (element) => ({
+          assetId: element.getAttribute('data-asset') ?? '',
+          alt: element.getAttribute('alt') ?? '',
+          width: Number(element.getAttribute('width') ?? 300),
+        }),
+      },
+    ];
+  },
+
+  renderHTML({ node }) {
+    const assetId = String(node.attrs['assetId']);
+    const align = (node.attrs['align'] as string | null) ?? 'center';
+    return [
+      'div',
+      { class: 'pl-image', 'data-align': align },
+      [
+        'img',
+        {
+          src: /^[A-Za-z0-9-]+$/.test(assetId) ? `${APP_ASSET_URL_PREFIX}${assetId}` : '',
+          alt: String(node.attrs['alt']),
+          width: String(node.attrs['width']),
+          'data-asset': assetId,
+        },
+      ],
+    ];
+  },
+});
+
 export const writeModeExtensions = [
   StarterKit.configure({
     // Keep Write mode to what email clients render reliably.
@@ -98,6 +152,7 @@ export const writeModeExtensions = [
   TextAlign.configure({ types: ['heading', 'paragraph'], alignments: ['left', 'center', 'right'] }),
   FieldNode,
   ButtonNode,
+  ImageNode,
 ];
 
 /**
@@ -107,4 +162,45 @@ export const writeModeExtensions = [
  */
 export function toEditorContent(doc: WriteDocument): JSONContent {
   return doc as JSONContent;
+}
+
+// ------------------------------------------------------------ Subject line
+
+/**
+ * The subject line is a tiny one-line editor: text plus detail chips, no
+ * formatting and no new lines.
+ */
+const SubjectDocument = Node.create({ name: 'doc', topNode: true, content: 'subjectLine' });
+const SubjectLine = Node.create({
+  name: 'subjectLine',
+  content: '(text | field)*',
+  parseHTML: () => [{ tag: 'p' }],
+  renderHTML: () => ['p', 0],
+});
+const SubjectText = Node.create({ name: 'text', group: 'inline' });
+
+export const subjectExtensions = [SubjectDocument, SubjectLine, SubjectText, FieldNode];
+
+/** A stored subject as subject-editor content. */
+export function subjectToEditorContent(subject: string): JSONContent {
+  const content = parseSubject(subject).flatMap((part): JSONContent[] =>
+    part.type === 'field'
+      ? [{ type: 'field', attrs: { name: part.name, fallback: '' } }]
+      : part.text
+        ? [{ type: 'text', text: part.text }]
+        : [],
+  );
+  return { type: 'doc', content: [{ type: 'subjectLine', content }] };
+}
+
+/** The subject editor's content as a stored subject. */
+export function subjectFromEditorJson(json: JSONContent): string {
+  const parts: SubjectPart[] = (json.content?.[0]?.content ?? []).flatMap((node): SubjectPart[] => {
+    if (node.type === 'field') {
+      const name = String(node.attrs?.['name'] ?? '');
+      return name ? [{ type: 'field', name }] : [];
+    }
+    return node.type === 'text' && node.text ? [{ type: 'text', text: node.text }] : [];
+  });
+  return formatSubject(parts);
 }

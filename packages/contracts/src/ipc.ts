@@ -1,5 +1,5 @@
 import { isPlausibleEmail, type AppErrorShape } from '@postloom/core';
-import { writeDocumentSchema } from '@postloom/editor';
+import { assetIdSchema, EMAIL_FONTS, writeDocumentSchema } from '@postloom/editor';
 import { z } from 'zod';
 
 /**
@@ -155,6 +155,33 @@ export const testConnectionInputSchema = connectionSchema.extend({ password: pas
 const sourceSchema = z.enum(['app', 'account', 'sender', 'provider']);
 const inheritedNumberSchema = z.object({ value: z.number(), source: sourceSchema });
 
+// ----------------------------------------------------- Pictures and brand looks
+
+/** A stored picture (never the bytes: the app serves those itself). */
+export const assetSchema = z.object({
+  id: idSchema,
+  mime: z.string(),
+  size: z.number().int(),
+  width: z.number().int().nullable(),
+  height: z.number().int().nullable(),
+  name: z.string().nullable(),
+});
+
+const hexColourSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Use a colour like #0E6B66');
+
+/** A sender's brand look: logo, colour and font used in its emails. */
+export const brandSchema = z.object({
+  primaryColor: hexColourSchema,
+  fontFamily: z.enum(EMAIL_FONTS.map((font) => font.stack) as [string, ...string[]]),
+  logo: z
+    .object({ assetId: assetIdSchema, width: z.number().int(), height: z.number().int() })
+    .nullable(),
+});
+
+export const brandInputSchema = brandSchema.omit({ logo: true }).extend({
+  logoAssetId: assetIdSchema.nullable(),
+});
+
 export const senderSchema = z.object({
   id: idSchema,
   name: z.string(),
@@ -164,6 +191,8 @@ export const senderSchema = z.object({
   replyTo: z.string().nullable(),
   delayMs: z.number().int().nullable(),
   templateCount: z.number().int(),
+  /** The sender's brand look, if it has one. */
+  brand: brandSchema.nullable(),
   /** Values in force after inheritance, and where each comes from. */
   effective: z.object({ delayMs: inheritedNumberSchema, dailyLimit: inheritedNumberSchema }),
 });
@@ -220,6 +249,12 @@ export const ipcContract = {
   'senders:create': { input: createSenderInputSchema, output: senderSchema },
   'senders:update': { input: updateSenderInputSchema, output: senderSchema },
   'senders:delete': { input: byId, output: ok },
+  'senders:setBrand': {
+    input: z.object({ id: idSchema, brand: brandInputSchema.nullable() }),
+    output: senderSchema,
+  },
+  /** Opens the computer's file picker; null if the person cancels. */
+  'assets:pickImage': { input: z.undefined(), output: assetSchema.nullable() },
   'settings:get': { input: z.undefined(), output: preferencesSchema },
   'settings:update': { input: preferencesSchema.partial(), output: preferencesSchema },
   'templates:renderPreview': { input: renderPreviewInputSchema, output: renderPreviewOutputSchema },
@@ -266,6 +301,9 @@ export type TestConnectionInput = z.infer<typeof testConnectionInputSchema>;
 export type SenderInfo = z.infer<typeof senderSchema>;
 export type CreateSenderInput = z.infer<typeof createSenderInputSchema>;
 export type UpdateSenderInput = z.infer<typeof updateSenderInputSchema>;
+export type AssetInfo = z.infer<typeof assetSchema>;
+export type Brand = z.infer<typeof brandSchema>;
+export type BrandInput = z.infer<typeof brandInputSchema>;
 export type SecretProtection = z.infer<typeof secretProtectionSchema>;
 
 type Call<C extends IpcChannel> =
@@ -293,6 +331,10 @@ export interface PostloomApi {
     create: Call<'senders:create'>;
     update: Call<'senders:update'>;
     delete: Call<'senders:delete'>;
+    setBrand: Call<'senders:setBrand'>;
+  };
+  assets: {
+    pickImage: Call<'assets:pickImage'>;
   };
   settings: {
     get: Call<'settings:get'>;

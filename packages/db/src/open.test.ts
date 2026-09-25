@@ -2,6 +2,7 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { listBackups } from './backups';
+import { MIGRATIONS } from './migrations';
 import { openDatabase } from './open';
 import { tempDir } from './test-helpers';
 
@@ -27,7 +28,7 @@ describe('openDatabase', () => {
       'template_versions',
       'templates',
     ]);
-    expect(opened.applied).toEqual(['0001-initial']);
+    expect(opened.applied).toEqual(Object.keys(MIGRATIONS));
     await opened.close();
   });
 

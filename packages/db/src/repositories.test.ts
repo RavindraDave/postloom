@@ -264,3 +264,67 @@ describe('"Do not email" list', () => {
     expect(await repos.suppression.has('rahul.mehta@example.com')).toBe(false);
   });
 });
+
+describe('assets', () => {
+  const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]);
+
+  it('stores a picture with its size and gives the bytes back', async () => {
+    const asset = await repos.assets.put({
+      mime: 'image/png',
+      bytes: png,
+      width: 120,
+      height: 40,
+      name: 'logo.png',
+    });
+    expect(asset).toMatchObject({
+      mime: 'image/png',
+      size: 7,
+      width: 120,
+      height: 40,
+      name: 'logo.png',
+    });
+    expect(await repos.assets.read(asset.id)).toEqual({ mime: 'image/png', bytes: png });
+  });
+
+  it('stores the same picture only once', async () => {
+    const first = await repos.assets.put({
+      mime: 'image/png',
+      bytes: png,
+      width: 1,
+      height: 1,
+      name: 'a.png',
+    });
+    const again = await repos.assets.put({
+      mime: 'image/png',
+      bytes: png,
+      width: 1,
+      height: 1,
+      name: 'b.png',
+    });
+    expect(again.id).toBe(first.id);
+  });
+
+  it('is used as a brand kit logo', async () => {
+    const logo = await repos.assets.put({
+      mime: 'image/png',
+      bytes: png,
+      width: 1,
+      height: 1,
+      name: null,
+    });
+    const kit = await repos.brandKits.create({
+      name: 'Brightlane',
+      primaryColor: '#0E6B66',
+      secondaryColor: null,
+      fontFamily: 'Arial, Helvetica, sans-serif',
+      logoAssetId: logo.id,
+      footerText: null,
+    });
+    expect(kit.logoAssetId).toBe(logo.id);
+  });
+
+  it('reports a missing picture', async () => {
+    expect(await repos.assets.read('nope')).toBeNull();
+    await expect(repos.assets.get('nope')).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+});

@@ -116,12 +116,38 @@ const buttonSchema = z.object({
 /** A thin line between parts of the email. */
 const dividerSchema = z.object({ type: z.literal('horizontalRule') });
 
+/** Ids of stored pictures (UUIDs from the main process). */
+export const assetIdSchema = z
+  .string()
+  .min(1)
+  .max(64)
+  .regex(/^[A-Za-z0-9-]+$/, 'Not a picture id');
+
+/** The widest picture the email's content column can show. */
+export const MAX_IMAGE_WIDTH = 600;
+
+/**
+ * A picture stored in Postloom and sent inside each email (never linked from
+ * the web). Alt text describes it for people who can't see pictures.
+ */
+const imageSchema = z.object({
+  type: z.literal('image'),
+  attrs: z.object({
+    assetId: assetIdSchema,
+    alt: z.string().max(200),
+    width: z.number().int().min(16).max(MAX_IMAGE_WIDTH),
+    align: z.enum(['left', 'center', 'right']).nullable().optional(),
+    href: z.string().max(2048).nullable().optional(),
+  }),
+});
+
 export const blockNodeSchema = z.union([
   paragraphSchema,
   headingSchema,
   listSchema(1),
   buttonSchema,
   dividerSchema,
+  imageSchema,
 ]);
 
 export const writeDocumentSchema = z.object({
@@ -133,6 +159,16 @@ export type Mark = z.infer<typeof markSchema>;
 export type InlineNode = z.infer<typeof inlineNodeSchema>;
 export type BlockNode = z.infer<typeof blockNodeSchema>;
 export type WriteDocument = z.infer<typeof writeDocumentSchema>;
+export type ImageNode = z.infer<typeof imageSchema>;
+
+/** Every stored picture the document shows, in order of first use. */
+export function collectAssetIds(doc: WriteDocument): string[] {
+  const ids = new Set<string>();
+  for (const block of doc.content) {
+    if (block.type === 'image') ids.add(block.attrs.assetId);
+  }
+  return [...ids];
+}
 
 /** Every spreadsheet column the document uses, in order of first use. */
 export function collectFields(doc: WriteDocument): string[] {

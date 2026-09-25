@@ -28,10 +28,21 @@ export function resolveInsideRoot(rootDir: string, requestPath: string): string 
   return target;
 }
 
-/** Serves the bundled UI from `rootDir` as app://postloom/... with a strict CSP header. */
-export function serveAppProtocol(rootDir: string): void {
+/** Reads a stored picture's bytes (set once the database is open). */
+export type AssetReader = (id: string) => Promise<{ mime: string; bytes: Uint8Array } | null>;
+
+const ASSET_PATH = /^\/assets\/([A-Za-z0-9-]{1,64})$/;
+
+/**
+ * Serves the bundled UI from `rootDir` as app://postloom/... with a strict
+ * CSP header, and stored pictures as app://postloom/assets/<id>.
+ */
+export function serveAppProtocol(rootDir: string, readAsset: () => AssetReader | null): void {
   protocol.handle(APP_SCHEME, async (request) => {
     const url = new URL(request.url);
+    const asset = url.host === APP_HOST ? ASSET_PATH.exec(url.pathname) : null;
+    if (asset?.[1]) return serveAsset(readAsset(), asset[1]);
+
     const filePath = url.host === APP_HOST ? resolveInsideRoot(rootDir, url.pathname) : null;
     if (!filePath) {
       return notFound();
@@ -47,6 +58,20 @@ export function serveAppProtocol(rootDir: string): void {
     headers.set('Content-Security-Policy', contentSecurityPolicy);
     headers.set('X-Content-Type-Options', 'nosniff');
     return new Response(response.body, { status: response.status, headers });
+  });
+}
+
+async function serveAsset(read: AssetReader | null, id: string): Promise<Response> {
+  const asset = read ? await read(id).catch(() => null) : null;
+  // Only pictures Postloom stored itself (always PNG or JPEG) are ever served.
+  if (!asset || (asset.mime !== 'image/png' && asset.mime !== 'image/jpeg')) return notFound();
+  return new Response(Buffer.from(asset.bytes), {
+    headers: {
+      'Content-Type': asset.mime,
+      'Content-Security-Policy': contentSecurityPolicy,
+      'X-Content-Type-Options': 'nosniff',
+      'Cache-Control': 'no-store',
+    },
   });
 }
 

@@ -11,6 +11,7 @@ import type { Repositories } from '@postloom/db';
 import { collectFields, writeDocumentSchema, type WriteDocument } from '@postloom/editor';
 import { compileMjml, sendEmail } from '@postloom/email';
 import { createAccountHandlers, type AccountDeps } from './accounts';
+import { createAssetHandlers, type AssetDeps } from './assets';
 import { readDocument } from './documents';
 import { createTemplateTestHandler } from './template-test';
 import type { IpcHandlers } from './ipc-router';
@@ -21,12 +22,24 @@ const WRITE_DOCUMENT_VERSION = 1;
 /** A blank letter for "Write a new letter". */
 export const BLANK_LETTER: WriteDocument = { type: 'doc', content: [{ type: 'paragraph' }] };
 
-export interface HandlerDeps extends Omit<AccountDeps, 'repos'> {
+export interface HandlerDeps extends Omit<AccountDeps, 'repos'>, Partial<Omit<AssetDeps, 'repos'>> {
   appInfo: AppInfo;
   repos: Repositories;
 }
 
-export function createHandlers({ appInfo, repos, ...accountDeps }: HandlerDeps): IpcHandlers {
+/** Without a real file picker (tests), picking a picture just cancels. */
+const noPicker: Omit<AssetDeps, 'repos'> = {
+  codec: { decode: () => null },
+  pickImageFile: () => Promise.resolve(null),
+};
+
+export function createHandlers({
+  appInfo,
+  repos,
+  codec,
+  pickImageFile,
+  ...accountDeps
+}: HandlerDeps): IpcHandlers {
   const loadPreferences = async (): Promise<Preferences> => {
     const stored = await repos.settings.get<unknown>(PREFERENCES_KEY, {});
     // Merge over defaults and drop anything invalid (e.g. from an older version).
@@ -36,6 +49,11 @@ export function createHandlers({ appInfo, repos, ...accountDeps }: HandlerDeps):
 
   return {
     ...createAccountHandlers({ repos, ...accountDeps }),
+    ...createAssetHandlers({
+      repos,
+      codec: codec ?? noPicker.codec,
+      pickImageFile: pickImageFile ?? noPicker.pickImageFile,
+    }),
     ...createTemplateTestHandler({
       repos,
       vault: accountDeps.vault,

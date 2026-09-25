@@ -1,8 +1,13 @@
+import { AppError } from '@postloom/core';
 import { createRepositories, type OpenedDatabase } from '@postloom/db';
-import { app, BrowserWindow, dialog, ipcMain, safeStorage, session } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, safeStorage, session } from 'electron';
 import { readFileSync } from 'node:fs';
+import { readFile, stat } from 'node:fs/promises';
+import { basename } from 'node:path';
 import { join } from 'node:path';
-import { serveAppProtocol, registerAppScheme } from './app-protocol';
+import { serveAppProtocol, registerAppScheme, type AssetReader } from './app-protocol';
+import type { PickedFile } from './assets';
+import { MAX_IMAGE_FILE_BYTES } from './images';
 import { databaseLocation, openAppDatabase } from './database';
 import { createHandlers } from './handlers';
 import { registerIpcHandlers } from './ipc-router';
@@ -89,7 +94,8 @@ function askAboutDamagedDatabase(
 
 void app.whenReady().then(async () => {
   hardenSession(session.defaultSession);
-  serveAppProtocol(join(import.meta.dirname, '../renderer'));
+  let readAsset: AssetReader | null = null;
+  serveAppProtocol(join(import.meta.dirname, '../renderer'), () => readAsset);
 
   database = await openAppDatabase(
     databaseLocation(app.getPath('userData')),
@@ -100,13 +106,23 @@ void app.whenReady().then(async () => {
     return;
   }
 
+  const repos = createRepositories(database.db);
+  readAsset = (id) => repos.assets.read(id);
+
   registerIpcHandlers(
     ipcMain,
     createHandlers({
       appInfo: { name: app.getName(), version: app.getVersion(), platform: platform() },
-      repos: createRepositories(database.db),
+      repos,
       vault: createSecretVault(safeStorage, process.platform),
       extraCa: testExtraCa(),
+      codec: {
+        decode: (bytes) => {
+          const image = nativeImage.createFromBuffer(Buffer.from(bytes));
+          return image.isEmpty() ? null : image;
+        },
+      },
+      pickImageFile,
     }),
     {
       isTrustedUrl: (url) => isAppUrl(url, devServerUrl),
@@ -120,6 +136,31 @@ void app.whenReady().then(async () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
   });
 });
+
+/** The computer's own file picker, for PNG and JPEG pictures. */
+async function pickImageFile(): Promise<PickedFile | null> {
+  // End-to-end tests can't click a native dialog; never honoured when installed.
+  const testFile = app.isPackaged ? undefined : process.env['POSTLOOM_TEST_PICK_IMAGE'];
+  let path = testFile;
+  if (!path) {
+    const window = BrowserWindow.getFocusedWindow();
+    const options = {
+      title: 'Choose a picture',
+      properties: ['openFile' as const],
+      filters: [{ name: 'Pictures', extensions: ['png', 'jpg', 'jpeg'] }],
+    };
+    const result = window
+      ? await dialog.showOpenDialog(window, options)
+      : await dialog.showOpenDialog(options);
+    path = result.canceled ? undefined : result.filePaths[0];
+  }
+  if (!path) return null;
+  // Check the size before reading, so a huge file is never loaded into memory.
+  if ((await stat(path)).size > MAX_IMAGE_FILE_BYTES) {
+    throw new AppError({ code: 'VALIDATION_FAILED', messageKey: 'errors.imageTooBig' });
+  }
+  return { name: basename(path), bytes: new Uint8Array(await readFile(path)) };
+}
 
 /**
  * Lets end-to-end tests trust a local test mail server's certificate.

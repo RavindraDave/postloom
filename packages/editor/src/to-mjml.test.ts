@@ -1,9 +1,14 @@
 import { compileMjml } from '@postloom/email';
 import { Liquid } from 'liquidjs';
 import { describe, expect, it } from 'vitest';
-import { collectFields, writeDocumentSchema, type WriteDocument } from './document';
+import {
+  collectAssetIds,
+  collectFields,
+  writeDocumentSchema,
+  type WriteDocument,
+} from './document';
 import { paymentReminder } from './fixtures';
-import { safeHref, writeDocumentToMjml } from './to-mjml';
+import { DEFAULT_BRAND, safeHref, writeDocumentToMjml } from './to-mjml';
 
 // Mirrors the personalisation settings planned for the sending engine:
 // every output is HTML-escaped and unknown filters are errors.
@@ -289,5 +294,71 @@ describe('alignment, numbered lists and dividers', () => {
       };
     }
     expect(writeDocumentSchema.safeParse({ type: 'doc', content: [list] }).success).toBe(false);
+  });
+});
+
+describe('pictures and logo', () => {
+  const withPicture = writeDocumentSchema.parse({
+    type: 'doc',
+    content: [
+      { type: 'paragraph', content: [{ type: 'text', text: 'Hello' }] },
+      {
+        type: 'image',
+        attrs: {
+          assetId: 'a1b2',
+          alt: 'Our shop',
+          width: 480,
+          align: 'left',
+          href: 'https://shop.example.org',
+        },
+      },
+      {
+        type: 'image',
+        attrs: { assetId: 'c3d4', alt: '', width: 200, href: 'javascript:alert(1)' },
+      },
+    ],
+  });
+
+  it('sends pictures inside the email and links them only to safe addresses', async () => {
+    const mjml = writeDocumentToMjml(withPicture, {
+      ...DEFAULT_BRAND,
+      logo: { assetId: 'logo1', width: 400, alt: 'Brightlane' },
+    });
+    expect(mjml).toContain('src="cid:a1b2@postloom"');
+    expect(mjml).toContain(
+      'alt="Our shop" width="480px" align="left" href="https://shop.example.org/"',
+    );
+    expect(mjml).toContain('src="cid:c3d4@postloom" alt="" width="200px" align="center" padding');
+    expect(mjml).not.toContain('javascript');
+    // The logo comes first and is kept small.
+    expect(mjml.indexOf('logo1@postloom')).toBeLessThan(mjml.indexOf('a1b2@postloom'));
+    expect(mjml).toContain('alt="Brightlane" width="200px"');
+    expect(collectAssetIds(withPicture)).toEqual(['a1b2', 'c3d4']);
+    const { warnings } = await compileMjml(mjml);
+    expect(warnings).toEqual([]);
+  });
+
+  it('uses app addresses for previews', () => {
+    const mjml = writeDocumentToMjml(
+      withPicture,
+      DEFAULT_BRAND,
+      'placeholder',
+      (id) => `app://postloom/assets/${id}`,
+    );
+    expect(mjml).toContain('src="app://postloom/assets/a1b2"');
+  });
+
+  it('refuses picture ids that could break out of the address', () => {
+    expect(
+      writeDocumentSchema.safeParse({
+        type: 'doc',
+        content: [{ type: 'image', attrs: { assetId: '"><script>', alt: '', width: 100 } }],
+      }).success,
+    ).toBe(false);
+    const mjml = writeDocumentToMjml(withPicture, {
+      ...DEFAULT_BRAND,
+      logo: { assetId: '"><x', width: 10, alt: '' },
+    });
+    expect(mjml).not.toContain('"><x');
   });
 });

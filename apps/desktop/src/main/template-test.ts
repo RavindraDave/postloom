@@ -1,6 +1,7 @@
-import { writeDocumentToMjml } from '@postloom/editor';
+import { collectAssetIds, renderSubject, writeDocumentToMjml } from '@postloom/editor';
 import { compileMjml } from '@postloom/email';
 import { loadSmtpConfig, type AccountDeps } from './accounts';
+import { brandLook, inlineImagesFor, senderBrand } from './brand';
 import { readDocument } from './documents';
 import type { IpcHandlers } from './ipc-router';
 
@@ -8,8 +9,9 @@ import type { IpcHandlers } from './ipc-router';
 export const TEST_SUBJECT_PREFIX = '[Test] ';
 
 /**
- * "Send me a test": sends the template as it is now, from the chosen sender,
- * with personal details shown as "[First Name]" placeholders.
+ * "Send me a test": sends the template as it is now, from the chosen sender
+ * and in its brand look, with personal details shown as "[First Name]"
+ * placeholders and pictures travelling inside the email.
  */
 export function createTemplateTestHandler({
   repos,
@@ -27,16 +29,18 @@ export function createTemplateTestHandler({
       const account = await repos.accounts.get(sender.emailAccountId);
       const recipient = to ?? account.username;
 
-      const { html, text } = await compileMjml(
-        writeDocumentToMjml(document, undefined, 'placeholder'),
-      );
+      const brand = await senderBrand(repos, sender);
+      const look = brandLook(brand, sender.fromName);
+      const { html, text } = await compileMjml(writeDocumentToMjml(document, look, 'placeholder'));
+      const assetIds = [...(look.logo ? [look.logo.assetId] : []), ...collectAssetIds(document)];
       await send(await loadSmtpConfig(account, { repos, vault, extraCa }), {
         from: { name: sender.fromName, address: sender.fromAddress },
         replyTo: sender.replyTo ?? undefined,
         to: [recipient],
-        subject: `${TEST_SUBJECT_PREFIX}${template.subject || template.name}`,
+        subject: `${TEST_SUBJECT_PREFIX}${renderSubject(template.subject) || template.name}`,
         html,
         text,
+        inlineImages: await inlineImagesFor(repos, assetIds),
       });
       return { sentTo: recipient };
     },

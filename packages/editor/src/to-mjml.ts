@@ -7,7 +7,36 @@ export interface BrandLook {
   fontFamily: string;
   /** Colour of the area around the email, as #RRGGBB. */
   backgroundColor: string;
+  /** Shown at the top of every email from this sender. */
+  logo?: { assetId: string; width: number; alt: string } | null | undefined;
 }
+
+/** Widest a logo is shown at the top of the email. */
+export const MAX_LOGO_WIDTH = 200;
+
+/**
+ * Where a stored picture comes from: `cid:` for sending (the picture travels
+ * inside the email), or an app URL for previews.
+ */
+export type ImageSource = (assetId: string) => string;
+
+/** The Content-ID a stored picture has inside a sent email. */
+export function imageContentId(assetId: string): string {
+  return `${assetId}@postloom`;
+}
+
+export const inlineImageSource: ImageSource = (assetId) => `cid:${imageContentId(assetId)}`;
+
+/** Fonts that look the same in (almost) every email app. */
+export const EMAIL_FONTS = [
+  { id: 'arial', label: 'Arial', stack: 'Arial, Helvetica, sans-serif' },
+  { id: 'verdana', label: 'Verdana', stack: 'Verdana, Geneva, sans-serif' },
+  { id: 'tahoma', label: 'Tahoma', stack: 'Tahoma, Geneva, sans-serif' },
+  { id: 'trebuchet', label: 'Trebuchet MS', stack: "'Trebuchet MS', Helvetica, sans-serif" },
+  { id: 'georgia', label: 'Georgia', stack: 'Georgia, Times, serif' },
+  { id: 'times', label: 'Times New Roman', stack: "'Times New Roman', Times, serif" },
+  { id: 'courier', label: 'Courier New', stack: "'Courier New', Courier, monospace" },
+] as const;
 
 export const DEFAULT_BRAND: BrandLook = {
   primaryColor: '#2F5D8C',
@@ -37,9 +66,16 @@ export function writeDocumentToMjml(
   doc: WriteDocument,
   brand: BrandLook = DEFAULT_BRAND,
   fieldMode: FieldMode = 'liquid',
+  imageSrc: ImageSource = inlineImageSource,
 ): string {
   const look = sanitiseBrand(brand);
-  const blocks = doc.content.map((block) => renderBlock(block, look, fieldMode)).join('\n');
+  const context: RenderContext = { look, fieldMode, imageSrc };
+  const logo = look.logo
+    ? `<mj-image src="${escapeAttribute(imageSrc(look.logo.assetId))}" alt="${escapeAttribute(look.logo.alt)}" width="${String(Math.min(look.logo.width, MAX_LOGO_WIDTH))}px" align="left" padding="0 0 20px" />`
+    : '';
+  const blocks = [logo, ...doc.content.map((block) => renderBlock(block, context))]
+    .filter(Boolean)
+    .join('\n');
   return [
     '<mjml>',
     '<mj-head>',
@@ -59,7 +95,13 @@ export function writeDocumentToMjml(
   ].join('\n');
 }
 
-function renderBlock(block: BlockNode, look: BrandLook, fieldMode: FieldMode): string {
+interface RenderContext {
+  look: BrandLook;
+  fieldMode: FieldMode;
+  imageSrc: ImageSource;
+}
+
+function renderBlock(block: BlockNode, { look, fieldMode, imageSrc }: RenderContext): string {
   switch (block.type) {
     case 'paragraph':
       return `<mj-text${alignAttribute(block.attrs?.textAlign)}><p style="margin:0">${renderInline(block.content, fieldMode)}</p></mj-text>`;
@@ -75,6 +117,12 @@ function renderBlock(block: BlockNode, look: BrandLook, fieldMode: FieldMode): s
     }
     case 'horizontalRule':
       return '<mj-divider border-color="#DDDDDD" border-width="1px" padding="14px 0" />';
+    case 'image': {
+      const { assetId, alt, width, align, href } = block.attrs;
+      const link = href ? safeHref(href) : null;
+      const hrefAttribute = link ? ` href="${escapeAttribute(link)}"` : '';
+      return `<mj-image src="${escapeAttribute(imageSrc(assetId))}" alt="${escapeAttribute(alt)}" width="${String(width)}px" align="${align ?? 'center'}"${hrefAttribute} padding="10px 0" />`;
+    }
   }
 }
 
@@ -156,6 +204,7 @@ export function safeHref(href: string): string | null {
 
 function sanitiseBrand(brand: BrandLook): BrandLook {
   return {
+    logo: brand.logo && /^[A-Za-z0-9-]{1,64}$/.test(brand.logo.assetId) ? brand.logo : null,
     primaryColor: HEX_COLOUR.test(brand.primaryColor)
       ? brand.primaryColor
       : DEFAULT_BRAND.primaryColor,
