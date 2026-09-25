@@ -1,7 +1,5 @@
 import {
   AppError,
-  DEFAULT_DAILY_LIMIT,
-  DEFAULT_SENDING_SETTINGS,
   PROVIDER_PRESETS,
   resolveDailyLimitWithSource,
   type EmailAccount,
@@ -12,6 +10,7 @@ import type { Repositories } from '@postloom/db';
 import { writeDocumentToMjml, type WriteDocument } from '@postloom/editor';
 import { compileMjml, sendEmail, verifySmtpAccount, type SmtpAccountConfig } from '@postloom/email';
 import { saveSenderBrand, senderBrand } from './brand';
+import { appSendingDefaults } from './preferences';
 import type { IpcHandlers } from './ipc-router';
 import type { SecretVault } from './secrets';
 
@@ -122,14 +121,15 @@ export function createAccountHandlers({
     accounts: Map<string, EmailAccount>,
   ): Promise<SenderInfo> => {
     const account = accounts.get(sender.emailAccountId);
+    const defaults = await appSendingDefaults(repos);
     const delay =
       sender.delayMs !== null
         ? { value: sender.delayMs, source: 'sender' as const }
         : account?.delayMs !== null && account?.delayMs !== undefined
           ? { value: account.delayMs, source: 'account' as const }
-          : { value: DEFAULT_SENDING_SETTINGS.delayBetweenEmailsMs, source: 'app' as const };
+          : { value: defaults.delayMs, source: 'app' as const };
     const dailyLimit = resolveDailyLimitWithSource({
-      appDefault: DEFAULT_DAILY_LIMIT,
+      appDefault: defaults.dailyLimit,
       accountLimit: account?.dailyLimit ?? undefined,
       providerLimit: account
         ? (PROVIDER_PRESETS[account.provider].dailyLimit ?? undefined)

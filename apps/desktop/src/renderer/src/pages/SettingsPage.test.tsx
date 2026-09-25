@@ -72,4 +72,27 @@ describe('SettingsPage', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Clear history' }));
     expect(await screen.findByText('3 sends removed from History.')).toBeInTheDocument();
   });
+
+  it('saves the sending defaults when a box is left', async () => {
+    const api = mockApi();
+    renderWithProviders(<SettingsPage />);
+    const delay = await screen.findByRole('textbox', { name: /Wait between emails/ });
+    await userEvent.clear(delay);
+    await userEvent.type(delay, '5');
+    await userEvent.tab();
+    const limit = screen.getByRole('textbox', { name: /Most emails a day/ });
+    await userEvent.clear(limit);
+    await userEvent.type(limit, '200');
+    await userEvent.tab();
+    await waitFor(() => {
+      expect(api.settings.update).toHaveBeenCalledWith({ delayMs: 5000 });
+      expect(api.settings.update).toHaveBeenCalledWith({ dailyLimit: 200 });
+    });
+  });
+
+  it('shows the version', async () => {
+    mockApi();
+    renderWithProviders(<SettingsPage />);
+    expect(await screen.findByText('Version 0.1.0')).toBeInTheDocument();
+  });
 });

@@ -12,11 +12,12 @@ import {
   UnstyledButton,
 } from '@mantine/core';
 import { IconAlertTriangle, IconArrowLeft, IconFileExport, IconSearch } from '@tabler/icons-react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router';
 import { errorKey, unwrap } from '../api/ipc';
+import { useAppInfo } from '../api/queries';
 import articles from '../help/articles.en.json';
 import { PageHeader } from '../components/PageHeader';
 
@@ -51,10 +52,7 @@ function HelpIndex() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
-  const info = useQuery({
-    queryKey: ['appInfo'] as const,
-    queryFn: () => unwrap(window.postloom.app.getInfo()),
-  });
+  const info = useAppInfo();
   const diagnostics = useMutation({
     mutationFn: () => unwrap(window.postloom.app.exportDiagnostics()),
   });

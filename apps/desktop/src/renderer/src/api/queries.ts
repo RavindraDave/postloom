@@ -26,6 +26,7 @@ import { unwrap } from './ipc';
 
 export const queryKeys = {
   preferences: ['preferences'] as const,
+  appInfo: ['appInfo'] as const,
   templates: ['templates'] as const,
   template: (id: string) => ['templates', id] as const,
   versions: (id: string) => ['templates', id, 'versions'] as const,
@@ -47,11 +48,26 @@ export function usePreferences() {
   });
 }
 
+/** Postloom's name and version. */
+export function useAppInfo() {
+  return useQuery({
+    queryKey: queryKeys.appInfo,
+    queryFn: () => unwrap(window.postloom.app.getInfo()),
+    staleTime: Infinity,
+  });
+}
+
 export function useUpdatePreferences() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (changes: Partial<Preferences>) => unwrap(window.postloom.settings.update(changes)),
-    onSuccess: (preferences) => client.setQueryData(queryKeys.preferences, preferences),
+    onSuccess: (preferences, changes) => {
+      client.setQueryData(queryKeys.preferences, preferences);
+      // Senders show the pace and limit they get from Settings.
+      if (changes.delayMs !== undefined || changes.dailyLimit !== undefined) {
+        void client.invalidateQueries({ queryKey: queryKeys.senders });
+      }
+    },
   });
 }
 

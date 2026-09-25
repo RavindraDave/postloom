@@ -1,7 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import {
   AppError,
-  DEFAULT_DAILY_LIMIT,
   MAX_ATTACHMENT_BYTES,
   PROVIDER_PRESETS,
   resolveDailyLimitWithSource,
@@ -28,6 +27,7 @@ import {
   type FileSystem,
 } from './attachment-files';
 import { readDocument } from './documents';
+import { appSendingDefaults } from './preferences';
 import type { IpcHandlers } from './ipc-router';
 
 export interface RecipientDeps {
@@ -131,7 +131,7 @@ export function createListService({
     const sender = await repos.senders.get(input.senderId);
     const account = await repos.accounts.get(sender.emailAccountId);
     const dailyLimit = resolveDailyLimitWithSource({
-      appDefault: DEFAULT_DAILY_LIMIT,
+      appDefault: (await appSendingDefaults(repos)).dailyLimit,
       accountLimit: account.dailyLimit ?? undefined,
       providerLimit: PROVIDER_PRESETS[account.provider].dailyLimit ?? undefined,
     }).value;

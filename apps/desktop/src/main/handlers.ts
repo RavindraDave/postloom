@@ -1,9 +1,7 @@
 import type { Template } from '@postloom/core';
 import {
-  DEFAULT_PREFERENCES,
   preferencesSchema,
   type AppInfo,
-  type Preferences,
   type TemplateDetail,
   type TemplateSummary,
 } from '@postloom/contracts';
@@ -16,13 +14,13 @@ import { createAssetHandlers, type AssetDeps } from './assets';
 import { applyHistoryRetention, createDataHandlers, type DataStore } from './data';
 import { buildDiagnostics } from './diagnostics';
 import { readDocument } from './documents';
+import { loadPreferences as loadSavedPreferences, PREFERENCES_KEY } from './preferences';
 import { createListService, type RecipientDeps } from './recipients';
 import { createInProcessRunner, type RunnerEvents, type SendRunner } from './send-runner';
 import { createSendService, type SendService } from './sends';
 import { createTemplateTestHandler } from './template-test';
 import type { IpcHandlers } from './ipc-router';
 
-const PREFERENCES_KEY = 'preferences';
 const WRITE_DOCUMENT_VERSION = 1;
 
 /** A blank letter for "Write a new letter". */
@@ -96,12 +94,7 @@ export function createMainServices({
     ...(saveFile && { saveFile }),
   });
 
-  const loadPreferences = async (): Promise<Preferences> => {
-    const stored = await repos.settings.get<unknown>(PREFERENCES_KEY, {});
-    // Merge over defaults and drop anything invalid (e.g. from an older version).
-    const merged = preferencesSchema.safeParse({ ...DEFAULT_PREFERENCES, ...(stored as object) });
-    return merged.success ? merged.data : DEFAULT_PREFERENCES;
-  };
+  const loadPreferences = () => loadSavedPreferences(repos);
 
   const handlers: IpcHandlers = {
     ...createAccountHandlers({ repos, ...accountDeps }),

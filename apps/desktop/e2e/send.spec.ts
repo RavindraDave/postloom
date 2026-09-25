@@ -100,8 +100,13 @@ test('checks a list, previews each person and sends a test with their details', 
   // 4. Send for real, from the separate sending process.
   await page.getByRole('button', { name: 'Continue' }).first().click();
   await expect(page.getByText(/^Send 2 emails from .+ as .+\?$/)).toBeVisible();
+  // "Always ask me before sending" is on: 10 seconds to change your mind.
   await page.getByRole('button', { name: 'Send now' }).click();
-  await expect(page.getByText('Done! 2 emails sent.')).toBeVisible({ timeout: 30_000 });
+  await expect(
+    page.getByRole('status').filter({ hasText: /^Sending in \d+ seconds?…$/ }),
+  ).toBeVisible();
+  await expect(page.getByRole('button', { name: "Don't send yet" })).toBeVisible();
+  await expect(page.getByText('Done! 2 emails sent.')).toBeVisible({ timeout: 40_000 });
   await expect(page.getByTestId('count-sent')).toHaveText('2');
   await expect(page.getByTestId('count-left-out')).toHaveText('1');
 

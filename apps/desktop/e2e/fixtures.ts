@@ -43,6 +43,16 @@ export async function firstPage(app: ElectronApplication): Promise<Page> {
   return page;
 }
 
+/** Turns off the 10-second wait after "Send now", for tests about what happens next. */
+export async function sendWithoutWaiting(page: Page): Promise<void> {
+  await page.evaluate(async () => {
+    await window.postloom.settings.update({ confirmBeforeSend: false });
+  });
+  // The screen read the settings when it opened; start it again with the new one.
+  await page.reload();
+  await page.waitForLoadState('domcontentloaded');
+}
+
 interface Fixtures {
   userDataDir: string;
   electronApp: ElectronApplication;

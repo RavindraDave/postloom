@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { expect, firstPage, launchApp, test } from './fixtures';
+import { expect, firstPage, launchApp, test, sendWithoutWaiting } from './fixtures';
 import { startTestMailServer } from './mail-server';
 
 const ADDRESS = 'asha@example.com';
@@ -38,6 +38,7 @@ test('sends each person their own files, then saves a report from History', asyn
     POSTLOOM_TEST_SAVE_FILE: reportFile,
   });
   const page = await firstPage(app);
+  await sendWithoutWaiting(page);
 
   await page.getByRole('button', { name: 'Connect your email' }).click();
   await page.getByRole('button', { name: "Let's start" }).click();

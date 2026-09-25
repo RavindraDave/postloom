@@ -2,7 +2,7 @@ import type { ElectronApplication, Page } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { expect, firstPage, launchApp, test } from './fixtures';
+import { expect, firstPage, launchApp, test, sendWithoutWaiting } from './fixtures';
 import { startTestMailServer, type TestMailServer } from './mail-server';
 
 const ADDRESS = 'asha@example.com';
@@ -123,6 +123,7 @@ test('pauses and carries on, survives being killed mid-email, and never sends tw
 
   let app = await launchApp(userDataDir, env);
   let page = await firstPage(app);
+  await sendWithoutWaiting(page);
   await connectAndMakeTemplate(page, mail);
   await startSend(page);
 
