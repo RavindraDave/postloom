@@ -52,8 +52,9 @@ test('the preload exposes only the typed Postloom API', async ({ page }) => {
     senders: ['create', 'delete', 'list', 'setBrand', 'update'],
     assets: ['pickImage', 'totalSize'],
     // The screen never gets a file path, only a token for the picked list.
-    recipients: ['check', 'inspect', 'pick', 'row'],
+    recipients: ['approveFolders', 'check', 'inspect', 'pick', 'row'],
     sends: [
+      'exportReport',
       'get',
       'list',
       'pause',
@@ -182,6 +183,10 @@ test('the email preview runs without scripts or same-origin access', async ({ pa
 
   const frame = page.locator('iframe[title="Email preview"]');
   await expect(frame).toHaveAttribute('sandbox', '');
+  // Wait for the app's own preview first, so it can't replace the hostile HTML below.
+  await expect(
+    page.frameLocator('iframe[title="Email preview"]').getByText('Dear [First Name],'),
+  ).toBeVisible();
 
   // Simulate hostile email HTML (e.g. from an imported template) reaching the preview.
   const result = await page.evaluate(async () => {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { checkRecipients, type CheckInput } from './checks';
 import { guessMapping, matchFields, reconcileMapping } from './mapping';
-import { buildRecipients, splitAddresses } from './recipients';
+import { buildRecipients, splitAddresses, splitPaths } from './recipients';
 import { columnLetter, toRecipientTable } from './table';
 
 describe('finding the header row', () => {
@@ -33,11 +33,12 @@ describe('finding the header row', () => {
 
 describe('matching columns', () => {
   it('finds the address columns from their names', () => {
-    expect(guessMapping(['First Name', 'E-mail', 'CC', 'Send?'])).toEqual({
+    expect(guessMapping(['First Name', 'E-mail', 'CC', 'Send?', 'Attachment'])).toEqual({
       to: 'E-mail',
       cc: 'CC',
       bcc: null,
       enabled: 'Send?',
+      attachments: 'Attachment',
     });
   });
 
@@ -58,7 +59,19 @@ describe('matching columns', () => {
       cc: null,
       bcc: null,
       enabled: null,
+      attachments: null,
     });
+  });
+});
+
+describe('attachment paths', () => {
+  it('splits several paths in one cell, by ; or line, and drops quotes', () => {
+    expect(splitPaths(' invoices/INV-1.pdf ; "C:\\Files\\terms, 2026.pdf"\nextra.png ')).toEqual([
+      'invoices/INV-1.pdf',
+      'C:\\Files\\terms, 2026.pdf',
+      'extra.png',
+    ]);
+    expect(splitPaths('   ')).toEqual([]);
   });
 });
 
@@ -110,6 +123,7 @@ describe('building people from rows', () => {
       to: ['a@example.com'],
       enabled: true,
       values: { Email: 'a@example.com', 'First Name': 'Asha', Name: 'Asha', Plan: 'Gold' },
+      attachments: [],
     });
     expect(recipients.find((recipient) => recipient.rowNo === 7)?.enabled).toBe(false);
   });

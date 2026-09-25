@@ -39,6 +39,7 @@ export interface HandlerDeps extends Omit<AccountDeps, 'repos'>, Partial<Omit<As
   openMailer?: typeof openMailer;
   /** Shows a notification from the computer. */
   notify?: (title: string, body: string) => void;
+  saveReport?: (suggestedName: string, csv: string) => Promise<string | null>;
 }
 
 /** Without a real file picker (tests), picking a picture just cancels. */
@@ -63,6 +64,7 @@ export function createMainServices({
   createSendRunner,
   openMailer: mailerFor = openMailer,
   notify,
+  saveReport,
   ...accountDeps
 }: HandlerDeps): { handlers: IpcHandlers; sends: SendService } {
   const lists = createListService({ repos, pickSpreadsheetFile, ...(todayUtc && { todayUtc }) });
@@ -75,6 +77,7 @@ export function createMainServices({
       createSendRunner ??
       ((events) => createInProcessRunner({ repos, openMailer: mailerFor }, events)),
     ...(notify && { notify }),
+    ...(saveReport && { saveReport }),
   });
 
   const loadPreferences = async (): Promise<Preferences> => {

@@ -13,8 +13,8 @@ import {
   utilityProcess,
 } from 'electron';
 import { readFileSync } from 'node:fs';
-import { readFile, stat } from 'node:fs/promises';
-import { basename } from 'node:path';
+import { readFile, stat, writeFile } from 'node:fs/promises';
+import { basename, dirname } from 'node:path';
 import { join } from 'node:path';
 import { serveAppProtocol, registerAppScheme, type AssetReader } from './app-protocol';
 import type { PickedFile } from './assets';
@@ -150,6 +150,7 @@ void app.whenReady().then(async () => {
         },
         events,
       ),
+    saveReport,
     notify: (title, body) => {
       if (Notification.isSupported()) new Notification({ title, body }).show();
     },
@@ -221,7 +222,7 @@ async function pickHtmlFile(): Promise<{ name: string; html: string } | null> {
 }
 
 /** The computer's own file picker, for a list of people (Excel or CSV). */
-async function pickSpreadsheetFile(): Promise<PickedFile | null> {
+async function pickSpreadsheetFile(): Promise<(PickedFile & { folder: string }) | null> {
   const testFile = app.isPackaged ? undefined : process.env['POSTLOOM_TEST_PICK_SPREADSHEET'];
   let path = testFile;
   if (!path) {
@@ -240,7 +241,34 @@ async function pickSpreadsheetFile(): Promise<PickedFile | null> {
   if ((await stat(path)).size > MAX_SPREADSHEET_BYTES) {
     throw new AppError({ code: 'VALIDATION_FAILED', messageKey: 'errors.spreadsheetTooBig' });
   }
-  return { name: basename(path), bytes: new Uint8Array(await readFile(path)) };
+  return {
+    name: basename(path),
+    bytes: new Uint8Array(await readFile(path)),
+    // Relative attachment paths in the list start from its folder.
+    folder: dirname(path),
+  };
+}
+
+/** The computer's own "Save as" dialog, for a send's report. */
+async function saveReport(suggestedName: string, csv: string): Promise<string | null> {
+  // End-to-end tests can't click a native dialog; never honoured when installed.
+  const testPath = app.isPackaged ? undefined : process.env['POSTLOOM_TEST_SAVE_REPORT'];
+  let path = testPath;
+  if (!path) {
+    const window = BrowserWindow.getFocusedWindow();
+    const options = {
+      title: 'Save the report',
+      defaultPath: join(app.getPath('documents'), suggestedName),
+      filters: [{ name: 'Spreadsheet (CSV)', extensions: ['csv'] }],
+    };
+    const result = window
+      ? await dialog.showSaveDialog(window, options)
+      : await dialog.showSaveDialog(options);
+    path = result.canceled ? undefined : result.filePath;
+  }
+  if (!path) return null;
+  await writeFile(path, csv, 'utf8');
+  return basename(path);
 }
 
 /**

@@ -5,6 +5,8 @@ export interface ColumnMapping {
   bcc: string | null;
   /** A column like "Send?" or "Enabled": rows with no/false/0 are left out. */
   enabled: string | null;
+  /** Files to attach, as paths (several separated by `;`). */
+  attachments: string | null;
 }
 
 /** Which column fills each personal detail the template uses. */
@@ -15,13 +17,20 @@ const PATTERNS: Record<keyof ColumnMapping, RegExp> = {
   cc: /^cc$/i,
   bcc: /^bcc$/i,
   enabled: /^(enabled?|send\??|active|include)$/i,
+  attachments: /^(attachments?|files?|attach)$/i,
 };
 
 /** Guesses the address columns from their names (To / Email / E-mail / Mail…). */
 export function guessMapping(headers: string[]): ColumnMapping {
   const find = (key: keyof ColumnMapping) =>
     headers.find((header) => PATTERNS[key].test(header.trim())) ?? null;
-  return { to: find('to'), cc: find('cc'), bcc: find('bcc'), enabled: find('enabled') };
+  return {
+    to: find('to'),
+    cc: find('cc'),
+    bcc: find('bcc'),
+    enabled: find('enabled'),
+    attachments: find('attachments'),
+  };
 }
 
 const squash = (text: string) => text.toLowerCase().replace(/[\s_-]+/g, '');
@@ -61,5 +70,6 @@ export function reconcileMapping(saved: Partial<ColumnMapping>, headers: string[
     cc: keep(saved.cc, guess.cc),
     bcc: keep(saved.bcc, guess.bcc),
     enabled: keep(saved.enabled, guess.enabled),
+    attachments: keep(saved.attachments, guess.attachments),
   };
 }

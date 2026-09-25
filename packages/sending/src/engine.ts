@@ -1,4 +1,5 @@
 import type { PauseReason, RecipientCounts, SendRecipient } from '@postloom/db';
+import { BuildError } from './attachments';
 import {
   classifyFailure,
   type OutgoingEmail,
@@ -144,8 +145,9 @@ export async function runSend(options: EngineOptions): Promise<Outcome> {
     let email: OutgoingEmail;
     try {
       email = await options.build(person);
-    } catch {
-      await store.markFailed(person.id, 'template');
+    } catch (error) {
+      // An attachment gone missing (or similar) is that person's reason; anything else is the template.
+      await store.markFailed(person.id, error instanceof BuildError ? error.code : 'template');
       continue;
     }
 

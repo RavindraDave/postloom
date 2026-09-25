@@ -236,6 +236,7 @@ export const columnMappingSchema = z.object({
   cc: columnNameSchema.nullable(),
   bcc: columnNameSchema.nullable(),
   enabled: columnNameSchema.nullable(),
+  attachments: columnNameSchema.nullable(),
 });
 
 export const fieldMapSchema = z.record(z.string().max(64), columnNameSchema.nullable());
@@ -264,6 +265,10 @@ export const recipientProblemSchema = z.object({
     'doNotEmail',
     'disabled',
     'largeSend',
+    'attachmentMissing',
+    'attachmentBlocked',
+    'attachmentTooBig',
+    'attachmentOutside',
   ]),
   severity: z.enum(['mustFix', 'worthALook', 'info']),
   rows: z.array(z.number().int()),
@@ -282,6 +287,13 @@ export const listCheckSchema = z.object({
   }),
   dailyLimit: z.number().int(),
   remainingToday: z.number().int(),
+  /** Files attached across everyone who'll get an email. */
+  attachments: z.object({
+    files: z.number().int(),
+    bytes: z.number().int(),
+    /** Folders the files come from that the person hasn't approved yet. */
+    outsideFolders: z.array(z.string()),
+  }),
 });
 
 export const checkListInputSchema = listChoicesSchema.extend({
@@ -428,6 +440,11 @@ export const ipcContract = {
     input: z.object({ id: idSchema, action: z.enum(['resend', 'skip']) }),
     output: sendSummarySchema,
   },
+  /** Saves a report of everyone in the send (CSV), where the person chooses. */
+  'sends:exportReport': {
+    input: byId,
+    output: z.object({ saved: z.boolean(), fileName: z.string().nullable() }),
+  },
   /** People not emailed, and why (failed, uncertain, left out). */
   'sends:problems': { input: byId, output: z.array(sendProblemSchema) },
   /** One person's addresses and details, for the preview. */
@@ -439,8 +456,17 @@ export const ipcContract = {
       cc: z.array(z.string()),
       bcc: z.array(z.string()),
       values: z.record(z.string(), z.string()),
+      attachments: z.array(
+        z.object({
+          name: z.string(),
+          size: z.number().int(),
+          problem: z.enum(['missing', 'blocked']).nullable(),
+        }),
+      ),
     }),
   },
+  /** Trusts the folders the last check flagged, for attachments from now on. */
+  'recipients:approveFolders': { input: z.object({ token: z.uuid() }), output: ok },
   /** Opens the computer's file picker for an .html file; null if cancelled. */
   'templates:pickHtml': {
     input: z.undefined(),
@@ -527,6 +553,7 @@ export interface PostloomApi {
     inspect: Call<'recipients:inspect'>;
     check: Call<'recipients:check'>;
     row: Call<'recipients:row'>;
+    approveFolders: Call<'recipients:approveFolders'>;
   };
   sends: {
     start: Call<'sends:start'>;
@@ -538,6 +565,7 @@ export interface PostloomApi {
     retryFailed: Call<'sends:retryFailed'>;
     resolveUncertain: Call<'sends:resolveUncertain'>;
     problems: Call<'sends:problems'>;
+    exportReport: Call<'sends:exportReport'>;
   };
   assets: {
     pickImage: Call<'assets:pickImage'>;

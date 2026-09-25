@@ -9,6 +9,7 @@ import { inlineImagesFor, senderBrand } from './brand';
 import { readDocument } from './documents';
 import type { IpcHandlers } from './ipc-router';
 import type { ListService } from './recipients';
+import { buildReport } from './report';
 import type { RunnerEvents, RunnerResult, SendRunner } from './send-runner';
 
 export interface SendServiceDeps extends Pick<AccountDeps, 'repos' | 'vault' | 'extraCa'> {
@@ -17,6 +18,8 @@ export interface SendServiceDeps extends Pick<AccountDeps, 'repos' | 'vault' | '
   createRunner: (events: RunnerEvents) => SendRunner;
   /** Shows a notification from the computer (e.g. "Sending finished"). */
   notify?: (title: string, body: string) => void;
+  /** Asks where to save a report and saves it; the file name, or null if cancelled. */
+  saveReport?: (suggestedName: string, csv: string) => Promise<string | null>;
 }
 
 type SendHandlers = Pick<
@@ -30,6 +33,7 @@ type SendHandlers = Pick<
   | 'sends:retryFailed'
   | 'sends:resolveUncertain'
   | 'sends:problems'
+  | 'sends:exportReport'
 >;
 
 /** Sends shown in the recent list. */
@@ -178,6 +182,9 @@ export function createSendService(deps: SendServiceDeps) {
           cc: person.cc,
           bcc: person.bcc,
           values: person.values,
+          attachments: (checked.files.get(person.rowNo) ?? []).flatMap((file) =>
+            file.path ? [file.path] : [],
+          ),
           skipped: reasons.get(person.rowNo),
         })),
       });
@@ -229,6 +236,19 @@ export function createSendService(deps: SendServiceDeps) {
         await repos.sends.setStatus(id, 'finished');
       }
       return summaryOf(id);
+    },
+
+    'sends:exportReport': async ({ id }) => {
+      const send = await repos.sends.get(id);
+      const template = await nameOf(() => repos.templates.get(send.templateId));
+      const day = send.createdAt.slice(0, 10);
+      // A file name without characters that aren't allowed in file names.
+      const suggested = `${template || 'Send'} ${day}.csv`.replace(/[\\/:*?"<>|]+/g, '-');
+      const fileName = await (deps.saveReport ?? (() => Promise.resolve(null)))(
+        suggested,
+        buildReport(await repos.sends.recipients(id)),
+      );
+      return { saved: fileName !== null, fileName };
     },
 
     'sends:problems': async ({ id }) => {

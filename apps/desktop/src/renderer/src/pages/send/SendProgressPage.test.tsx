@@ -141,6 +141,15 @@ describe('SendProgressPage', () => {
     });
   });
 
+  it('saves a report once the send is over', async () => {
+    const api = renderProgress({ ...paused('user'), status: 'finished' });
+    await userEvent.click(await screen.findByRole('button', { name: 'Save a report' }));
+    expect(
+      await screen.findByText('Report saved as Payment reminder 2026-09-25.csv.'),
+    ).toBeInTheDocument();
+    expect(api.sends.exportReport).toHaveBeenCalledWith({ id: 'send1' });
+  });
+
   it('says how many are left after a stop', async () => {
     renderProgress({ ...paused(null), status: 'stopped' });
     expect(

@@ -1,3 +1,4 @@
+export * from './attachments';
 export * from './control';
 export * from './engine';
 export * from './job';

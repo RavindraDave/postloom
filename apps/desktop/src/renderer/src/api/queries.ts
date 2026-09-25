@@ -429,3 +429,19 @@ export function useResolveUncertain() {
     },
   });
 }
+
+/** Trusts the folders the latest check flagged for attachments, then checks again. */
+export function useTrustFolders() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (token: string) => unwrap(window.postloom.recipients.approveFolders({ token })),
+    onSuccess: () => client.invalidateQueries({ queryKey: ['lists', 'check'] }),
+  });
+}
+
+/** Saves a send's report where the person chooses. */
+export function useExportReport() {
+  return useMutation({
+    mutationFn: (id: string) => unwrap(window.postloom.sends.exportReport({ id })),
+  });
+}

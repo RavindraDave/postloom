@@ -118,7 +118,13 @@ describe('matching columns', () => {
       rowNo: 2,
       cells: ['asha@example.com', 'Asha', 'INV-1', '£120', '1 Oct'],
     });
-    expect(inspected.mapping).toEqual({ to: 'Email', cc: null, bcc: null, enabled: null });
+    expect(inspected.mapping).toEqual({
+      to: 'Email',
+      cc: null,
+      bcc: null,
+      enabled: null,
+      attachments: null,
+    });
     expect(inspected.fieldMap).toMatchObject({
       'Invoice No': 'Invoice No',
       Amount: 'Amount',

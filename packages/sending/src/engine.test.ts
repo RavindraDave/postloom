@@ -7,6 +7,7 @@ import {
 import type { OutgoingEmail, SendResult } from '@postloom/email';
 import { SendFailure } from '@postloom/email';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { BuildError } from './attachments';
 import { runSend, type EngineOptions, type Progress } from './engine';
 import { createMessageBuilder } from './message';
 import { createEngineStore } from './store';
@@ -263,6 +264,23 @@ describe('sending engine', () => {
       status: 'finished',
     });
     expect((await repos.sends.recipients(send.id, 'failed'))[0]?.errorCode).toBe('template');
+  });
+
+  it('records a missing attachment as that person’s reason', async () => {
+    const send = await makeSend(2);
+    const h = harness(send.id);
+    let calls = 0;
+    const outcome = await h.run({
+      build: (person) => {
+        calls += 1;
+        return calls === 1 ? Promise.reject(new BuildError('attachmentMissing')) : build(person);
+      },
+    });
+    expect(outcome).toEqual({ status: 'finished' });
+    expect((await repos.sends.recipients(send.id, 'failed'))[0]?.errorCode).toBe(
+      'attachmentMissing',
+    );
+    expect(h.sent).toHaveLength(1);
   });
 
   it('treats an invalid email as failed without contacting the server again', async () => {

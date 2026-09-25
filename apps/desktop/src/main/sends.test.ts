@@ -2,6 +2,9 @@ import { createRepositories, openDatabase, type OpenedDatabase } from '@postloom
 import { SendFailure, type Mailer, type OutgoingEmail } from '@postloom/email';
 import { STARTER_GALLERY } from '@postloom/editor';
 import type { Outcome } from '@postloom/sending';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createHandlers } from './handlers';
 import type { IpcHandlers } from './ipc-router';
@@ -14,6 +17,8 @@ let repos: ReturnType<typeof createRepositories>;
 let delivered: OutgoingEmail[];
 let respond: (email: OutgoingEmail) => Error | null;
 let listText: string;
+let listFolder: string;
+let saved: { name: string; csv: string } | null;
 const notify = vi.fn();
 
 const LIST = [
@@ -29,6 +34,8 @@ beforeEach(async () => {
   delivered = [];
   respond = () => null;
   listText = LIST;
+  saved = null;
+  listFolder = mkdtempSync(join(tmpdir(), 'postloom-list-'));
   notify.mockReset();
   const mailer: Mailer = {
     send: (email) => {
@@ -49,9 +56,17 @@ beforeEach(async () => {
     vault: fakeVault(),
     smtp: { verify: () => Promise.resolve(), send: () => Promise.reject(new Error('unused')) },
     pickSpreadsheetFile: () =>
-      Promise.resolve({ name: 'invoices.csv', bytes: new TextEncoder().encode(listText) }),
+      Promise.resolve({
+        name: 'invoices.csv',
+        bytes: new TextEncoder().encode(listText),
+        folder: listFolder,
+      }),
     openMailer: () => mailer,
     notify,
+    saveReport: (name, csv) => {
+      saved = { name, csv };
+      return Promise.resolve(name);
+    },
   });
 });
 afterEach(async () => {
@@ -60,6 +75,7 @@ afterEach(async () => {
     for (const send of await handlers['sends:list'](undefined)) expect(send.running).toBe(false);
   });
   await opened.close();
+  rmSync(listFolder, { recursive: true, force: true });
 });
 
 async function setUp(delayMs = 0) {
@@ -161,6 +177,25 @@ describe('sending', () => {
     ]);
   });
 
+  it('saves a report of everyone, with what happened and why', async () => {
+    const { input } = await setUp();
+    respond = (email) =>
+      email.to[0] === 'ben@example.com' ? new SendFailure('rejected', '550') : null;
+    const started = await handlers['sends:start']({ ...input, skipRows: [4] });
+    await until(started.id, (s) => s.status === 'finished' && !s.running);
+
+    expect(await handlers['sends:exportReport']({ id: started.id })).toEqual({
+      saved: true,
+      fileName: expect.stringMatching(/^Payment reminder \d{4}-\d{2}-\d{2}\.csv$/) as unknown,
+    });
+    const lines = saved?.csv.trim().split('\r\n') ?? [];
+    expect(lines).toHaveLength(4);
+    expect(lines[1]).toMatch(/^2,asha@example.com,,,Sent,,/);
+    expect(lines[2]).toContain("Couldn't send");
+    expect(lines[2]).toContain('(550)');
+    expect(lines[3]).toContain('Left out');
+  });
+
   it('refuses to start while there are problems to fix', async () => {
     const { input } = await setUp();
     await expect(
@@ -258,6 +293,68 @@ describe('sending', () => {
       messageKey: 'errors.sendAccountBusy',
     });
     await handlers['sends:stop']({ id: first.id });
+  });
+});
+
+describe('attachments', () => {
+  it('checks each file before sending, and attaches them', async () => {
+    const elsewhere = mkdtempSync(join(tmpdir(), 'postloom-elsewhere-'));
+    mkdirSync(join(listFolder, 'invoices'));
+    writeFileSync(join(listFolder, 'invoices', 'INV-1.pdf'), '%PDF asha');
+    writeFileSync(join(elsewhere, 'brochure.pdf'), '%PDF brochure');
+    listText = [
+      'Email,First Name,Invoice No,Amount,Due Date,Attachment',
+      `asha@example.com,Asha,INV-1,£120,1 Oct,invoices/INV-1.pdf`,
+      `ben@example.com,Ben,INV-2,£80,2 Oct,${join(elsewhere, 'brochure.pdf')}`,
+      'cara@example.com,Cara,INV-3,£10,3 Oct,invoices/missing.pdf',
+    ].join('\n');
+    const { input } = await setUp();
+    expect(input.mapping.attachments).toBe('Attachment');
+
+    const check = await handlers['recipients:check'](input);
+    const byId = Object.fromEntries(check.problems.map((p) => [p.id, p]));
+    expect(byId['attachmentMissing']).toMatchObject({ severity: 'mustFix', rows: [4] });
+    expect(byId['attachmentOutside']).toMatchObject({ severity: 'worthALook', rows: [3] });
+    expect(check.attachments).toMatchObject({ files: 3 });
+    expect(check.attachments.outsideFolders).toHaveLength(1);
+
+    // The preview shows each person's files.
+    const cara = await handlers['recipients:row']({ ...input, rowNo: 4 });
+    expect(cara.attachments).toEqual([{ name: 'missing.pdf', size: 0, problem: 'missing' }]);
+
+    // Trusting the folder clears the flag; leaving Cara out clears the must-fix.
+    await handlers['recipients:approveFolders']({ token: input.token });
+    const again = await handlers['recipients:check']({ ...input, skipRows: [4] });
+    expect(again.problems.filter((p) => p.id.startsWith('attachment'))).toEqual([]);
+    expect(again.problems.some((p) => p.severity === 'mustFix')).toBe(false);
+
+    const started = await handlers['sends:start']({ ...input, skipRows: [4] });
+    await until(started.id, (s) => s.status === 'finished' && !s.running);
+    expect(delivered.map((e) => [e.to[0], e.attachments?.map((a) => a.filename)])).toEqual([
+      ['asha@example.com', ['INV-1.pdf']],
+      ['ben@example.com', ['brochure.pdf']],
+    ]);
+    expect(new TextDecoder().decode(delivered[0]?.attachments?.[0]?.content)).toBe('%PDF asha');
+    rmSync(elsewhere, { recursive: true, force: true });
+  });
+
+  it('never attaches a key file', async () => {
+    mkdirSync(join(listFolder, '.ssh'));
+    writeFileSync(join(listFolder, '.ssh', 'id_rsa'), 'secret');
+    listText = [
+      'Email,First Name,Invoice No,Amount,Due Date,Attachment',
+      'asha@example.com,Asha,INV-1,£120,1 Oct,.ssh/id_rsa',
+    ].join('\n');
+    const { input } = await setUp();
+    const check = await handlers['recipients:check'](input);
+    expect(check.problems).toContainEqual({
+      id: 'attachmentBlocked',
+      severity: 'mustFix',
+      rows: [2],
+    });
+    await expect(handlers['sends:start'](input)).rejects.toMatchObject({
+      messageKey: 'errors.sendHasProblems',
+    });
   });
 });
 

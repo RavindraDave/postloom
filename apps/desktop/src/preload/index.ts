@@ -36,6 +36,7 @@ const api: PostloomApi = {
     inspect: (input) => invoke('recipients:inspect', input),
     check: (input) => invoke('recipients:check', input),
     row: (input) => invoke('recipients:row', input),
+    approveFolders: (input) => invoke('recipients:approveFolders', input),
   },
   sends: {
     start: (input) => invoke('sends:start', input),
@@ -47,6 +48,7 @@ const api: PostloomApi = {
     retryFailed: (input) => invoke('sends:retryFailed', input),
     resolveUncertain: (input) => invoke('sends:resolveUncertain', input),
     problems: (input) => invoke('sends:problems', input),
+    exportReport: (input) => invoke('sends:exportReport', input),
   },
   assets: {
     pickImage: () => invoke('assets:pickImage'),

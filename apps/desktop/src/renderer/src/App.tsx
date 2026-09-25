@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
 import { HashRouter, Route, Routes } from 'react-router';
 import { AppLayout } from './layout/AppLayout';
+import { HistoryPage } from './pages/HistoryPage';
 import { HomePage } from './pages/HomePage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import { SendPage } from './pages/send/SendPage';
@@ -56,7 +57,7 @@ export function AppRoutes() {
         <Route path="templates" element={<TemplatesPage />} />
         <Route path="templates/:id" element={<TemplateEditorPage />} />
         <Route path="senders" element={<SendersPage />} />
-        <Route path="history" element={<PlaceholderPage titleKey="nav.history" />} />
+        <Route path="history" element={<HistoryPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="help" element={<PlaceholderPage titleKey="nav.help" />} />
       </Route>
