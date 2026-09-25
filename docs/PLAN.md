@@ -72,7 +72,6 @@ Design for **Asha first**. Priya's needs sit behind "Advanced" and must never co
 - History, per-recipient results, CSV export
 - Light/dark theme, keyboard accessibility, English UI (ready for translation)
 - Signed installers and auto-update on all 3 OSes
-- Import of EmailAutomation data
 
 **1.x (next):**
 - OAuth sign-in for Gmail and Microsoft 365 (no app passwords)
@@ -482,7 +481,7 @@ A fuller STRIDE threat model lives in `docs/security/threat-model.md` and is rev
 | **Component** | Vitest + Testing Library + axe | Every shared component and feature screen: states (loading/empty/error/success), keyboard interaction, a11y violations = 0 | ≥ 80% on `ui` and renderer features |
 | **Integration** | Vitest in Node | `db` (real SQLite in a temp dir, migrations up from every past version), `email` (MJML compile, **fake SMTP server** via `smtp-server` or Mailpit in Docker: TLS, auth failure, 4xx/5xx, dropped connection), Excel/CSV parsing fixtures, IPC handlers with zod validation | Every repository, every transport path, every IPC channel |
 | **Sending engine** | Vitest + fake transport + fake clock | Throttle timing, daily caps, retries/backoff, circuit breaker, pause/resume/stop, **crash mid-send → `uncertain` rows**, no double-send (invariant tests) | 100% of state transitions |
-| **E2E** | Playwright (`_electron`) | Journeys: first-run wizard, add account (against Mailpit), create template from gallery, send wizard end-to-end, pause/resume, resume after forced kill, history export, EmailAutomation import | Runs on Windows, macOS and Linux in CI |
+| **E2E** | Playwright (`_electron`) | Journeys: first-run wizard, add account (against Mailpit), create template from gallery, send wizard end-to-end, pause/resume, resume after forced kill, history export | Runs on Windows, macOS and Linux in CI |
 | **Visual regression** | Playwright screenshots (Storybook + key screens), light and dark | Unintended UI changes | Key screens and all shared components |
 | **Email rendering** | MJML output snapshots + HTML validation + size checks; **manual matrix** (Gmail web/iOS/Android, Outlook 365/desktop, Apple Mail) per release, optionally Litmus/Email on Acid | Starter templates and block types render correctly | Per release |
 | **Security tests** | Custom tests + Electronegativity | Fuses and webPreferences asserted, CSP present, `window.open`/navigation blocked, IPC rejects invalid input and foreign frames, preview iframe cannot run scripts, sanitizer strips payloads (OWASP XSS cheat-sheet vectors), header injection rejected, CSV injection escaped | All must pass to release |
@@ -549,6 +548,8 @@ A fuller STRIDE threat model lives in `docs/security/threat-model.md` and is rev
 ---
 
 ## 16. Migration from EmailAutomation
+
+> **Decision D11:** no importer in 1.0. EmailAutomation has one user, who sets up again by hand; the plan below is kept for reference in case that changes.
 
 - On first launch, Postloom detects the EmailAutomation data folder (`%APPDATA%\EmailAutomation`, `~/Library/Application Support/EmailAutomation`) and offers **Import from EmailAutomation**:
   - Settings → one Email Account + one Sender Profile. The password is re-entered, because EmailAutomation's DPAPI/Keychain blobs are app-specific; the import is verified with a test.
@@ -660,7 +661,7 @@ Estimates assume one developer working with AI assistance; they're rough and get
   - Help: ten short guides you can search (getting started, connecting Gmail, Outlook and other providers, templates, lists, sending, History, your data, and fixing problems), an ⓘ link to the right guide on each page, and "Run the setup again";
   - Export diagnostics: a file for support with only the version, the computer, the settings and counts. It never includes passwords, addresses, server names, people or email content.
 
-  Still to do: importing from EmailAutomation, the accessibility and performance pass, and the rest of Settings (sending defaults, opt-in crash reporting, about).
+  Still to do: the accessibility and performance pass, and the rest of Settings (sending defaults, opt-in crash reporting, about).
 
 **Total:** roughly 19-23 weeks to 1.0 stable. Phases 2 and 3 can overlap once Phase 1 is done.
 
@@ -684,6 +685,7 @@ Decided on 2026-09-24 (owner accepted the recommendations). Revisit only with a 
 | D8 | License of the app | Private / open source (MIT/GPL) | **Decided for now:** private, all rights reserved; can be opened later. Only permissively licensed dependencies (MIT/BSD/Apache-2.0/ISC) are accepted, so every option stays available | Phase 0 |
 | D9 | Second UI language | Hindi / other / none | **Open:** decide after beta | 1.x |
 | D10 | Distribution and signing | Own certificates on all platforms / stores / unsigned | **Decided:** Windows through the **Microsoft Store** (MSIX, signed by the Store, Store handles updates). macOS **unsigned** on GitHub Releases, with a basic built-in (ad-hoc) signature, which Apple Silicon Macs require. Consequences: Mac users confirm the first launch in System Settings → Privacy & Security → "Open Anyway" (the user guide shows how), and update by downloading each new version (the app says when one is out; automatic updates on macOS need a signed app). Any Windows `.exe` on GitHub stays unsigned and shows a SmartScreen warning, so the Store is the recommended Windows download. Revisit Apple signing (Developer Program, about US$99/year) if Mac users grow | Phase 6 |
+| D11 | Import from EmailAutomation | Build an importer / set up again by hand | **Decided:** no importer. EmailAutomation has a single user, who sets up the account and templates again in Postloom (a few minutes). Revisit only if more EmailAutomation users appear | Phase 5 |
 
 ---
 
