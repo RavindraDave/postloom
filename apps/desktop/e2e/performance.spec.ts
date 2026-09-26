@@ -20,8 +20,12 @@ const BUDGET = {
   // "The screen stays responsive": no single task blocks it for longer.
   longestTaskMs: 250,
   // What sending adds to the app at rest (Electron's own processes are most of
-  // the rest: about 600 MB on a CI machine with no graphics card).
-  sendingAddsMb: 300,
+  // the rest: about 600 MB on a CI machine with no graphics card). Measured on
+  // Linux CI: 187 MB. macOS runs a real, Metal-backed GPU process and a larger
+  // Chromium baseline that Linux's headless runner doesn't have, so it needs
+  // its own, separately measured budget (macOS: 303-363 MB across repeated
+  // local runs) rather than inheriting the Linux figure (PLAN.md §15.3).
+  sendingAddsMb: process.platform === 'darwin' ? 420 : 300,
   // "Flat": what the sending process may grow by between 1,000 and 4,900 emails.
   // This is memory the process holds, which grows before the engine tidies up;
   // memory.test.ts in @postloom/sending shows memory actually in use stays flat.
