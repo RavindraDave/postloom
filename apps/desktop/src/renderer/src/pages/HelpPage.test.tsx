@@ -41,7 +41,7 @@ describe('HelpPage', () => {
     ).toBeInTheDocument();
     const steps = screen.getAllByRole('list')[0]!;
     expect(within(steps).getAllByRole('listitem')[0]).toHaveTextContent(
-      'Open your Google Account and choose Security.',
+      'myaccount.google.com/apppasswords',
     );
     await userEvent.click(screen.getByRole('link', { name: 'All help' }));
     expect(screen.getByRole('heading', { level: 1, name: 'Help' })).toBeInTheDocument();

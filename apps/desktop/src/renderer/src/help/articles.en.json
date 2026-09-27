@@ -39,10 +39,17 @@
       {
         "heading": "Create one",
         "body": [
-          "1. Open your Google Account and choose Security.",
-          "2. Turn on 2-Step Verification if it isn't on already (app passwords need it).",
-          "3. Open App passwords, type “Postloom” as the name and choose Create.",
+          "1. Go to myaccount.google.com/apppasswords. Google no longer lists App passwords in the Security menu, so this address is the reliable way in — searching your settings for it usually finds nothing.",
+          "2. If the page won't let you create one, turn on 2-Step Verification first. App passwords only exist once it is on.",
+          "3. Type “Postloom” as the name and choose Create.",
           "4. Copy the 16 letters and paste them into Postloom. Spaces don't matter."
+        ]
+      },
+      {
+        "heading": "If you can't create one",
+        "body": [
+          "Work or school accounts: your administrator can switch app passwords off for everyone. If the page refuses, ask them to allow app passwords for your account.",
+          "Accounts in Google's Advanced Protection Program can't use app passwords at all. You would need to send from a different account."
         ]
       },
       {
