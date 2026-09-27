@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { fromEditorJson } from './document';
 import { paymentReminder } from './fixtures';
 import { STARTER_GALLERY } from './starters';
-import { writeModeExtensions } from './tiptap';
+import { SignatureNode, signatureExtensions, writeModeExtensions } from './tiptap';
 
 // Feasibility check for Write mode (Council step 5): TipTap must accept field
 // chips inline in text, and its JSON must match what we validate and convert.
@@ -188,5 +188,53 @@ describe('Write mode editor schema', () => {
     expect(schema.nodes['codeBlock']).toBeUndefined();
     expect(schema.nodes['blockquote']).toBeUndefined();
     expect(schema.marks['strike']).toBeUndefined();
+  });
+});
+
+describe('Signature blocks and sender signatures', () => {
+  it('keeps a Signature block through the editor, even inside columns', () => {
+    const schema = getSchema(writeModeExtensions);
+    const doc = {
+      type: 'doc',
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'Kind regards,' }] },
+        { type: 'signature' },
+        {
+          type: 'columns',
+          content: [
+            { type: 'column', content: [{ type: 'signature' }] },
+            { type: 'column', content: [{ type: 'paragraph' }] },
+          ],
+        },
+      ],
+    };
+    const node = ProseMirrorNode.fromJSON(schema, doc);
+    node.check();
+    expect(fromEditorJson(node.toJSON())).toEqual(doc);
+    expect(
+      node.textBetween(0, node.content.size, '\n', (leaf) =>
+        leaf.type.name === 'signature' ? '[Signature]' : '',
+      ),
+    ).toContain('[Signature]');
+  });
+
+  it('reads and writes a Signature block as HTML', () => {
+    const config = SignatureNode.config;
+    expect(config.parseHTML?.call({} as never)).toEqual([{ tag: 'div[data-signature]' }]);
+    expect(config.renderHTML?.call({} as never, {} as never)).toEqual([
+      'div',
+      { 'data-signature': '', class: 'pl-signature' },
+      'Signature',
+    ]);
+    expect(config.renderText?.call({} as never, {} as never)).toBe('[Signature]');
+  });
+
+  it('lets a signature hold only lines, emphasis, colours and links', () => {
+    const schema = getSchema(signatureExtensions);
+    expect(Object.keys(schema.nodes)).not.toContain('heading');
+    expect(Object.keys(schema.nodes)).not.toContain('bulletList');
+    expect(Object.keys(schema.marks)).toEqual(
+      expect.arrayContaining(['bold', 'italic', 'underline', 'link', 'textColor', 'highlight']),
+    );
   });
 });
