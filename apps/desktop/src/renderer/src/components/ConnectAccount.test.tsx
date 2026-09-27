@@ -6,7 +6,9 @@ import { ConnectAccount } from './ConnectAccount';
 
 const withSignIn = () =>
   mockApi({
-    accounts: { signInProviders: vi.fn(() => ok(['google', 'microsoft'] as const)) },
+    accounts: {
+      signInProviders: vi.fn(() => ok(['google', 'microsoft'] as ('google' | 'microsoft')[])),
+    },
   });
 
 describe('ConnectAccount', () => {
@@ -30,7 +32,7 @@ describe('ConnectAccount', () => {
   it('says so when signing in doesn’t finish', async () => {
     mockApi({
       accounts: {
-        signInProviders: vi.fn(() => ok(['microsoft'] as const)),
+        signInProviders: vi.fn(() => ok(['microsoft'] as ('google' | 'microsoft')[])),
         signIn: vi.fn(() =>
           Promise.resolve({
             ok: false as const,
