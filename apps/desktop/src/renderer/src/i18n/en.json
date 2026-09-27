@@ -209,7 +209,7 @@
       "gmail": {
         "label": "Gmail",
         "hint": "Also Google Workspace",
-        "appPasswordHelp": "Gmail needs an app password, not your normal password. In your Google Account open Security → 2-Step Verification → App passwords, create one called “Postloom” and paste the 16 letters here."
+        "appPasswordHelp": "Gmail needs an app password, not your normal password. Create one at myaccount.google.com/apppasswords — it is no longer in the Security menu — and paste the 16 letters here. It needs 2-Step Verification to be on."
       },
       "outlook": {
         "label": "Outlook",
