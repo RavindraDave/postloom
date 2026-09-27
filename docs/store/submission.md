@@ -121,6 +121,9 @@ or pick manual publishing if you want to choose the day.
 
 > Personal details from your spreadsheet in every email
 > Write like a letter, or design with columns, tables and footers
+> Start from a Word document or an HTML email you already have
+> Dates and amounts shown properly, like 1 October 2026 or ₹1,24,000
+> Text colour, highlight, inbox preview text and sender signatures
 > Full-width letters or centred newsletter layouts
 > Your own logo, colours and fonts, per sender or per template
 > Pictures and attachments that travel inside each email
@@ -145,6 +148,7 @@ with captions:
 6. `06-send-done-light.png` — See who got an email and who didn't, and why.
 7. `07-history-light.png` — Every send is kept in History.
 8. `08-editor-dark.png` — Dark mode.
+9. `09-table-format-light.png` — Tables with your own lines, colours and widths.
 
 Refresh them with
 `SCREENSHOTS=1 SCREENSHOTS_SIZE=1920x1080 SCREENSHOTS_OUT=../../docs/store/screenshots-new xvfb-run -a -s "-screen 0 1920x1080x24" pnpm exec playwright test e2e/screenshots.spec.ts`
