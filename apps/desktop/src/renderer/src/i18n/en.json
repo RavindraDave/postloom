@@ -202,7 +202,9 @@
     "about": "About Postloom",
     "version": "Version {{version}}",
     "aboutBody": "Postloom sends personal emails from your own email account. Everything stays on this computer.",
-    "openHelp": "Open Help"
+    "openHelp": "Open Help",
+    "publisher": "Made by",
+    "publisherLink": "R2DSolutions website (opens your browser)"
   },
   "accounts": {
     "providerLabel": "Email provider",

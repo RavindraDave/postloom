@@ -7,12 +7,21 @@ import { makePng } from './png';
 // Not part of the regular suite: run with SCREENSHOTS=1 to refresh docs/images.
 test.skip(!process.env['SCREENSHOTS'], 'screenshots only on demand');
 
-const out = '../../docs/images';
+// SCREENSHOTS_OUT and SCREENSHOTS_SIZE (e.g. 1920x1080) make the Microsoft Store
+// screenshots, which must be at least 1366 × 768.
+const out = process.env['SCREENSHOTS_OUT'] ?? '../../docs/images';
+const [width, height] = (process.env['SCREENSHOTS_SIZE'] ?? '1280x820').split('x').map(Number) as [
+  number,
+  number,
+];
 
 test('capture screens for review', async ({ electronApp, page }) => {
-  await electronApp.evaluate(({ BrowserWindow }) => {
-    BrowserWindow.getAllWindows()[0]?.setSize(1280, 820);
-  });
+  await electronApp.evaluate(
+    ({ BrowserWindow }, [w, h]) => {
+      BrowserWindow.getAllWindows()[0]?.setSize(w, h);
+    },
+    [width, height] as const,
+  );
 
   await page.getByRole('link', { name: 'Templates' }).click();
   for (const name of ['Payment reminder', 'Thank you note']) {
@@ -60,9 +69,12 @@ test('capture setup and senders screens', async ({ userDataDir }) => {
     POSTLOOM_TEST_PICK_IMAGE: logoFile,
   });
   const page = await firstPage(app);
-  await app.evaluate(({ BrowserWindow }) => {
-    BrowserWindow.getAllWindows()[0]?.setSize(1280, 820);
-  });
+  await app.evaluate(
+    ({ BrowserWindow }, [w, h]) => {
+      BrowserWindow.getAllWindows()[0]?.setSize(w, h);
+    },
+    [width, height] as const,
+  );
 
   await page.getByRole('button', { name: 'Connect your email' }).click();
   await page.getByRole('button', { name: "Let's start" }).click();
@@ -206,9 +218,12 @@ test('capture the send wizard', async ({ userDataDir }) => {
     POSTLOOM_TEST_PICK_SPREADSHEET: listFile,
   });
   const page = await firstPage(app);
-  await app.evaluate(({ BrowserWindow }) => {
-    BrowserWindow.getAllWindows()[0]?.setSize(1280, 820);
-  });
+  await app.evaluate(
+    ({ BrowserWindow }, [w, h]) => {
+      BrowserWindow.getAllWindows()[0]?.setSize(w, h);
+    },
+    [width, height] as const,
+  );
   await sendWithoutWaiting(page);
 
   await page.getByRole('button', { name: 'Connect your email' }).click();

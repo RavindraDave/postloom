@@ -1,0 +1,24 @@
+/** The R2DSolutions logo (the publisher), drawn from docs/brand/r2dsolutions-logo.svg. */
+export function R2DSolutionsLogo({ size = 24 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 1834 1830" aria-hidden>
+      <g fill="#5484BF">
+        <circle cx="206" cy="194" r="44" />
+        <polygon points="228.0,202.0 331.0,215.0 331.0,173.0 228.0,186.0" />
+        <polygon points="215.9,215.2 279.5,297.2 309.2,267.5 227.2,203.9" />
+        <polygon points="198.0,216.0 185.0,319.0 227.0,319.0 214.0,216.0" />
+        <polygon points="184.8,203.9 102.8,267.5 132.5,297.2 196.1,215.2" />
+        <polygon points="184.0,186.0 81.0,173.0 81.0,215.0 184.0,202.0" />
+        <polygon points="196.1,172.8 132.5,90.8 102.8,120.5 184.8,184.1" />
+        <polygon points="214.0,172.0 227.0,69.0 185.0,69.0 198.0,172.0" />
+        <polygon points="227.2,184.1 309.2,120.5 279.5,90.8 215.9,172.8" />
+        <rect x="0" y="569" width="412" height="1261" />
+        <rect x="568" y="1417" width="1170" height="413" />
+      </g>
+      <path
+        fill="#E84531"
+        d="M569 0H1202A632.5 632.5 0 0 1 1202 1265H569V855H1155A222.5 222.5 0 0 0 1155 410H569Z"
+      />
+    </svg>
+  );
+}

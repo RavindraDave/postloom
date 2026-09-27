@@ -5,7 +5,7 @@
 appId: com.ravindradave.postloom
 productName: Postloom
 executableName: postloom
-copyright: Copyright © 2026 Ravindra Dave
+copyright: Copyright © 2026 R2DSolutions
 
 directories:
   output: release

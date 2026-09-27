@@ -1,5 +1,6 @@
 import {
   Alert,
+  Anchor,
   Button,
   Group,
   Switch,
@@ -24,6 +25,7 @@ import {
   useUpdateStatus,
 } from '../api/queries';
 import { PageHeader } from '../components/PageHeader';
+import { R2DSolutionsLogo } from '../components/R2DSolutionsLogo';
 import { DataSettings } from './DataSettings';
 import { SendingDefaults } from './SendingDefaults';
 
@@ -121,7 +123,10 @@ export function SettingsPage() {
   );
 }
 
-/** Settings → About: the version, for when someone asks. */
+/** Who makes Postloom (opens in the browser). */
+const PUBLISHER_URL = 'https://r2dsolutions.com';
+
+/** Settings → About: the version and who makes it, for when someone asks. */
 function About({
   checkForUpdates,
   onCheckForUpdates,
@@ -153,6 +158,15 @@ function About({
           {t('settings.about')}
         </Title>
         {info.data && <Text fw={600}>{t('settings.version', { version: info.data.version })}</Text>}
+        <Group gap={8} wrap="nowrap">
+          <R2DSolutionsLogo size={20} />
+          <Text size="sm" c="var(--pl-ink-soft)">
+            {t('settings.publisher')}{' '}
+            <Anchor href={PUBLISHER_URL} target="_blank" aria-label={t('settings.publisherLink')}>
+              R2DSolutions
+            </Anchor>
+          </Text>
+        </Group>
         <Text c="var(--pl-ink-soft)">{t('settings.aboutBody')}</Text>
 
         {state === 'managedByStore' ? (
