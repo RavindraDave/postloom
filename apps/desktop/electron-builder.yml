@@ -30,7 +30,17 @@ electronFuses:
 win:
   target:
     - nsis
+    - appx
   artifactName: ${productName}-${version}-win-${arch}.${ext}
+
+# Identity assigned by Partner Center (Product management -> Product identity).
+# These must match it exactly or the Store rejects the submission. The package is
+# left unsigned on purpose: the Store signs it (D10).
+appx:
+  identityName: R2DSolutions.Postloom
+  publisher: CN=29EFD80C-C895-4E06-B83D-288438912DC1
+  publisherDisplayName: R2DSolutions
+  applicationId: Postloom
 
 nsis:
   # One click, per-user install: no admin rights, no confusing options.

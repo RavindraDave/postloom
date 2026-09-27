@@ -82,6 +82,18 @@ jobs:
           for app in apps/desktop/release/mac*/Postloom.app; do
             codesign --verify --deep --strict --verbose=2 "$app"
           done
+      # The Store signs and distributes this one, so it is not a download people
+      # can install: it is kept out of the release and picked up from here for
+      # submission to Partner Center (D10).
+      - name: Keep the Store package for submission
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: store-package
+          path: apps/desktop/release/*.appx
+          if-no-files-found: error
+          retention-days: 90
+
       - name: Checksums
         working-directory: apps/desktop/release
         run: |
