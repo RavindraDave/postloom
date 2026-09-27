@@ -1,8 +1,11 @@
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { expect, firstPage, launchApp, test } from './fixtures';
+import { appVersion, expect, firstPage, launchApp, test } from './fixtures';
 
-const PAGE = 'https://github.com/RavindraDave/postloom/releases/tag/v0.2.0';
+// A release one major version ahead of this build, whatever the build is.
+const NEWER = `${String(Number(appVersion.split('.')[0]) + 1)}.0.0`;
+
+const PAGE = `https://github.com/RavindraDave/postloom/releases/tag/v${NEWER}`;
 
 /** A stand-in for GitHub's release list, served locally. */
 async function serveReleases(releases: unknown): Promise<{ url: string; server: Server }> {
@@ -19,7 +22,7 @@ test('says when a new version is out, and only ever opens its download page', as
   userDataDir,
 }) => {
   const { url, server } = await serveReleases([
-    { tag_name: 'v0.2.0', html_url: PAGE, draft: false, prerelease: false },
+    { tag_name: `v${NEWER}`, html_url: PAGE, draft: false, prerelease: false },
     { tag_name: 'v9.0.0', html_url: 'https://evil.example/', draft: false, prerelease: false },
   ]);
   const app = await launchApp(userDataDir, { POSTLOOM_TEST_RELEASES_URL: url });
@@ -36,14 +39,14 @@ test('says when a new version is out, and only ever opens its download page', as
 
   await page.getByRole('link', { name: 'Settings' }).click();
   await page.getByRole('button', { name: 'Check now' }).click();
-  await expect(page.getByRole('status').filter({ hasText: 'Postloom 0.2.0 is out' })).toHaveCount(
-    2,
-  );
+  await expect(
+    page.getByRole('status').filter({ hasText: `Postloom ${NEWER} is out` }),
+  ).toHaveCount(2);
 
   // The quiet note in the sidebar.
   await page
     .getByRole('navigation', { name: 'Main' })
-    .getByRole('button', { name: 'Download Postloom 0.2.0 (opens your browser)' })
+    .getByRole('button', { name: `Download Postloom ${NEWER} (opens your browser)` })
     .click();
   await expect
     .poll(() => app.evaluate(() => (globalThis as unknown as { opened: string[] }).opened))
@@ -52,7 +55,7 @@ test('says when a new version is out, and only ever opens its download page', as
   // Turned off: nothing more is shown.
   await page.getByRole('switch', { name: /Tell me when a new version is out/ }).click();
   await expect(page.getByRole('button', { name: 'Check now' })).toBeHidden();
-  await expect(page.getByText('Postloom 0.2.0 is out')).toBeHidden();
+  await expect(page.getByText(`Postloom ${NEWER} is out`)).toBeHidden();
   await app.close();
   server.close();
 });
