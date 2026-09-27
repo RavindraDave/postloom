@@ -7,6 +7,8 @@ import {
   type NodeViewProps,
 } from '@tiptap/react';
 import { useTranslation } from 'react-i18next';
+import { SignatureNode } from '@postloom/editor/tiptap';
+import { SignatureView } from './SignatureView';
 import classes from './TemplateEditor.module.css';
 
 /** Says, in words, who sees a "show only if" part. */
@@ -41,7 +43,20 @@ const ConditionalWithFrame = ConditionalNode.extend({
   },
 });
 
-/** The editor's extensions, with the on-screen frame for "show only if" parts. */
+const SignatureWithPreview = SignatureNode.extend({
+  addNodeView() {
+    return ReactNodeViewRenderer(SignatureView);
+  },
+});
+
+/**
+ * The editor's extensions, with the on-screen frame for "show only if" parts
+ * and the sender's signature shown in Signature blocks.
+ */
 export const editorExtensions = writeModeExtensions.map((extension) =>
-  extension.name === 'conditional' ? ConditionalWithFrame : extension,
+  extension.name === 'conditional'
+    ? ConditionalWithFrame
+    : extension.name === 'signature'
+      ? SignatureWithPreview
+      : extension,
 );

@@ -1,0 +1,33 @@
+.box {
+  border: 1px solid var(--pl-control);
+  border-radius: var(--mantine-radius-default);
+  background: var(--pl-surface);
+}
+
+.box:focus-within {
+  border-color: var(--mantine-color-loom-7);
+}
+
+.tools {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--pl-border);
+}
+
+.input {
+  outline: none;
+  min-height: 4.8em;
+  padding: 8px 12px;
+  line-height: 1.5;
+}
+
+.input p {
+  margin: 0;
+}
+
+.input a {
+  color: inherit;
+  text-decoration: underline;
+}

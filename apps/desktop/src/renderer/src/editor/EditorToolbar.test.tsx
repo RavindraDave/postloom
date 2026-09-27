@@ -19,6 +19,7 @@ function setUp(text = 'Hello there') {
     onEditButton: vi.fn(),
     onEditDetail: vi.fn(),
     onPicture: vi.fn(),
+    onSignature: vi.fn(),
     onEditPicture: vi.fn(),
   };
   renderWithProviders(<EditorToolbar editor={editor} insertDetail={null} {...handlers} />);

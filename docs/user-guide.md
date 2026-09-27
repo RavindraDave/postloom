@@ -90,10 +90,12 @@ sent from that sender use it.
 
 ![A brand look with a logo](images/brand-look-light.png)
 
-A sender can also have a **signature**: a few lines like your name, job title
-and phone number. It's added at the end of every email from that sender,
-before any footer. To leave it off one template, turn off **Add the sender's
-signature** in that template's **Look**.
+A sender can also have a **signature**: a few lines like your name, job title,
+phone number and website. Format it like the letter: bold, italic, underline,
+text colour and highlight; web addresses become links as you type them. Add it
+to a template with the **Signature** button, wherever you want it. Each email
+gets the signature of the sender it's sent from, so one template works for
+every sender.
 
 ## 4. Make a template
 
@@ -120,6 +122,7 @@ Change the words to your own. Postloom saves as you type.
   even when people have internet pictures switched off. Give each one a short
   description for people who can't see pictures.
 - **Button** adds a button with a link.
+- **Signature** adds the sender's signature where you are.
 - **Text colour** and **Highlight** colour the words you've selected, for
   example an amount that's overdue. Use them sparingly: a little colour stands
   out, a lot is hard to read.

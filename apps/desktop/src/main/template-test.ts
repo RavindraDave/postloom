@@ -1,4 +1,10 @@
-import { emailAssetIds, lookFromBrand, renderSubject, writeDocumentToMjml } from '@postloom/editor';
+import {
+  emailAssetIds,
+  lookFromBrand,
+  renderSubject,
+  signatureFromStored,
+  writeDocumentToMjml,
+} from '@postloom/editor';
 import { compileMjml } from '@postloom/email';
 import { loadSmtpConfig, type AccountDeps } from './accounts';
 import { inlineImagesFor, senderBrand } from './brand';
@@ -31,7 +37,7 @@ export function createTemplateTestHandler({
       const recipient = to ?? account.username;
 
       const brand = await senderBrand(repos, sender);
-      const look = lookFromBrand(brand, sender.fromName, sender.signature);
+      const look = lookFromBrand(brand, sender.fromName, signatureFromStored(sender.signature));
       const { html, text } = await compileMjml(
         writeDocumentToMjml(document, look, values ? { values } : 'placeholder'),
       );

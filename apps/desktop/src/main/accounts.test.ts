@@ -215,19 +215,46 @@ describe('senders', () => {
     expect(own.templateCount).toBe(0);
   });
 
-  it('keeps a sender signature, tidied, and forgets an emptied one', async () => {
+  it('keeps a formatted sender signature, and forgets an emptied one', async () => {
+    const signature = {
+      type: 'doc' as const,
+      content: [
+        {
+          type: 'paragraph' as const,
+          content: [
+            { type: 'text' as const, text: 'Asha Kapoor', marks: [{ type: 'bold' as const }] },
+          ],
+        },
+      ],
+    };
     const account = await handlers['accounts:create'](gmail);
     const sender = await handlers['senders:create']({
       name: 'Accounts',
       emailAccountId: account.id,
       fromName: 'Asha Kapoor',
       fromAddress: 'asha@example.com',
-      signature: 'Asha Kapoor  \r\nAccounts\n',
+      signature,
     });
-    expect(sender.signature).toBe('Asha Kapoor\nAccounts');
+    expect(sender.signature).toEqual(signature);
 
-    const cleared = await handlers['senders:update']({ id: sender.id, signature: '' });
+    const cleared = await handlers['senders:update']({
+      id: sender.id,
+      signature: { type: 'doc', content: [{ type: 'paragraph' }] },
+    });
     expect(cleared.signature).toBeNull();
+  });
+
+  it('reads a signature saved as plain text', async () => {
+    const account = await handlers['accounts:create'](gmail);
+    const created = await handlers['senders:create']({
+      name: 'Old',
+      emailAccountId: account.id,
+      fromName: 'Asha Kapoor',
+      fromAddress: 'asha@example.com',
+    });
+    await repos.senders.update(created.id, { signature: 'Asha Kapoor\nAccounts' });
+    const [sender] = (await handlers['senders:list'](undefined)).filter((s) => s.id === created.id);
+    expect(sender?.signature?.content).toHaveLength(2);
   });
 
   it('uses the pace and limit from Settings when nothing closer sets them', async () => {

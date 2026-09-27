@@ -162,6 +162,31 @@ const spacerSchema = z.object({
 /** Small, quiet text at the bottom (address, "why you got this email"). */
 const footerSchema = z.object({ type: z.literal('footer'), content: inlineContent });
 
+/**
+ * Where the sender's signature goes. It's filled in from the sender the
+ * email is sent as, so one template works for every sender.
+ */
+const signatureBlockSchema = z.object({ type: z.literal('signature') });
+
+/**
+ * A sender's signature: a few formatted lines (bold, colours, links), no
+ * personal details, so it reads the same in every email.
+ */
+export const SIGNATURE_MAX_PARAGRAPHS = 12;
+const signatureParagraphSchema = z.object({
+  type: z.literal('paragraph'),
+  attrs: z.object({ textAlign: alignSchema }).optional(),
+  content: z
+    .array(z.discriminatedUnion('type', [textNodeSchema, hardBreakSchema]))
+    .max(200)
+    .optional(),
+});
+export const senderSignatureSchema = z.object({
+  type: z.literal('doc'),
+  content: z.array(signatureParagraphSchema).min(1).max(SIGNATURE_MAX_PARAGRAPHS),
+});
+export type SenderSignature = z.infer<typeof senderSignatureSchema>;
+
 /** Blocks that can go anywhere: in the letter, a column, or a "show only if" part. */
 const simpleBlockSchema = z.union([
   paragraphSchema,
@@ -171,6 +196,7 @@ const simpleBlockSchema = z.union([
   dividerSchema,
   imageSchema,
   spacerSchema,
+  signatureBlockSchema,
 ]);
 
 /** A colour as #RRGGBB: the only form that can't break out of an email's style. */
@@ -292,7 +318,7 @@ export const templateLookSchema = z.object({
   backgroundColor: hexColourSchema.optional(),
   /** False hides the sender's logo in this template. */
   showLogo: z.boolean().optional(),
-  /** False leaves the sender's signature off this template's emails. */
+  /** No longer used: the signature goes where a Signature block is placed. Kept so saved templates still open. */
   showSignature: z.boolean().optional(),
   /**
    * The short line inboxes show after the subject ("preheader"). Stored like
@@ -430,4 +456,45 @@ function dropDefaults(value: unknown): unknown {
       ([key, v]) => !(key === 'attrs' && v && typeof v === 'object' && Object.keys(v).length === 0),
     );
   return Object.fromEntries(entries);
+}
+
+/** Whether a signature has any words in it. */
+export function signatureHasText(signature: SenderSignature | null | undefined): boolean {
+  return Boolean(
+    signature?.content.some((paragraph) =>
+      (paragraph.content ?? []).some((node) => node.type === 'text' && node.text.trim()),
+    ),
+  );
+}
+
+/**
+ * A stored signature: JSON of a `SenderSignature`, or plain text from
+ * before signatures could be formatted (one paragraph per line). Anything
+ * unreadable is no signature.
+ */
+export function signatureFromStored(stored: string | null | undefined): SenderSignature | null {
+  const text = stored?.trim();
+  if (!text) return null;
+  if (text.startsWith('{')) {
+    try {
+      const parsed = senderSignatureSchema.safeParse(JSON.parse(text));
+      return parsed.success && signatureHasText(parsed.data) ? parsed.data : null;
+    } catch {
+      return null;
+    }
+  }
+  const lines = text.split(/\r?\n/).slice(0, SIGNATURE_MAX_PARAGRAPHS);
+  return {
+    type: 'doc',
+    content: lines.map((line) =>
+      line.trim()
+        ? { type: 'paragraph', content: [{ type: 'text', text: line.trimEnd().slice(0, 10_000) }] }
+        : { type: 'paragraph' },
+    ),
+  };
+}
+
+/** How a signature is stored: JSON, or null when it has no words. */
+export function signatureToStored(signature: SenderSignature | null | undefined): string | null {
+  return signature && signatureHasText(signature) ? JSON.stringify(signature) : null;
 }

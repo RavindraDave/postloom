@@ -5,9 +5,14 @@ import {
   type EmailAccount,
   type SenderProfile,
 } from '@postloom/core';
-import { tidySignature, type EmailAccountInfo, type SenderInfo } from '@postloom/contracts';
+import type { EmailAccountInfo, SenderInfo } from '@postloom/contracts';
 import type { Repositories } from '@postloom/db';
-import { writeDocumentToMjml, type WriteDocument } from '@postloom/editor';
+import {
+  signatureFromStored,
+  signatureToStored,
+  writeDocumentToMjml,
+  type WriteDocument,
+} from '@postloom/editor';
 import { compileMjml, sendEmail, verifySmtpAccount, type SmtpAccountConfig } from '@postloom/email';
 import { saveSenderBrand, senderBrand } from './brand';
 import { appSendingDefaults } from './preferences';
@@ -143,7 +148,7 @@ export function createAccountHandlers({
       fromAddress: sender.fromAddress,
       replyTo: sender.replyTo,
       delayMs: sender.delayMs,
-      signature: sender.signature,
+      signature: signatureFromStored(sender.signature),
       templateCount: await repos.senders.templateCount(sender.id),
       brand: await senderBrand(repos, sender),
       effective: { delayMs: delay, dailyLimit },
@@ -253,7 +258,7 @@ export function createAccountHandlers({
         defaultBcc: null,
         brandKitId: null,
         delayMs: input.delayMs ?? null,
-        signature: tidySignature(input.signature ?? '') || null,
+        signature: signatureToStored(input.signature),
       });
       return senderInfo(sender.id);
     },
@@ -262,7 +267,7 @@ export function createAccountHandlers({
       await repos.senders.update(id, {
         ...definedOnly(changes),
         // An empty signature is no signature.
-        ...(signature !== undefined && { signature: tidySignature(signature ?? '') || null }),
+        ...(signature !== undefined && { signature: signatureToStored(signature) }),
       });
       return senderInfo(id);
     },

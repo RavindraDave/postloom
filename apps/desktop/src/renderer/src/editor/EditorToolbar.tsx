@@ -13,6 +13,7 @@ import {
   IconListNumbers,
   IconPhoto,
   IconSeparatorHorizontal,
+  IconSignature,
   IconSquareRoundedPlus,
   IconUnderline,
 } from '@tabler/icons-react';
@@ -30,6 +31,7 @@ interface EditorToolbarProps {
   onEditButton: () => void;
   onEditDetail: () => void;
   onPicture: () => void;
+  onSignature: () => void;
   onEditPicture: () => void;
   insertDetail: ReactNode;
 }
@@ -43,6 +45,7 @@ export function EditorToolbar({
   onEditButton,
   onEditDetail,
   onPicture,
+  onSignature,
   onEditPicture,
   insertDetail,
 }: EditorToolbarProps) {
@@ -184,6 +187,14 @@ export function EditorToolbar({
         onClick={onButton}
       >
         {t('editor.button')}
+      </Button>
+      <Button
+        variant="default"
+        size="sm"
+        leftSection={<IconSignature size={18} />}
+        onClick={onSignature}
+      >
+        {t('editor.signature')}
       </Button>
       {insertDetail}
       {state.buttonSelected && (
