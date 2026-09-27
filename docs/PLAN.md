@@ -680,6 +680,7 @@ Estimates assume one developer working with AI assistance; they're rough and get
   - Releases: pushing a version tag (`v1.2.3`) builds the installers on all three systems and attaches them, with `.sha256` checksums, to a draft GitHub Release that is published by hand. The tag must match the app's version.
   - macOS builds for Apple silicon and Intel, signed ad-hoc (D10), checked with `codesign --verify` in CI; the app icon; and [docs/install.md](install.md), which shows how to open the unsigned downloads on each system.
   - Security review before beta ([security/review-1.0.md](security/review-1.0.md)): every threat-model control checked in code and tests, no high or critical findings; the threat model updated for D10; an SBOM (SPDX) attached to each release.
+  - New-version notice: once a day (and on "Check now" in Settings → About) Postloom reads GitHub's release list and, if a newer version is out, shows a quiet note in the sidebar that opens its download page. Pre-releases are offered only to people on one; Store installs are left to the Store; it can be turned off, and it never downloads anything itself.
 
 **Total:** roughly 19-23 weeks to 1.0 stable. Phases 2 and 3 can overlap once Phase 1 is done.
 

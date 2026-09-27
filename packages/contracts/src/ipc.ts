@@ -15,6 +15,13 @@ export const appInfoSchema = z.object({
   platform: z.enum(['win32', 'darwin', 'linux']),
 });
 
+/** A newer version, when there is one (the app only links to its download page). */
+export const updateStatusSchema = z.object({
+  state: z.enum(['upToDate', 'available', 'unknown', 'managedByStore', 'off']),
+  latestVersion: z.string().max(64).nullable(),
+  checkedAt: z.string().nullable(),
+});
+
 /** Upper bound on template source size accepted over IPC (1 MB of text). */
 export const MAX_TEMPLATE_SOURCE_LENGTH = 1_000_000;
 
@@ -43,6 +50,8 @@ export const preferencesSchema = z.object({
   delayMs: z.number().int().min(0).max(600_000),
   /** Most emails a day from any one account, unless the account or provider allows fewer. */
   dailyLimit: z.number().int().min(1).max(100_000),
+  /** Look for a newer version on the download page, once a day (not in Store installs). */
+  checkForUpdates: z.boolean(),
 });
 
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -52,6 +61,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   historyDays: 0,
   delayMs: 2000,
   dailyLimit: 450,
+  checkForUpdates: true,
 };
 
 // ------------------------------------------------------------------ Templates
@@ -489,6 +499,16 @@ export const ipcContract = {
     input: z.undefined(),
     output: z.object({ saved: z.boolean(), fileName: z.string().nullable() }),
   },
+  /**
+   * Is a newer version on the download page? `check: true` looks now; otherwise
+   * the answer from the last daily look. Store installs are updated by the Store.
+   */
+  'app:updateStatus': {
+    input: z.object({ check: z.boolean() }),
+    output: updateStatusSchema,
+  },
+  /** Opens the download page of a newer version in the browser (nothing is downloaded). */
+  'app:openDownloadPage': { input: z.undefined(), output: ok },
   /** Backups of Postloom's data, newest first. */
   'data:backups': { input: z.undefined(), output: z.array(backupSchema) },
   'data:backupNow': { input: z.undefined(), output: backupSchema },
@@ -523,6 +543,7 @@ export type IpcResult<T> = { ok: true; data: T } | { ok: false; error: AppErrorS
 export const IPC_CHANNELS = Object.keys(ipcContract) as IpcChannel[];
 
 export type AppInfo = IpcOutput<'app:getInfo'>;
+export type UpdateStatus = IpcOutput<'app:updateStatus'>;
 export type Preferences = z.infer<typeof preferencesSchema>;
 export type RenderPreviewInput = IpcInput<'templates:renderPreview'>;
 export type RenderPreviewOutput = IpcOutput<'templates:renderPreview'>;
@@ -564,6 +585,8 @@ export interface PostloomApi {
     getInfo: Call<'app:getInfo'>;
     getSecurity: Call<'app:getSecurity'>;
     exportDiagnostics: Call<'app:exportDiagnostics'>;
+    updateStatus: Call<'app:updateStatus'>;
+    openDownloadPage: Call<'app:openDownloadPage'>;
   };
   accounts: {
     list: Call<'accounts:list'>;

@@ -3,7 +3,7 @@
 Living document; reviewed at the end of every phase. Controls are specified in [PLAN.md §10](../PLAN.md#10-security).
 
 ## System overview
-Electron app with a sandboxed renderer (React UI, email designer, sandboxed preview iframe), a preload bridge exposing a minimal typed API, a main process (IPC validation, database, secrets, files, template compilation), and a utility process (sending engine). Data at rest: SQLite in the user's app data folder; secrets encrypted via the OS keychain. Network: outbound SMTP to the user's email provider only (a check for new versions on GitHub is planned; it only links to the download page).
+Electron app with a sandboxed renderer (React UI, email designer, sandboxed preview iframe), a preload bridge exposing a minimal typed API, a main process (IPC validation, database, secrets, files, template compilation), and a utility process (sending engine). Data at rest: SQLite in the user's app data folder; secrets encrypted via the OS keychain. Network: outbound SMTP to the user's email provider, and once a day HTTPS to GitHub's release list to see whether a newer version is out (not in Store installs; can be turned off). The app only links to the download page; it never downloads or runs updates.
 
 ## Trust boundaries
 1. Renderer ↔ main (IPC) - renderer content is treated as untrusted.

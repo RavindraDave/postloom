@@ -61,8 +61,12 @@ No high or critical findings. The review changed these things:
 
 ## Still to do
 
-- The new-version notice must only open the Releases page in the browser, and
-  must not download or run anything. It needs a test when it's built.
+- ~~The new-version notice must only open the Releases page in the browser, and
+  must not download or run anything.~~ Done (Phase 6): it reads GitHub's
+  release list over HTTPS, accepts only release pages under
+  `github.com/RavindraDave/postloom/releases/`, and opens that page in the
+  browser when asked. It can be turned off in Settings and is skipped in Store
+  installs. Tested in `updates.test.ts` and `e2e/updates.spec.ts`.
 - Build provenance (signed attestations of where each download was built),
   once the attestation action is pinned and reviewed.
 - External security review before the public 1.0 release (owner).

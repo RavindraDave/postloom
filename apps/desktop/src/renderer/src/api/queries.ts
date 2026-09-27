@@ -27,6 +27,7 @@ import { unwrap } from './ipc';
 export const queryKeys = {
   preferences: ['preferences'] as const,
   appInfo: ['appInfo'] as const,
+  updateStatus: ['updateStatus'] as const,
   templates: ['templates'] as const,
   template: (id: string) => ['templates', id] as const,
   versions: (id: string) => ['templates', id, 'versions'] as const,
@@ -57,6 +58,30 @@ export function useAppInfo() {
   });
 }
 
+/** Whether a newer version is on the download page (as of the last daily look). */
+export function useUpdateStatus() {
+  return useQuery({
+    queryKey: queryKeys.updateStatus,
+    queryFn: () => unwrap(window.postloom.app.updateStatus({ check: false })),
+    // The main process looks once a day; this only picks up its answer.
+    refetchInterval: 60 * 60 * 1000,
+  });
+}
+
+/** "Check now": looks for a newer version straight away. */
+export function useCheckForUpdate() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => unwrap(window.postloom.app.updateStatus({ check: true })),
+    onSuccess: (status) => client.setQueryData(queryKeys.updateStatus, status),
+  });
+}
+
+/** Opens the newer version's download page in the browser. */
+export function useOpenDownloadPage() {
+  return useMutation({ mutationFn: () => unwrap(window.postloom.app.openDownloadPage()) });
+}
+
 export function useUpdatePreferences() {
   const client = useQueryClient();
   return useMutation({
@@ -66,6 +91,9 @@ export function useUpdatePreferences() {
       // Senders show the pace and limit they get from Settings.
       if (changes.delayMs !== undefined || changes.dailyLimit !== undefined) {
         void client.invalidateQueries({ queryKey: queryKeys.senders });
+      }
+      if (changes.checkForUpdates !== undefined) {
+        void client.invalidateQueries({ queryKey: queryKeys.updateStatus });
       }
     },
   });

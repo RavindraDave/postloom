@@ -6,6 +6,7 @@ import {
   dialog,
   ipcMain,
   nativeImage,
+  net,
   Notification,
   powerMonitor,
   safeStorage,
@@ -26,14 +27,17 @@ import { databaseLocation, openAppDatabase, restorePendingBackup } from './datab
 import { applyHistoryRetention } from './data';
 import { createMainServices } from './handlers';
 import { registerIpcHandlers } from './ipc-router';
+import { loadPreferences } from './preferences';
 import { createSecretVault } from './secrets';
 import { createProcessRunner } from './send-runner';
 import type { SendService } from './sends';
+import { createUpdateChecker, RELEASES_API } from './updates';
 import {
   APP_ORIGIN,
   hardenAllWebContents,
   hardenSession,
   isAppUrl,
+  isSafeExternalUrl,
   secureWebPreferences,
 } from './security';
 
@@ -134,6 +138,24 @@ void app.whenReady().then(async () => {
   await repos.sends.recoverInterrupted();
   const opened = database;
 
+  const updates = createUpdateChecker({
+    currentVersion: app.getVersion(),
+    // The Microsoft Store keeps its installs up to date itself (decision D10).
+    managedByStore: process.windowsStore,
+    isEnabled: async () => (await loadPreferences(repos)).checkForUpdates,
+    fetchJson: async (url) => {
+      const response = await net.fetch(url, {
+        headers: { Accept: 'application/vnd.github+json' },
+      });
+      if (!response.ok) throw new Error(`Release list: HTTP ${String(response.status)}`);
+      return response.json();
+    },
+    openExternal: async (url) => {
+      if (isSafeExternalUrl(url)) await shell.openExternal(url);
+    },
+    releasesApi: testReleasesUrl() ?? RELEASES_API,
+  });
+
   const services = createMainServices({
     appInfo: { name: app.getName(), version: app.getVersion(), platform: platform() },
     repos,
@@ -160,6 +182,7 @@ void app.whenReady().then(async () => {
         events,
       ),
     saveFile,
+    updates,
     dataStore: {
       list: () => listBackups(location.backupDir),
       backupNow: () => basename(opened.backupNow('manual')),
@@ -191,6 +214,10 @@ void app.whenReady().then(async () => {
   });
 
   createMainWindow();
+
+  // Look for a newer version shortly after start-up, then once a day.
+  setTimeout(() => void updates.checkIfDue(), 10_000);
+  setInterval(() => void updates.checkIfDue(), 24 * 60 * 60 * 1000).unref();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
@@ -303,6 +330,11 @@ async function saveFile(suggestedName: string, content: string): Promise<string 
   if (!path) return null;
   await writeFile(path, content, 'utf8');
   return basename(path);
+}
+
+/** End-to-end tests serve their own release list; ignored in packaged builds. */
+function testReleasesUrl(): string | undefined {
+  return app.isPackaged ? undefined : process.env['POSTLOOM_TEST_RELEASES_URL'];
 }
 
 /**

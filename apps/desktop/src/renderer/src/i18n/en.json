@@ -819,5 +819,18 @@
     "diagnosticsSaved": "Saved as {{file}}.",
     "about": "Postloom {{version}}",
     "open": "Help: {{title}}"
+  },
+  "updates": {
+    "available": "Postloom {{version}} is out",
+    "availableHint": "A newer version is ready to download.",
+    "get": "Get it",
+    "getLabel": "Download Postloom {{version}} (opens your browser)",
+    "setting": "Tell me when a new version is out",
+    "settingHint": "Postloom looks at its download page once a day. It never downloads or installs anything by itself.",
+    "checkNow": "Check now",
+    "upToDate": "You have the latest version.",
+    "unknown": "Couldn't check just now. Postloom will try again later.",
+    "store": "The Microsoft Store keeps Postloom up to date.",
+    "off": "Checking for new versions is off."
   }
 }

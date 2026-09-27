@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { NavLink as RouterNavLink, Outlet, useLocation } from 'react-router';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { LoomMark } from '../components/LoomMark';
+import { UpdateNotice } from '../components/UpdateNotice';
 import { useWindowTitle } from '../components/useWindowTitle';
 import classes from './AppLayout.module.css';
 
@@ -97,6 +98,7 @@ export function AppLayout() {
         </div>
         {NAV_ITEMS.map(renderItem)}
         <div className={classes.spacer} />
+        <UpdateNotice />
         {SECONDARY_NAV_ITEMS.map(renderItem)}
       </AppShell.Navbar>
       <AppShell.Main ref={main} id="main-content" tabIndex={-1} className={classes.main}>

@@ -11,6 +11,8 @@ const api: PostloomApi = {
     getInfo: () => invoke('app:getInfo'),
     getSecurity: () => invoke('app:getSecurity'),
     exportDiagnostics: () => invoke('app:exportDiagnostics'),
+    updateStatus: (input) => invoke('app:updateStatus', input),
+    openDownloadPage: () => invoke('app:openDownloadPage'),
   },
   settings: {
     get: () => invoke('settings:get'),

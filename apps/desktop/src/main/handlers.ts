@@ -20,6 +20,7 @@ import { createInProcessRunner, type RunnerEvents, type SendRunner } from './sen
 import { createSendService, type SendService } from './sends';
 import { createTemplateTestHandler } from './template-test';
 import type { IpcHandlers } from './ipc-router';
+import type { UpdateChecker } from './updates';
 
 const WRITE_DOCUMENT_VERSION = 1;
 
@@ -43,7 +44,17 @@ export interface HandlerDeps extends Omit<AccountDeps, 'repos'>, Partial<Omit<As
   saveFile?: (suggestedName: string, csv: string) => Promise<string | null>;
   /** Backups and the data folder (tests fake it). */
   dataStore?: DataStore;
+  /** Looks for a newer version on the download page (none in tests). */
+  updates?: UpdateChecker;
 }
+
+/** Without an update checker (tests), nothing is ever reported. */
+const noUpdates: UpdateChecker = {
+  status: () => Promise.resolve({ state: 'unknown', latestVersion: null, checkedAt: null }),
+  check: () => Promise.resolve({ state: 'unknown', latestVersion: null, checkedAt: null }),
+  checkIfDue: () => Promise.resolve({ state: 'unknown', latestVersion: null, checkedAt: null }),
+  openDownloadPage: () => Promise.resolve(),
+};
 
 /** Without a real data folder (tests), there are no backups to list or take. */
 const noDataStore: DataStore = {
@@ -79,6 +90,7 @@ export function createMainServices({
   notify,
   saveFile,
   dataStore = noDataStore,
+  updates = noUpdates,
   ...accountDeps
 }: HandlerDeps): { handlers: IpcHandlers; sends: SendService } {
   const lists = createListService({ repos, pickSpreadsheetFile, ...(todayUtc && { todayUtc }) });
@@ -135,6 +147,12 @@ export function createMainServices({
         `${JSON.stringify(diagnostics, null, 2)}\n`,
       );
       return { saved: fileName !== null, fileName };
+    },
+
+    'app:updateStatus': ({ check }) => (check ? updates.check() : updates.status()),
+    'app:openDownloadPage': async () => {
+      await updates.openDownloadPage();
+      return { ok: true as const };
     },
 
     'settings:get': loadPreferences,
