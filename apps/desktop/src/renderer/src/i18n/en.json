@@ -326,6 +326,10 @@
     "fromAddressHint": "Usually the same as the email account's address. Some providers reject other addresses.",
     "replyToLabel": "Replies go to (optional)",
     "replyToHint": "Leave empty to get replies at the address above.",
+    "signatureLabel": "Signature",
+    "signatureHint": "Added at the end of every email from this sender. You can leave it off in a template’s Look.",
+    "signaturePlaceholder": "Asha Kapoor\nAccounts Manager, R2DSolutions\n+91 98765 43210",
+    "signatureTooLong": "A signature can have up to {{count}} lines.",
     "accountLabel": "Sends through",
     "save": "Save changes",
     "create": "Add sender",
@@ -629,7 +633,8 @@
     },
     "previewTextLabel": "Preview text",
     "previewTextHint": "The short line inboxes show after the subject. Leave it empty to show the start of the email.",
-    "previewTextInsertDetail": "Insert detail in the inbox line"
+    "previewTextInsertDetail": "Insert detail in the inbox line",
+    "signatureNote": "The sender's signature. Change it in Senders & accounts, or leave it off in Look."
   },
   "checks": {
     "subjectMissing": "Add a subject so people know what the email is about.",
@@ -914,6 +919,7 @@
     "buttonColour": "Button and link colour",
     "background": "Colour around the email",
     "showLogo": "Show the sender's logo",
+    "showSignature": "Add the sender's signature",
     "useSender": "Use the sender's",
     "colourInvalid": "Type a colour like #2F5D8C, or pick one",
     "pickFromScreen": "Pick a colour from the screen"

@@ -53,6 +53,7 @@ export interface SenderProfilesTable {
   default_bcc: string | null;
   brand_kit_id: string | null;
   delay_ms: number | null;
+  signature: string | null;
   created_at: string;
   updated_at: string;
 }

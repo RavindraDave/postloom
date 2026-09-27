@@ -261,8 +261,8 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
   // The chosen sender's brand look shapes the preview and the letter.
   const sender = senders.data?.find((candidate) => candidate.id === senderId);
   const look = useMemo(
-    () => lookFromBrand(sender?.brand, sender?.fromName ?? ''),
-    [sender?.brand, sender?.fromName],
+    () => lookFromBrand(sender?.brand, sender?.fromName ?? '', sender?.signature),
+    [sender?.brand, sender?.fromName, sender?.signature],
   );
   // What the letter looks like: the sender's look with the template's choices on top.
   const letterLook = useMemo(() => withTemplateLook(look, document.attrs), [look, document.attrs]);
@@ -557,6 +557,16 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
               />
             )}
             <EditorContent editor={editor} />
+            {letterLook.signature && (
+              // Shown as it will be sent; it's changed in Senders & accounts.
+              <p
+                className={classes.signature}
+                title={t('editor.signatureNote')}
+                data-testid="letter-signature"
+              >
+                {letterLook.signature}
+              </p>
+            )}
           </div>
         </Stack>
 

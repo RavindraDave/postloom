@@ -235,6 +235,7 @@ export function createRepositories(db: Kysely<Database>, options: RepositoryOpti
             default_bcc: input.defaultBcc,
             brand_kit_id: input.brandKitId,
             delay_ms: input.delayMs,
+            signature: input.signature,
             created_at: at,
             updated_at: at,
           })
@@ -255,6 +256,7 @@ export function createRepositories(db: Kysely<Database>, options: RepositoryOpti
           ...(changes.defaultBcc !== undefined && { default_bcc: changes.defaultBcc }),
           ...(changes.brandKitId !== undefined && { brand_kit_id: changes.brandKitId }),
           ...(changes.delayMs !== undefined && { delay_ms: changes.delayMs }),
+          ...(changes.signature !== undefined && { signature: changes.signature }),
           updated_at: now(),
         })
         .where('id', '=', id)
@@ -663,6 +665,7 @@ function toSender(row: Selectable<SenderProfilesTable>): SenderProfile {
     defaultBcc: row.default_bcc,
     brandKitId: row.brand_kit_id,
     delayMs: row.delay_ms,
+    signature: row.signature,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

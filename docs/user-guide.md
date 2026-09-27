@@ -90,6 +90,11 @@ sent from that sender use it.
 
 ![A brand look with a logo](images/brand-look-light.png)
 
+A sender can also have a **signature**: a few lines like your name, job title
+and phone number. It's added at the end of every email from that sender,
+before any footer. To leave it off one template, turn off **Add the sender's
+signature** in that template's **Look**.
+
 ## 4. Make a template
 
 A template is a reusable email with a subject line. In **Templates**, choose

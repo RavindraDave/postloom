@@ -63,6 +63,10 @@ describe('SendersPage', () => {
     expect(within(dialog).getByText(/doesn't look like an email address/)).toBeInTheDocument();
 
     await userEvent.clear(within(dialog).getByLabelText(/Replies go to/));
+    await userEvent.type(
+      within(dialog).getByRole('textbox', { name: 'Signature' }),
+      'Asha Kapoor{Enter}Club secretary',
+    );
     await userEvent.click(within(dialog).getByRole('button', { name: 'Add sender' }));
     await waitFor(() => {
       expect(api.senders.create).toHaveBeenCalledWith({
@@ -71,6 +75,7 @@ describe('SendersPage', () => {
         fromName: 'Club News',
         fromAddress: 'asha@example.com',
         replyTo: null,
+        signature: 'Asha Kapoor\nClub secretary',
       });
     });
   });

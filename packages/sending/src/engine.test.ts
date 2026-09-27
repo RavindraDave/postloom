@@ -47,6 +47,7 @@ async function makeSend(people: number) {
     defaultBcc: null,
     brandKitId: null,
     delayMs: null,
+    signature: null,
   });
   const template = await repos.templates.create({
     name: 'Reminder',

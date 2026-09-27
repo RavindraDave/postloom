@@ -115,7 +115,7 @@ export function createSendService(deps: SendServiceDeps) {
     const document = readDocument({ id: version.templateId, document: version.document });
     const sender = await repos.senders.get(send.senderProfileId);
     const account = await repos.accounts.get(send.emailAccountId);
-    const look = lookFromBrand(await senderBrand(repos, sender), sender.fromName);
+    const look = lookFromBrand(await senderBrand(repos, sender), sender.fromName, sender.signature);
     const { html } = await compileMjml(writeDocumentToMjml(document, look, 'liquid'));
     const assetIds = emailAssetIds(document, look);
     return {

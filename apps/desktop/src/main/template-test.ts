@@ -31,7 +31,7 @@ export function createTemplateTestHandler({
       const recipient = to ?? account.username;
 
       const brand = await senderBrand(repos, sender);
-      const look = lookFromBrand(brand, sender.fromName);
+      const look = lookFromBrand(brand, sender.fromName, sender.signature);
       const { html, text } = await compileMjml(
         writeDocumentToMjml(document, look, values ? { values } : 'placeholder'),
       );

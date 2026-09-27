@@ -329,8 +329,8 @@ function PersonPreview({
   const rowNo = rows[index] ?? rows[0] ?? 1;
   const row = useListRow({ ...choices, rowNo });
   const look = useMemo(
-    () => lookFromBrand(sender?.brand, sender?.fromName ?? ''),
-    [sender?.brand, sender?.fromName],
+    () => lookFromBrand(sender?.brand, sender?.fromName ?? '', sender?.signature),
+    [sender?.brand, sender?.fromName, sender?.signature],
   );
   const values = row.data?.values ?? null;
   const preview = useEmailPreview(values ? template.document : undefined, look, values);
