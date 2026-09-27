@@ -163,10 +163,19 @@ const simpleBlockSchema = z.union([
   spacerSchema,
 ]);
 
+/** A colour as #RRGGBB: the only form that can't break out of an email's style. */
+const hexColourSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+
 const cellAttrsSchema = z
   .object({
-    colspan: z.number().int().min(1).max(6).optional(),
+    colspan: z.number().int().min(1).max(8).optional(),
     rowspan: z.number().int().min(1).max(50).optional(),
+    /** Column widths in editor pixels, one per column the cell spans (dragged in the editor). */
+    colwidth: z.array(z.number().int().min(20).max(2000)).min(1).max(8).optional(),
+    /** Where the words sit in a tall cell. */
+    valign: z.enum(['top', 'middle', 'bottom']).optional(),
+    /** Cell background colour. */
+    background: hexColourSchema.optional(),
   })
   .optional();
 
@@ -176,12 +185,31 @@ const cellSchema = z.object({
   content: z.array(paragraphSchema).min(1).max(5),
 });
 
-/** A simple table (Design mode): rows of text, an optional header row, optional stripes. */
+/** How a table's lines are drawn: none, between rows (the default), or around every cell. */
+export const tableBordersSchema = z.enum(['none', 'rows', 'grid']);
+/** Room inside each cell. */
+export const tableSpacingSchema = z.enum(['compact', 'normal', 'roomy']);
+
+/**
+ * A table (Design mode): rows of text, an optional header row, and how it
+ * looks. Every look setting is optional; left out, it looks as it always has.
+ */
 const tableSchema = z.object({
   type: z.literal('table'),
-  attrs: z.object({ striped: z.boolean().optional() }).optional(),
+  attrs: z
+    .object({
+      striped: z.boolean().optional(),
+      borders: tableBordersSchema.optional(),
+      borderColor: hexColourSchema.optional(),
+      /** Header row background; its text turns white on dark colours. */
+      headerColor: hexColourSchema.optional(),
+      spacing: tableSpacingSchema.optional(),
+      /** True: only as wide as its contents. Otherwise it fills the width. */
+      fit: z.boolean().optional(),
+    })
+    .optional(),
   content: z
-    .array(z.object({ type: z.literal('tableRow'), content: z.array(cellSchema).min(1).max(6) }))
+    .array(z.object({ type: z.literal('tableRow'), content: z.array(cellSchema).min(1).max(8) }))
     .min(1)
     .max(100),
 });
@@ -249,15 +277,9 @@ export const templateLookSchema = z.object({
   fontFamily: z.enum(EMAIL_FONT_STACKS).optional(),
   textSize: textSizeSchema.optional(),
   /** Button and accent colour, as #RRGGBB. */
-  primaryColor: z
-    .string()
-    .regex(/^#[0-9a-fA-F]{6}$/)
-    .optional(),
+  primaryColor: hexColourSchema.optional(),
   /** Colour around a centred card, as #RRGGBB. */
-  backgroundColor: z
-    .string()
-    .regex(/^#[0-9a-fA-F]{6}$/)
-    .optional(),
+  backgroundColor: hexColourSchema.optional(),
   /** False hides the sender's logo in this template. */
   showLogo: z.boolean().optional(),
   /** How each personal detail is shown (dates, amounts), in the subject and the letter. */
@@ -278,6 +300,8 @@ export type InlineNode = z.infer<typeof inlineNodeSchema>;
 export type BlockNode = z.infer<typeof blockNodeSchema>;
 export type SimpleBlockNode = z.infer<typeof simpleBlockSchema>;
 export type TableNode = z.infer<typeof tableSchema>;
+export type TableBorders = z.infer<typeof tableBordersSchema>;
+export type TableSpacing = z.infer<typeof tableSpacingSchema>;
 export type ColumnsNode = z.infer<typeof columnsSchema>;
 export type ConditionalNode = z.infer<typeof conditionalSchema>;
 export type ConditionOp = z.infer<typeof conditionOpSchema>;

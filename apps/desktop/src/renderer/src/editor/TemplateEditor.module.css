@@ -279,6 +279,10 @@
   user-select: none;
 }
 
+.prose :global(.tableWrapper) {
+  overflow-x: auto;
+}
+
 .prose table {
   width: 100%;
   border-collapse: collapse;
@@ -286,21 +290,66 @@
   font-size: 15px;
 }
 
+.prose table[data-fit='true'] {
+  width: auto;
+}
+
+/* Faint guides show every cell while editing; the real lines are drawn on top. */
 .prose th,
 .prose td {
-  padding: 6px 10px;
-  border: 1px solid #e3e3e3;
+  position: relative;
+  padding: 8px 10px;
+  border: 1px dashed #e6e6e6;
   text-align: left;
   vertical-align: top;
 }
 
+.prose table[data-spacing='compact'] :is(th, td) {
+  padding: 4px 8px;
+}
+
+.prose table[data-spacing='roomy'] :is(th, td) {
+  padding: 12px 14px;
+}
+
+/* Lines between rows (the default). */
+.prose table:not([data-borders]) td,
+.prose table[data-borders='rows'] td {
+  border-bottom: 1px solid var(--pl-table-line, #eeeeee);
+}
+
+.prose table:not([data-borders]) th,
+.prose table[data-borders='rows'] th {
+  border-bottom: 2px solid var(--pl-table-line, #dddddd);
+}
+
+.prose table[data-borders='grid'] :is(th, td) {
+  border: 1px solid var(--pl-table-line, #dddddd);
+}
+
 .prose th {
   font-weight: 700;
-  background: #f6f7f9;
+  background: var(--pl-table-header, transparent);
+  color: var(--pl-table-header-text, inherit);
 }
 
 .prose table[data-striped='true'] tr:nth-child(even) td {
   background: #f6f7f9;
+}
+
+/* Dragging a column edge to resize it. */
+.prose :global(.column-resize-handle) {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  bottom: 0;
+  width: 4px;
+  background: var(--mantine-color-loom-5);
+  pointer-events: none;
+}
+
+.prose:global(.resize-cursor) {
+  cursor: col-resize;
 }
 
 .prose th p,

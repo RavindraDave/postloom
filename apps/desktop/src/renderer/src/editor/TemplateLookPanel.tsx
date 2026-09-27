@@ -1,25 +1,13 @@
-import {
-  Button,
-  ColorInput,
-  Group,
-  Paper,
-  SegmentedControl,
-  Select,
-  Stack,
-  Switch,
-  Text,
-  Title,
-} from '@mantine/core';
+import { Paper, SegmentedControl, Select, Stack, Switch, Text, Title } from '@mantine/core';
 import {
   EMAIL_FONTS,
   type BrandLook,
   type DocumentLayout,
   type TemplateLook,
 } from '@postloom/editor';
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ColourField } from '../components/ColourField';
 
-const HEX_COLOUR = /^#[0-9a-fA-F]{6}$/;
 const SWATCHES = ['#0E6B66', '#2F5D8C', '#7A3E9D', '#B42318', '#B54708', '#1F6B45', '#222222'];
 const BACKGROUND_SWATCHES = ['#F4F5F7', '#FFFFFF', '#EEF3F8', '#F3EFE7', '#EAF4F0', '#222222'];
 /** Select value for "use the sender's font". */
@@ -119,10 +107,11 @@ export function TemplateLookPanel({
           />
         </div>
 
-        <ColourChoice
+        <ColourField
           label={t('look.buttonColour')}
           value={look.primaryColor}
-          senderValue={senderLook.primaryColor}
+          placeholder={t('look.sameAsSender', { value: senderLook.primaryColor })}
+          resetLabel={t('look.useSender')}
           swatches={SWATCHES}
           onChange={(primaryColor) => {
             update({ primaryColor });
@@ -130,10 +119,11 @@ export function TemplateLookPanel({
         />
 
         {layout === 'card' && (
-          <ColourChoice
+          <ColourField
             label={t('look.background')}
             value={look.backgroundColor}
-            senderValue={senderLook.backgroundColor}
+            placeholder={t('look.sameAsSender', { value: senderLook.backgroundColor })}
+            resetLabel={t('look.useSender')}
             swatches={BACKGROUND_SWATCHES}
             onChange={(backgroundColor) => {
               update({ backgroundColor });
@@ -153,64 +143,5 @@ export function TemplateLookPanel({
         )}
       </Stack>
     </Paper>
-  );
-}
-
-/** A colour that follows the sender until the template picks its own. */
-function ColourChoice({
-  label,
-  value,
-  senderValue,
-  swatches,
-  onChange,
-}: {
-  label: string;
-  value: string | undefined;
-  senderValue: string;
-  swatches: string[];
-  onChange: (next: string | undefined) => void;
-}) {
-  const { t } = useTranslation();
-  // Typing goes through a draft, so half-typed colours are never saved.
-  const [draft, setDraft] = useState(value ?? '');
-  const [shown, setShown] = useState(value);
-  if (shown !== value) {
-    // The saved colour changed elsewhere (e.g. "Use the sender's"): show it.
-    setShown(value);
-    setDraft(value ?? '');
-  }
-
-  return (
-    <div>
-      <ColorInput
-        size="xs"
-        label={label}
-        format="hex"
-        swatches={swatches}
-        eyeDropperButtonProps={{ 'aria-label': t('look.pickFromScreen') }}
-        placeholder={t('look.sameAsSender', { value: senderValue })}
-        value={draft}
-        onChange={(next) => {
-          setDraft(next);
-          if (HEX_COLOUR.test(next)) onChange(next.toUpperCase());
-        }}
-        error={draft !== '' && !HEX_COLOUR.test(draft) ? t('look.colourInvalid') : undefined}
-      />
-      {value && (
-        <Group justify="flex-end">
-          <Button
-            variant="subtle"
-            size="compact-xs"
-            color="gray"
-            onClick={() => {
-              setDraft('');
-              onChange(undefined);
-            }}
-          >
-            {t('look.useSender')}
-          </Button>
-        </Group>
-      )}
-    </div>
   );
 }

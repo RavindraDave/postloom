@@ -138,6 +138,29 @@ can appear only to people who have a Discount in your list.
 
 ![Design mode, with columns and a part shown only to some people](images/design-mode-light.png)
 
+### Tables
+
+Add a table with **Add block → Table**, or copy cells in Excel or Google Sheets
+and paste them into the letter. If you paste a table in Write mode, Postloom
+switches to Design mode for you.
+
+Click in the table for its tools: add or remove rows and columns, a **Header
+row**, **Stripes**, and **Format table**, where you choose:
+
+- **Lines:** none, between rows, or a full grid, and their colour;
+- **Header row colour** (the header text turns white on dark colours);
+- **Room in each cell**, and whether the table fills the width or fits its
+  contents;
+- for the selected cells, a **cell colour** and whether the words sit at the
+  top, middle or bottom.
+
+To change a column's width, drag its edge. **Make all columns the same width**
+undoes that. To line up words, for example amounts on the right, select the
+cells (click one, then Shift-click another) and use the alignment buttons in
+the toolbar.
+
+![Formatting a pasted table](images/table-format-light.png)
+
 **Preview** shows the email as people will see it, on a computer or a phone.
 **Send me a test** sends a copy to you, filled in with example details.
 Always send yourself a test before a real send.
