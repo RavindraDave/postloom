@@ -409,7 +409,13 @@ function PersonPreview({
               </>
             )}
             <dt>{t('send.template.subject')}</dt>
-            <dd>{renderSubject(template.subject, row.data.values) || template.name}</dd>
+            <dd>
+              {renderSubject(
+                template.subject,
+                row.data.values,
+                template.document.attrs?.detailFormats,
+              ) || template.name}
+            </dd>
             {row.data.attachments.length > 0 && (
               <>
                 <dt>{t('send.check.attachmentsTitle')}</dt>

@@ -43,6 +43,37 @@ describe('personalise', () => {
     expect(empty.subject).toBe('Hi');
   });
 
+  it('shows dates and amounts in the template’s formats, in the subject and the letter', async () => {
+    const invoice: WriteDocument = {
+      type: 'doc',
+      content: [
+        {
+          type: 'paragraph',
+          content: [
+            { type: 'field', attrs: { name: 'Amount' } },
+            { type: 'text', text: ' is due on ' },
+            { type: 'field', attrs: { name: 'Due Date' } },
+          ],
+        },
+      ],
+    };
+    const { html } = await compileMjml(writeDocumentToMjml(invoice));
+    const personalise = createPersonaliser({
+      html,
+      subject: 'Due {{Due Date}}',
+      fallbackSubject: 'Invoice',
+      formats: { Amount: 'money-inr-0', 'Due Date': 'date-long' },
+    });
+
+    const email = await personalise({ Amount: '12400', 'Due Date': '2026-10-01' });
+    expect(email.subject).toBe('Due 1 October 2026');
+    expect(email.html).toContain('₹12,400 is due on 1 October 2026');
+    // A value that isn't a date stays as it is.
+    expect((await personalise({ Amount: '', 'Due Date': 'on receipt' })).subject).toBe(
+      'Due on receipt',
+    );
+  });
+
   it('uses the fallback subject when the subject comes out empty', async () => {
     const personalise = createPersonaliser({
       html: '<p></p>',

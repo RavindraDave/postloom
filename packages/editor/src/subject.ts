@@ -1,4 +1,5 @@
 import { fieldNameSchema, walkBlocks, walkInline, type WriteDocument } from './document';
+import { formatValues, type DetailFormat } from './formats';
 
 /**
  * Subjects are stored as plain text where a personal detail is written
@@ -53,12 +54,17 @@ export function subjectFields(subject: string): string[] {
  * The subject for one email. With no values (tests and previews) details
  * show as "[First Name]". Values never add line breaks to the header.
  */
-export function renderSubject(subject: string, values?: Record<string, string>): string {
+export function renderSubject(
+  subject: string,
+  values?: Record<string, string>,
+  formats?: Partial<Record<string, DetailFormat>>,
+): string {
+  const shown = values && formatValues(values, formats);
   return parseSubject(subject)
     .map((part) => {
       if (part.type === 'text') return part.text;
-      if (!values) return `[${part.name}]`;
-      return (values[part.name] ?? '').replace(/[\r\n]+/g, ' ');
+      if (!shown) return `[${part.name}]`;
+      return (shown[part.name] ?? '').replace(/[\r\n]+/g, ' ');
     })
     .join('')
     .trim();

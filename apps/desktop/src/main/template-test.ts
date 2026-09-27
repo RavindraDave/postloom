@@ -40,7 +40,7 @@ export function createTemplateTestHandler({
         from: { name: sender.fromName, address: sender.fromAddress },
         replyTo: sender.replyTo ?? undefined,
         to: [recipient],
-        subject: `${TEST_SUBJECT_PREFIX}${renderSubject(template.subject, values) || template.name}`,
+        subject: `${TEST_SUBJECT_PREFIX}${renderSubject(template.subject, values, document.attrs?.detailFormats) || template.name}`,
         html,
         text,
         inlineImages: await inlineImagesFor(repos, assetIds),
