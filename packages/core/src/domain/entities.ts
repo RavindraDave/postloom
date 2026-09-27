@@ -42,6 +42,8 @@ export interface SenderProfile {
   defaultBcc: string | null;
   brandKitId: Id | null;
   delayMs: number | null;
+  /** Plain text added at the end of each email from this sender. */
+  signature: string | null;
   createdAt: IsoDateTime;
   updatedAt: IsoDateTime;
 }

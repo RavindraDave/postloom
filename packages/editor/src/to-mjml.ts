@@ -21,6 +21,8 @@ export interface BrandLook {
   backgroundColor: string;
   /** Shown at the top of every email from this sender. */
   logo?: { assetId: string; width: number; alt: string } | null | undefined;
+  /** Plain text added at the end of every email from this sender. */
+  signature?: string | null | undefined;
 }
 
 /** A sender's saved brand look (see the contracts' `brandSchema`). */
@@ -31,10 +33,15 @@ export interface SavedBrand {
 }
 
 /** How emails from a sender look; the plain look when it has no brand. */
-export function lookFromBrand(brand: SavedBrand | null | undefined, logoAlt: string): BrandLook {
-  if (!brand) return DEFAULT_BRAND;
+export function lookFromBrand(
+  brand: SavedBrand | null | undefined,
+  logoAlt: string,
+  signature?: string | null,
+): BrandLook {
+  if (!brand) return signature ? { ...DEFAULT_BRAND, signature } : DEFAULT_BRAND;
   return {
     ...DEFAULT_BRAND,
+    signature: signature ?? null,
     primaryColor: brand.primaryColor,
     fontFamily: brand.fontFamily,
     logo: brand.logo
@@ -94,12 +101,13 @@ export type FieldMode = 'liquid' | 'placeholder' | { values: Record<string, stri
  * survive.
  */
 export function writeDocumentToMjml(
-  doc: WriteDocument,
+  own: WriteDocument,
   brand: BrandLook = DEFAULT_BRAND,
   fieldMode: FieldMode = 'liquid',
   imageSrc: ImageSource = inlineImageSource,
 ): string {
-  const look = sanitiseBrand(withTemplateLook(brand, doc.attrs));
+  const look = sanitiseBrand(withTemplateLook(brand, own.attrs));
+  const doc: WriteDocument = { ...own, content: withSignature(own.content, look.signature) };
   const textSize = TEXT_SIZES[doc.attrs?.textSize ?? 'normal'];
   // Example or test values are shown in the template's formats; "show only if"
   // parts decide on the values as they are in the list.
@@ -202,7 +210,27 @@ export function withTemplateLook(brand: BrandLook, own: TemplateLook | undefined
     ...(own.primaryColor && { primaryColor: own.primaryColor }),
     ...(own.backgroundColor && { backgroundColor: own.backgroundColor }),
     ...(own.showLogo === false && { logo: null }),
+    ...(own.showSignature === false && { signature: null }),
   };
+}
+
+/**
+ * The sender's signature as a paragraph, one line per line, placed after the
+ * letter and before any footer.
+ */
+function withSignature(content: BlockNode[], signature: string | null | undefined): BlockNode[] {
+  const lines = (signature ?? '')
+    .split(/\r?\n/)
+    .map((line) => line.trimEnd())
+    .slice(0, 8);
+  if (!lines.some((line) => line.trim())) return content;
+  const inline: InlineNode[] = lines.flatMap((line, index) => [
+    ...(index > 0 ? [{ type: 'hardBreak' as const }] : []),
+    ...(line ? [{ type: 'text' as const, text: line.slice(0, 200) }] : []),
+  ]);
+  let at = content.length;
+  while (at > 0 && content[at - 1]?.type === 'footer') at -= 1;
+  return [...content.slice(0, at), { type: 'paragraph', content: inline }, ...content.slice(at)];
 }
 
 type RenderableBlock = Exclude<BlockNode, ColumnsNode>;
@@ -615,6 +643,8 @@ function sanitiseBrand(brand: BrandLook): BrandLook {
     fontFamily: SAFE_FONT_STACK.test(brand.fontFamily)
       ? brand.fontFamily
       : DEFAULT_BRAND.fontFamily,
+    // Typed text: escaped like the letter's own words when rendered.
+    signature: brand.signature ?? null,
   };
 }
 

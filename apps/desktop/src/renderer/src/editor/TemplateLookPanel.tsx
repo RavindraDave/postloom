@@ -141,6 +141,16 @@ export function TemplateLookPanel({
             }}
           />
         )}
+        {senderLook.signature && (
+          <Switch
+            size="sm"
+            label={t('look.showSignature')}
+            checked={look.showSignature !== false}
+            onChange={(event) => {
+              update({ showSignature: event.currentTarget.checked ? undefined : false });
+            }}
+          />
+        )}
       </Stack>
     </Paper>
   );

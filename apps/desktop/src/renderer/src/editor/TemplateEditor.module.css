@@ -395,3 +395,15 @@
   overflow-y: auto;
   padding-right: 4px;
 }
+
+/* The sender's signature under the letter: part of the email, edited elsewhere. */
+.signature {
+  margin: 0;
+  padding: 0;
+  white-space: pre-line;
+  color: #444444;
+  font-family: var(--pl-letter-font);
+  font-size: var(--pl-letter-size);
+  line-height: 1.6;
+  cursor: default;
+}

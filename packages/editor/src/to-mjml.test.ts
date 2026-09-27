@@ -9,7 +9,13 @@ import {
   type WriteDocument,
 } from './document';
 import { paymentReminder } from './fixtures';
-import { conditionHolds, DEFAULT_BRAND, safeHref, writeDocumentToMjml } from './to-mjml';
+import {
+  conditionHolds,
+  DEFAULT_BRAND,
+  lookFromBrand,
+  safeHref,
+  writeDocumentToMjml,
+} from './to-mjml';
 
 // Mirrors the personalisation settings planned for the sending engine:
 // every output is HTML-escaped and unknown filters are errors.
@@ -833,5 +839,39 @@ describe('text colour, highlight and preview text', () => {
       }).success;
     expect(coloured('#0E6B66')).toBe(true);
     expect(coloured('red;background:url(x)')).toBe(false);
+  });
+});
+
+describe('sender signatures', () => {
+  const doc = writeDocumentSchema.parse({
+    type: 'doc',
+    content: [
+      { type: 'paragraph', content: [{ type: 'text', text: 'Thanks for your order.' }] },
+      { type: 'footer', content: [{ type: 'text', text: 'Unsubscribe any time' }] },
+    ],
+  });
+  const look = lookFromBrand(null, '', 'Asha Kapoor\nAccounts, R2D <Solutions>\n{{ row.secret }}');
+
+  it('adds the signature after the letter and before the footer', () => {
+    const mjml = writeDocumentToMjml(doc, look);
+    const signature = mjml.indexOf('Asha Kapoor<br />Accounts, R2D &lt;Solutions&gt;');
+    expect(signature).toBeGreaterThan(mjml.indexOf('Thanks for your order.'));
+    expect(signature).toBeLessThan(mjml.indexOf('Unsubscribe any time'));
+    expect(writeDocumentToMjml(asCard(doc), look)).toContain('Asha Kapoor<br />');
+  });
+
+  it('never turns the signature into personalisation', async () => {
+    const { html } = await compileMjml(writeDocumentToMjml(doc, look));
+    const sent = (await liquid.parseAndRender(html, { row: { secret: 'leaked' } })) as string;
+    expect(sent).not.toContain('leaked');
+  });
+
+  it('can be left off a template', () => {
+    const mjml = writeDocumentToMjml({ ...doc, attrs: { showSignature: false } }, look);
+    expect(mjml).not.toContain('Asha Kapoor');
+  });
+
+  it('adds nothing when the sender has no signature', () => {
+    expect(writeDocumentToMjml(doc, lookFromBrand(null, '', ''))).toBe(writeDocumentToMjml(doc));
   });
 });

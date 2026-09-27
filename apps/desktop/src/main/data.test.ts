@@ -37,6 +37,7 @@ async function sendOn(iso: string, status: 'finished' | 'stopped' | 'paused') {
     defaultBcc: null,
     brandKitId: null,
     delayMs: null,
+    signature: null,
   });
   const template = await repos.templates.create({
     name: 'T',

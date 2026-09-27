@@ -292,6 +292,8 @@ export const templateLookSchema = z.object({
   backgroundColor: hexColourSchema.optional(),
   /** False hides the sender's logo in this template. */
   showLogo: z.boolean().optional(),
+  /** False leaves the sender's signature off this template's emails. */
+  showSignature: z.boolean().optional(),
   /**
    * The short line inboxes show after the subject ("preheader"). Stored like
    * the subject: plain text, with a personal detail written `{{First Name}}`.

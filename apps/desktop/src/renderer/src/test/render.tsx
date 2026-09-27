@@ -56,6 +56,7 @@ export const sampleSender: SenderInfo = {
   fromAddress: 'asha@example.com',
   replyTo: null,
   delayMs: null,
+  signature: null,
   templateCount: 0,
   brand: null,
   effective: {

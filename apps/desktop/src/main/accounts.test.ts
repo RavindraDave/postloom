@@ -215,6 +215,21 @@ describe('senders', () => {
     expect(own.templateCount).toBe(0);
   });
 
+  it('keeps a sender signature, tidied, and forgets an emptied one', async () => {
+    const account = await handlers['accounts:create'](gmail);
+    const sender = await handlers['senders:create']({
+      name: 'Accounts',
+      emailAccountId: account.id,
+      fromName: 'Asha Kapoor',
+      fromAddress: 'asha@example.com',
+      signature: 'Asha Kapoor  \r\nAccounts\n',
+    });
+    expect(sender.signature).toBe('Asha Kapoor\nAccounts');
+
+    const cleared = await handlers['senders:update']({ id: sender.id, signature: '' });
+    expect(cleared.signature).toBeNull();
+  });
+
   it('uses the pace and limit from Settings when nothing closer sets them', async () => {
     await repos.settings.set('preferences', { delayMs: 4000, dailyLimit: 120 });
     const account = await handlers['accounts:create'](gmail);

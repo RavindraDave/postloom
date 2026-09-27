@@ -37,6 +37,7 @@ async function makeSender(accountId: string) {
     defaultBcc: null,
     brandKitId: null,
     delayMs: null,
+    signature: null,
   });
 }
 
