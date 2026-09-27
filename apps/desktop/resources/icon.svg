@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- The Postloom mark (LoomMark.tsx) on the brand colour, in the macOS icon grid:
+       an 824px rounded square centred on a 1024px canvas. -->
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="#0E6B66"/>
+  <g transform="translate(212 212) scale(25)" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round">
+    <path d="M4 7h16"/>
+    <path d="M4 12h16" stroke-opacity="0.55"/>
+    <path d="M4 17h16"/>
+    <path d="M8 4v16" stroke-opacity="0.55"/>
+    <path d="M16 4v16"/>
+  </g>
+</svg>

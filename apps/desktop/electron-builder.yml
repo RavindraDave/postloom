@@ -1,6 +1,7 @@
 # Packaging for Windows, macOS and Linux (PLAN.md §14.2).
-# Code signing and notarization are added in Phase 6 (decision D4); until then
-# builds are unsigned and intended for testing only.
+# Signing follows decision D10: Windows is signed by the Microsoft Store; the
+# GitHub builds are unsigned. macOS gets only a basic built-in ("ad-hoc")
+# signature, which Apple Silicon Macs need to open an app at all.
 appId: com.ravindradave.postloom
 productName: Postloom
 executableName: postloom
@@ -39,10 +40,15 @@ nsis:
 
 mac:
   target:
-    - dmg
-    - zip
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
   category: public.app-category.productivity
-  hardenedRuntime: true
+  # "-" signs ad-hoc: no Apple Developer ID (D10). The hardened runtime only
+  # matters for notarization, which needs a Developer ID, so it stays off.
+  identity: '-'
+  hardenedRuntime: false
   artifactName: ${productName}-${version}-mac-${arch}.${ext}
 
 linux:

@@ -138,7 +138,7 @@ export default tseslint.config(
   },
   {
     // Plain Node build/CI scripts: linted without type information.
-    files: ['scripts/**/*.mjs'],
+    files: ['scripts/**/*.mjs', 'apps/*/scripts/**/*.mjs'],
     ...tseslint.configs.disableTypeChecked,
     languageOptions: {
       ...tseslint.configs.disableTypeChecked.languageOptions,
