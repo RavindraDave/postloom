@@ -42,6 +42,11 @@ test('capture screens for review', async ({ electronApp, page }) => {
     await page.waitForTimeout(300);
     await page.screenshot({ path: `${out}/settings-${scheme}.png` });
   }
+
+  await page.emulateMedia({ colorScheme: 'light' });
+  await page.getByRole('heading', { name: 'About Postloom' }).scrollIntoViewIfNeeded();
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${out}/settings-about-light.png` });
 });
 
 test('capture setup and senders screens', async ({ userDataDir }) => {
@@ -104,6 +109,8 @@ test('capture setup and senders screens', async ({ userDataDir }) => {
   await brand.scrollIntoViewIfNeeded();
   await page.waitForTimeout(300);
   await page.screenshot({ path: `${out}/brand-look-light.png` });
+  // Let the "saved" message go, so it isn't in the next screenshots.
+  await page.getByText('Brand look saved').waitFor({ state: 'hidden', timeout: 10_000 });
 
   // The Write-mode editor.
   await page.emulateMedia({ colorScheme: 'light' });
