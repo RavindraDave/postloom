@@ -22,6 +22,40 @@ function fakeStorage(
 }
 
 describe('secret vault', () => {
+  it('on a Mac, touches the Keychain only to save or use a password', () => {
+    let keychainReads = 0;
+    const storage = fakeStorage();
+    const vault = createSecretVault(
+      {
+        ...storage,
+        isEncryptionAvailable: () => {
+          keychainReads += 1;
+          return storage.isEncryptionAvailable();
+        },
+      },
+      'darwin',
+    );
+
+    expect(vault.protection()).toBe('keychain');
+    expect(keychainReads).toBe(0);
+    expect(vault.decrypt(vault.encrypt('secret'))).toBe('secret');
+  });
+
+  it('on a Mac, says so plainly when the Keychain is refused', () => {
+    const vault = createSecretVault(
+      {
+        ...fakeStorage(),
+        encryptString: () => {
+          throw new Error('User canceled');
+        },
+      },
+      'darwin',
+    );
+    expect(() => vault.encrypt('x')).toThrow(
+      expect.objectContaining({ messageKey: 'errors.secretsUnavailable' }),
+    );
+  });
+
   it('encrypts and decrypts through the OS keychain', () => {
     const vault = createSecretVault(fakeStorage(), 'darwin');
     const cipher = vault.encrypt('abcd efgh ijkl mnop');

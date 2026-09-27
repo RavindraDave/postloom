@@ -35,6 +35,14 @@ from then on.
 4. Click **Open Anyway** once more. Postloom opens, and your Mac remembers the
    choice.
 
+**"Postloom wants to use your confidential information stored in 'Postloom
+Safe Storage'".** The first time Postloom saves or uses your email password,
+your Mac asks for your Mac login password. Postloom keeps your email password
+encrypted, and the key is kept in your Mac's Keychain. Enter your Mac password
+and click **Always Allow** ("Allow" only lasts until Postloom closes). Your Mac
+asks once more after each Postloom update, because the downloaded app isn't
+signed with an Apple developer certificate (see above).
+
 If there is no message about Postloom in Privacy & Security, try opening
 Postloom again: the **Open Anyway** button only appears for about an hour after
 your Mac blocks it, and then goes away.

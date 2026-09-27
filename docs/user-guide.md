@@ -64,7 +64,10 @@ Postloom, not your normal one, and you can remove it at any time.
 - **Something else:** you need your outgoing mail server (SMTP) name and port
   from your provider.
 
-Postloom checks that the password works before saving it. It only connects
+Postloom checks that the password works before saving it. On a Mac, the first time
+it saves or uses a password your Mac asks to let Postloom use "Postloom Safe
+Storage": enter your Mac password and choose **Always Allow**. It asks once
+more after each update. It only connects
 over an encrypted connection.
 
 Then Postloom asks for the name people see, and offers to send you a test email.

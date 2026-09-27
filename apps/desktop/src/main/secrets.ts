@@ -34,18 +34,33 @@ export function createSecretVault(
   // built-in key. Allow it, and report the protection as weak so the app warns.
   if (noKeyring) storage.setUsePlainTextEncryption?.(true);
 
+  // On macOS, asking whether encryption is available already reads the key
+  // from the Keychain, and the Keychain asks the person to allow it. Every Mac
+  // has a Keychain, so only reach for it when a password is actually saved or
+  // used (and say so plainly if it's refused).
+  const askOnlyWhenNeeded = platform === 'darwin';
+
   const protection = (): SecretProtection => {
+    if (askOnlyWhenNeeded) return 'keychain';
     if (!storage.isEncryptionAvailable()) return 'unavailable';
     return noKeyring ? 'weak' : 'keychain';
   };
 
+  const unavailable = (cause?: unknown) =>
+    new AppError(
+      { code: 'UNEXPECTED', messageKey: 'errors.secretsUnavailable' },
+      cause === undefined ? undefined : { cause },
+    );
+
   return {
     protection,
     encrypt(plainText) {
-      if (protection() === 'unavailable') {
-        throw new AppError({ code: 'UNEXPECTED', messageKey: 'errors.secretsUnavailable' });
+      if (!askOnlyWhenNeeded && protection() === 'unavailable') throw unavailable();
+      try {
+        return new Uint8Array(storage.encryptString(plainText));
+      } catch (error) {
+        throw unavailable(error);
       }
-      return new Uint8Array(storage.encryptString(plainText));
     },
     decrypt(cipherText) {
       try {
