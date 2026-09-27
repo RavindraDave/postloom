@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, firstPage, launchApp, test } from './fixtures';
+import { appVersion, expect, firstPage, launchApp, test } from './fixtures';
 
 async function createTemplate(page: Page, name: string) {
   await page.getByRole('link', { name: 'Templates' }).click();
@@ -19,7 +19,7 @@ test('opens on the Home screen with the getting-started checklist', async ({ pag
   await expect(page).toHaveTitle('Postloom');
   await expect(page.getByRole('heading', { name: 'Welcome to Postloom' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Connect your email' })).toBeVisible();
-  await expect(page.getByTestId('app-version')).toContainText('Version 0.1.0');
+  await expect(page.getByTestId('app-version')).toContainText(`Version ${appVersion}`);
 });
 
 test('navigates between sections from the sidebar', async ({ page }) => {
