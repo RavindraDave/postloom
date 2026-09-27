@@ -40,6 +40,7 @@ export const sampleAccount: EmailAccountInfo = {
   port: 587,
   security: 'starttls',
   username: 'asha@example.com',
+  auth: 'password',
   hasPassword: true,
   dailyLimit: null,
   delayMs: null,
@@ -121,6 +122,15 @@ export function mockApi(overrides: DeepPartial<PostloomApi> = {}): PostloomApi {
       update: vi.fn(() => ok(sampleAccount)),
       delete: vi.fn(() => ok({ ok: true as const })),
       testConnection: vi.fn(() => ok({ ok: true as const })),
+      signInProviders: vi.fn(() => ok(['google', 'microsoft'] as ('google' | 'microsoft')[])),
+      signIn: vi.fn((input: { provider: 'google' | 'microsoft' }) =>
+        ok({
+          ...sampleAccount,
+          auth: input.provider,
+          provider: input.provider === 'google' ? ('gmail' as const) : ('outlook' as const),
+        }),
+      ),
+      signInCancel: vi.fn(() => ok({ ok: true as const })),
       test: vi.fn(() => ok(sampleAccount)),
       sendTestEmail: vi.fn(() => ok({ sentTo: sampleAccount.username })),
       ...overrides.accounts,

@@ -10,6 +10,12 @@ export type IsoDateTime = string;
 
 export type ProviderId = 'gmail' | 'outlook' | 'yahoo' | 'zoho' | 'icloud' | 'other';
 export type ConnectionSecurity = 'tls' | 'starttls';
+/**
+ * How an account signs in: a (app) password over SMTP, or the provider's own
+ * sign-in (OAuth) for Google and Microsoft. OAuth accounts keep a refresh
+ * token where password accounts keep their password.
+ */
+export type AccountAuth = 'password' | 'google' | 'microsoft';
 
 /** A connection to an email service that does the actual sending. */
 export interface EmailAccount {
@@ -20,7 +26,8 @@ export interface EmailAccount {
   port: number;
   security: ConnectionSecurity;
   username: string;
-  /** Whether a password/app password is stored in the OS keychain for this account. */
+  auth: AccountAuth;
+  /** Whether a password/app password (or sign-in token) is stored in the OS keychain for this account. */
   hasSecret: boolean;
   dailyLimit: number | null;
   delayMs: number | null;

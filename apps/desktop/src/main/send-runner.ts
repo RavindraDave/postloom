@@ -1,5 +1,5 @@
 import type { PauseReason, Repositories } from '@postloom/db';
-import type { Mailer, SmtpAccountConfig } from '@postloom/email';
+import type { Mailer, RenewAccessToken, SmtpAccountConfig } from '@postloom/email';
 import {
   createControl,
   runJob,
@@ -32,14 +32,31 @@ export interface SendRunner {
 export type ToSender =
   | { type: 'start'; job: SendJob; dbFile: string }
   | { type: 'pause'; reason: PauseReason }
-  | { type: 'stop' };
+  | { type: 'stop' }
+  /** A fresh sign-in token (or why there isn't one), answering a token request. */
+  | {
+      type: 'token';
+      requestId: number;
+      token?: { accessToken: string; expiresAt: number };
+      error?: string;
+    };
 
 export type FromSender =
-  { type: 'progress'; progress: Progress } | { type: 'done'; outcome: Outcome };
+  | { type: 'progress'; progress: Progress }
+  | { type: 'done'; outcome: Outcome }
+  /** A Google or Microsoft token ran out part-way through a long send. */
+  | { type: 'token-request'; requestId: number; renew: boolean };
+
+/** Fresh sign-in tokens for an account (kept in the main process, where the refresh token is). */
+export type RenewForAccount = (accountId: string, renew: boolean) => ReturnType<RenewAccessToken>;
 
 /** Runs sends inside this process. Used by tests (and as a fallback). */
 export function createInProcessRunner(
-  deps: { repos: Repositories; openMailer: (config: SmtpAccountConfig) => Mailer },
+  deps: {
+    repos: Repositories;
+    openMailer: (config: SmtpAccountConfig, renew?: RenewAccessToken) => Mailer;
+    renewAccessToken?: RenewForAccount | undefined;
+  },
   events: RunnerEvents,
 ): SendRunner {
   const active = new Map<string, SendControl>();
@@ -48,9 +65,13 @@ export function createInProcessRunner(
       if (active.has(job.sendId)) return;
       const control = createControl();
       active.set(job.sendId, control);
+      const renewFor = deps.renewAccessToken;
       void runJob(job, {
         repos: deps.repos,
         openMailer: deps.openMailer,
+        ...(renewFor && {
+          renewAccessToken: (renew: boolean) => renewFor(job.accountId, renew),
+        }),
         control,
         onProgress: (progress) => {
           events.onProgress(job.sendId, progress);
@@ -88,7 +109,11 @@ export interface ChildProcessLike {
  * slows the app down and a crash while sending can't take the app with it.
  */
 export function createProcessRunner(
-  deps: { fork: () => ChildProcessLike; dbFile: string },
+  deps: {
+    fork: () => ChildProcessLike;
+    dbFile: string;
+    renewAccessToken?: RenewForAccount | undefined;
+  },
   events: RunnerEvents,
 ): SendRunner {
   const active = new Map<string, ChildProcessLike>();
@@ -100,6 +125,26 @@ export function createProcessRunner(
       let finished = false;
       child.on('message', (message) => {
         if (message.type === 'progress') events.onProgress(job.sendId, message.progress);
+        if (message.type === 'token-request') {
+          const { requestId } = message;
+          const renew = deps.renewAccessToken;
+          if (!renew) {
+            child.postMessage({ type: 'token', requestId, error: 'errors.signInUnavailable' });
+            return;
+          }
+          renew(job.accountId, message.renew).then(
+            (token) => {
+              child.postMessage({ type: 'token', requestId, token });
+            },
+            (error: unknown) => {
+              const key =
+                typeof error === 'object' && error !== null && 'messageKey' in error
+                  ? String(error.messageKey)
+                  : 'errors.signInExpired';
+              child.postMessage({ type: 'token', requestId, error: key });
+            },
+          );
+        }
         if (message.type === 'done') {
           finished = true;
           active.delete(job.sendId);

@@ -24,8 +24,10 @@ export function createTemplateTestHandler({
   repos,
   vault,
   extraCa,
+  tokens,
+  oauth,
   send,
-}: Pick<AccountDeps, 'repos' | 'vault' | 'extraCa'> & {
+}: Pick<AccountDeps, 'repos' | 'vault' | 'extraCa' | 'tokens' | 'oauth'> & {
   send: NonNullable<AccountDeps['smtp']>['send'];
 }): Pick<IpcHandlers, 'templates:sendTest'> {
   return {
@@ -42,7 +44,7 @@ export function createTemplateTestHandler({
         writeDocumentToMjml(document, look, values ? { values } : 'placeholder'),
       );
       const assetIds = emailAssetIds(document, look);
-      await send(await loadSmtpConfig(account, { repos, vault, extraCa }), {
+      await send(await loadSmtpConfig(account, { repos, vault, extraCa, tokens, oauth }), {
         from: { name: sender.fromName, address: sender.fromAddress },
         replyTo: sender.replyTo ?? undefined,
         to: [recipient],

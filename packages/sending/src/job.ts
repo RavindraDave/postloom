@@ -1,5 +1,5 @@
 import type { Repositories } from '@postloom/db';
-import type { InlineImage, Mailer, SmtpAccountConfig } from '@postloom/email';
+import type { InlineImage, Mailer, RenewAccessToken, SmtpAccountConfig } from '@postloom/email';
 import type { SendControl } from './control';
 import { runSend, type Outcome, type Progress } from './engine';
 import { createMessageBuilder } from './message';
@@ -25,7 +25,9 @@ export interface SendJob {
 
 export interface JobPorts {
   repos: Repositories;
-  openMailer: (config: SmtpAccountConfig) => Mailer;
+  openMailer: (config: SmtpAccountConfig, renewAccessToken?: RenewAccessToken) => Mailer;
+  /** For accounts that signed in with Google or Microsoft: a fresh token when one runs out. */
+  renewAccessToken?: RenewAccessToken;
   control: SendControl;
   onProgress: (progress: Progress) => void;
   today?: () => string;
@@ -33,7 +35,7 @@ export interface JobPorts {
 
 /** Runs one send until it finishes, pauses or stops. */
 export async function runJob(job: SendJob, ports: JobPorts): Promise<Outcome> {
-  const mailer = ports.openMailer(job.smtp);
+  const mailer = ports.openMailer(job.smtp, job.smtp.oauth ? ports.renewAccessToken : undefined);
   try {
     return await runSend({
       store: createEngineStore(ports.repos, job.sendId, job.accountId, ports.today),

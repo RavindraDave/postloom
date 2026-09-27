@@ -1,6 +1,7 @@
 import {
   AppError,
   normaliseEmail,
+  type AccountAuth,
   type BrandKit,
   type ConnectionSecurity,
   type EditorMode,
@@ -36,8 +37,8 @@ type Timestamps = 'id' | 'createdAt' | 'updatedAt';
 
 export type NewEmailAccount = Omit<
   EmailAccount,
-  Timestamps | 'hasSecret' | 'lastTestedAt' | 'lastTestOk'
->;
+  Timestamps | 'hasSecret' | 'lastTestedAt' | 'lastTestOk' | 'auth'
+> & { auth?: EmailAccount['auth'] };
 export type EmailAccountChanges = Partial<NewEmailAccount>;
 export type NewSenderProfile = Omit<SenderProfile, Timestamps>;
 export type SenderProfileChanges = Partial<NewSenderProfile>;
@@ -137,6 +138,7 @@ export function createRepositories(db: Kysely<Database>, options: RepositoryOpti
           id,
           name: input.name,
           provider: input.provider,
+          auth: input.auth ?? 'password',
           host: input.host,
           port: input.port,
           security: input.security,
@@ -158,6 +160,7 @@ export function createRepositories(db: Kysely<Database>, options: RepositoryOpti
         .set({
           ...(changes.name !== undefined && { name: changes.name }),
           ...(changes.provider !== undefined && { provider: changes.provider }),
+          ...(changes.auth !== undefined && { auth: changes.auth }),
           ...(changes.host !== undefined && { host: changes.host }),
           ...(changes.port !== undefined && { port: changes.port }),
           ...(changes.security !== undefined && { security: changes.security }),
@@ -643,6 +646,7 @@ function toAccount(row: Selectable<EmailAccountsTable>): EmailAccount {
     port: row.port,
     security: row.security as ConnectionSecurity,
     username: row.username,
+    auth: (row.auth || 'password') as AccountAuth,
     hasSecret: row.secret_ciphertext !== null && row.secret_ciphertext.byteLength > 0,
     dailyLimit: row.daily_limit,
     delayMs: row.delay_ms,
