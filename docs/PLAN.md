@@ -681,6 +681,11 @@ Estimates assume one developer working with AI assistance; they're rough and get
   - macOS builds for Apple silicon and Intel, signed ad-hoc (D10), checked with `codesign --verify` in CI; the app icon; and [docs/install.md](install.md), which shows how to open the unsigned downloads on each system.
   - Security review before beta ([security/review-1.0.md](security/review-1.0.md)): every threat-model control checked in code and tests, no high or critical findings; the threat model updated for D10; an SBOM (SPDX) attached to each release.
   - New-version notice: once a day (and on "Check now" in Settings → About) Postloom reads GitHub's release list and, if a newer version is out, shows a quiet note in the sidebar that opens its download page. Pre-releases are offered only to people on one; Store installs are left to the Store; it can be turned off, and it never downloads anything itself.
+  - Microsoft Store package (`.appx`, D10) built on Windows in CI with the identity from Partner Center, left unsigned for the Store to sign; kept out of GitHub Releases and uploaded as a build artifact for submission.
+  - First tagged build, `v0.1.0`: all installers, checksums and the SBOM on a draft release.
+  - [User guide](user-guide.md) with screenshots of the current app, refreshed by `SCREENSHOTS=1` runs of `e2e/screenshots.spec.ts`; includes the disk-encryption advice the security review promised. The Home checklist's last step ("Send your first emails") now opens Send emails and is ticked off after the first send; it still said "Coming soon".
+
+  Still to do: Store listing and submission (owner's Partner Center account), the beta with 5-10 real users, the screen-reader pass and usability round 3 (owner), and the crash-reporting decision (D7).
 
 **Total:** roughly 19-23 weeks to 1.0 stable. Phases 2 and 3 can overlap once Phase 1 is done.
 

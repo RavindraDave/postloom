@@ -1,5 +1,8 @@
 # Installing Postloom
 
+Once it's installed, the [user guide](user-guide.md) walks you through
+connecting your email, making a template and your first send.
+
 Download Postloom from the [Releases page](https://github.com/RavindraDave/postloom/releases).
 Pick the file for your computer:
 

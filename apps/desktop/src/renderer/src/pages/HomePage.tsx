@@ -1,11 +1,11 @@
-import { Badge, Button, Group, List, Paper, Stack, Text, ThemeIcon, Title } from '@mantine/core';
+import { Button, Group, List, Paper, Stack, Text, ThemeIcon, Title } from '@mantine/core';
 import type { AppInfo } from '@postloom/contracts';
 import { IconCheck, IconInfoCircle } from '@tabler/icons-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { accountNeedsYou } from '../api/account-status';
-import { useAccounts, useTemplates } from '../api/queries';
+import { useAccounts, useSends, useTemplates } from '../api/queries';
 import classes from './HomePage.module.css';
 
 interface ChecklistStep {
@@ -21,6 +21,7 @@ export function HomePage() {
   const navigate = useNavigate();
   const accounts = useAccounts();
   const templates = useTemplates();
+  const sends = useSends();
   const [info, setInfo] = useState<AppInfo | null>(null);
 
   useEffect(() => {
@@ -36,6 +37,7 @@ export function HomePage() {
   const ready = accounts.data?.find((account) => !accountNeedsYou(account));
   const broken = accounts.data?.find(accountNeedsYou);
   const templateCount = templates.data?.length ?? 0;
+  const hasSent = (sends.data?.length ?? 0) > 0;
 
   const steps: ChecklistStep[] = [
     {
@@ -76,17 +78,20 @@ export function HomePage() {
     {
       id: 'send',
       title: t('home.stepSend'),
-      done: false,
-      hint: t('home.stepSendHint'),
-      action: (
-        <Badge variant="light" color="gray">
-          {t('home.comingSoon')}
-        </Badge>
+      done: hasSent,
+      hint: hasSent ? t('home.stepSendDone') : t('home.stepSendHint'),
+      action: hasSent ? undefined : (
+        <Button
+          variant={ready && templateCount > 0 ? 'filled' : 'default'}
+          onClick={() => void navigate('/send')}
+        >
+          {t('home.stepSendAction')}
+        </Button>
       ),
     },
   ];
   const doneCount = steps.filter((step) => step.done).length;
-  const loading = accounts.isPending || templates.isPending;
+  const loading = accounts.isPending || templates.isPending || sends.isPending;
 
   return (
     <Stack maw={760} gap="lg">
