@@ -94,6 +94,9 @@ describe('SettingsPage', () => {
     mockApi();
     renderWithProviders(<SettingsPage />);
     expect(await screen.findByText('Version 0.1.0')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'R2DSolutions website (opens your browser)' }),
+    ).toHaveAttribute('href', 'https://r2dsolutions.com');
   });
 
   it('checks for a new version on request, and can be turned off', async () => {

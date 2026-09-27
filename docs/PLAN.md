@@ -685,6 +685,8 @@ Estimates assume one developer working with AI assistance; they're rough and get
   - First tagged build, `v0.1.0`: all installers, checksums and the SBOM on a draft release.
   - [User guide](user-guide.md) with screenshots of the current app, refreshed by `SCREENSHOTS=1` runs of `e2e/screenshots.spec.ts`; includes the disk-encryption advice the security review promised. The Home checklist's last step ("Send your first emails") now opens Send emails and is ticked off after the first send; it still said "Coming soon".
 
+  - Microsoft Store readiness: the Store refuses package versions that start with 0, so the Store launch is **1.0.0** (owner's decision). The package now carries Postloom's own tiles (`resources/appx`, rendered by `scripts/render-icon.mjs`) instead of electron-builder's sample logos. R2DSolutions is the publisher (installer, copyright, Settings → About). [privacy.md](privacy.md) is the privacy policy the Store requires, and [store/submission.md](store/submission.md) has everything to paste into Partner Center, with 1920 × 1080 screenshots.
+
   Still to do: Store listing and submission (owner's Partner Center account), the beta with 5-10 real users, the screen-reader pass and usability round 3 (owner), and the crash-reporting decision (D7).
 
 **Total:** roughly 19-23 weeks to 1.0 stable. Phases 2 and 3 can overlap once Phase 1 is done.
