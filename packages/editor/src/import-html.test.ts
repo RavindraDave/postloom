@@ -68,4 +68,47 @@ describe('importing an HTML email', () => {
       ],
     });
   });
+
+  it('turns placeholders from other tools and Word into details', () => {
+    const result = importHtml(
+      '<p>Dear {{First Name}}, invoice [Invoice No] of «Amount» is due. [see the attached note for details] {{ name | upcase }}</p>',
+    );
+    expect(result.details).toEqual(['First Name', 'Invoice No', 'Amount']);
+    expect(result.document.content[0]).toMatchObject({
+      content: [
+        { type: 'text', text: 'Dear ' },
+        { type: 'field', attrs: { name: 'First Name' } },
+        { type: 'text', text: ', invoice ' },
+        { type: 'field', attrs: { name: 'Invoice No' } },
+        { type: 'text', text: ' of ' },
+        { type: 'field', attrs: { name: 'Amount' } },
+        {
+          type: 'text',
+          text: ' is due. [see the attached note for details] {{ name | upcase }}',
+        },
+      ],
+    });
+  });
+
+  it('keeps only the pictures the app stored from the file', () => {
+    const result = importHtml(
+      '<p>Hi</p><img data-asset="a1b2" width="480" alt="Our shop" onerror="x()">' +
+        '<img src="https://tracker.example/pixel.png"><img data-asset="made-up">',
+      { assetIds: ['a1b2'] },
+    );
+    const pictures = result.document.content.filter((block) => block.type === 'image');
+    expect(pictures).toEqual([
+      { type: 'image', attrs: { assetId: 'a1b2', alt: 'Our shop', width: 480 } },
+    ]);
+    expect(result.picturesLeftOut).toBe(2);
+  });
+
+  it('keeps Word tables, even with paragraphs in their cells', () => {
+    const word =
+      '<table><tr><td><p>Item</p></td><td><p>Amount</p></td></tr>' +
+      '<tr><td><p>Design</p></td><td><p>12400</p></td></tr></table>';
+    expect(importHtml(word, { kind: 'docx' }).needsDesign).toBe(true);
+    // The same markup in an HTML email reads as layout.
+    expect(importHtml(word).needsDesign).toBe(false);
+  });
 });

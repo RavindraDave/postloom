@@ -168,7 +168,7 @@ void app.whenReady().then(async () => {
       },
     },
     pickImageFile,
-    pickHtmlFile,
+    pickDocumentPath,
     pickSpreadsheetFile,
     createSendRunner: (events) =>
       createProcessRunner(
@@ -252,29 +252,21 @@ async function pickImageFile(): Promise<PickedFile | null> {
 }
 
 /** HTML files larger than this are refused (email HTML is far smaller). */
-const MAX_HTML_FILE_BYTES = 2 * 1024 * 1024;
 
-/** The computer's own file picker, for an HTML email to import. */
-async function pickHtmlFile(): Promise<{ name: string; html: string } | null> {
+/** The computer's own file picker, for an HTML email or Word document to import. */
+async function pickDocumentPath(): Promise<string | null> {
   const testFile = app.isPackaged ? undefined : process.env['POSTLOOM_TEST_PICK_HTML'];
-  let path = testFile;
-  if (!path) {
-    const window = BrowserWindow.getFocusedWindow();
-    const options = {
-      title: 'Choose an HTML email',
-      properties: ['openFile' as const],
-      filters: [{ name: 'Web pages', extensions: ['html', 'htm'] }],
-    };
-    const result = window
-      ? await dialog.showOpenDialog(window, options)
-      : await dialog.showOpenDialog(options);
-    path = result.canceled ? undefined : result.filePaths[0];
-  }
-  if (!path) return null;
-  if ((await stat(path)).size > MAX_HTML_FILE_BYTES) {
-    throw new AppError({ code: 'VALIDATION_FAILED', messageKey: 'errors.htmlTooBig' });
-  }
-  return { name: basename(path), html: await readFile(path, 'utf8') };
+  if (testFile) return testFile;
+  const window = BrowserWindow.getFocusedWindow();
+  const options = {
+    title: 'Choose an email or a Word document',
+    properties: ['openFile' as const],
+    filters: [{ name: 'Web pages and Word documents', extensions: ['html', 'htm', 'docx', 'doc'] }],
+  };
+  const result = window
+    ? await dialog.showOpenDialog(window, options)
+    : await dialog.showOpenDialog(options);
+  return result.canceled ? null : (result.filePaths[0] ?? null);
 }
 
 /** The computer's own file picker, for a list of people (Excel or CSV). */

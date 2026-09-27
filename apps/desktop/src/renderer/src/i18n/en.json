@@ -98,11 +98,14 @@
       }
     },
     "more": "More template options",
-    "importHtml": "Import an HTML email…",
+    "importHtml": "Import an HTML email or Word document…",
     "imported": "“{{name}}” imported. Check it over before sending.",
     "importedPictures": "{{count}} picture from the file wasn't brought in. Add it again with Picture.",
     "importedPictures_other": "{{count}} pictures from the file weren't brought in. Add them again with Picture.",
-    "importedTextOnly": "The layout couldn't be kept, so only the words were imported."
+    "importedTextOnly": "The layout couldn't be kept, so only the words were imported.",
+    "importedPicturesKept": "{{count}} picture came along.",
+    "importedPicturesKept_other": "{{count}} pictures came along.",
+    "importedDetails": "These became personal details: {{names}}."
   },
   "errors": {
     "unexpected": "Something went wrong. Please try again.",
@@ -138,7 +141,9 @@
     "sendHasProblems": "Something on the Check step must be fixed before sending. Go back and fix it, then try again.",
     "sendNobody": "Nobody on this list will get an email. Put some rows back or choose another list.",
     "sendAccountBusy": "This email account is already sending. Wait for that send to finish (or pause it), then try again.",
-    "restoreWhileSending": "Emails are being sent right now. Wait for the send to finish (or pause it), then restore."
+    "restoreWhileSending": "Emails are being sent right now. Wait for the send to finish (or pause it), then restore.",
+    "wordOldFormat": "That's an older Word file (.doc). Open it in Word, choose Save As, pick Word Document (.docx), then import that file.",
+    "wordTooBig": "That Word document is too big to import (over 25 MB). Try a copy with smaller pictures."
   },
   "common": {
     "loading": "Loading…",

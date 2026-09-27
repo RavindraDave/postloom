@@ -26,6 +26,7 @@ come from decision D10 (unsigned downloads outside the Microsoft Store).
 | Attachments | Real path followed; private files (keys, `.ssh`, `.env`, keychains, browser stores) blocked; other folders flagged; checked again at send; 18 MB limit | `core/domain/attachments.ts`, `sending/attachments.ts` | unit tests, `attachments.spec.ts` |
 | Pictures | Only through the file picker; PNG/JPEG recognised by content; re-encoded without metadata; served with `nosniff` | `main/assets.ts`, `main/images.ts` | unit tests |
 | Imported HTML | Sanitised (scripts, event handlers, `javascript:` links, forms, frames removed) | `editor/import-html.ts` | unit tests |
+| Imported Word / HTML pictures | Word read with mammoth (no macros run); pictures re-encoded like any picture; HTML may only read `.png`/`.jpg` files inside its own folder (real path checked); size caps | `main/document-import.ts` | unit tests |
 | Reports | CSV cells that start a formula are made safe | `main/report.ts` | `report.test.ts` |
 | Sending twice | Claim before sending; only "nothing was sent" failures retried; a lost connection marks the email uncertain, never resent without asking | `sending/engine.ts` (ADR 0008) | `engine.test.ts`, `sending.spec.ts` (killed mid-email) |
 | Test-only switches | Every `POSTLOOM_TEST_*` setting and the dev server address are ignored in installed builds | `main/index.ts` | code review (each read is behind `app.isPackaged`) |
