@@ -92,6 +92,7 @@ jobs:
           name: postloom-${{ matrix.os }}
           path: |
             apps/desktop/release/*.exe
+            apps/desktop/release/*.appx
             apps/desktop/release/*.dmg
             apps/desktop/release/*.zip
             apps/desktop/release/*.AppImage
