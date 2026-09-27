@@ -5,6 +5,9 @@ import {
   collectAssetIds,
   collectFields,
   usesDesignBlocks,
+  senderSignatureSchema,
+  signatureFromStored,
+  signatureToStored,
   writeDocumentSchema,
   type WriteDocument,
 } from './document';
@@ -843,21 +846,44 @@ describe('text colour, highlight and preview text', () => {
 });
 
 describe('sender signatures', () => {
+  const signature = senderSignatureSchema.parse({
+    type: 'doc',
+    content: [
+      {
+        type: 'paragraph',
+        content: [{ type: 'text', text: 'Asha Kapoor', marks: [{ type: 'bold' }] }],
+      },
+      {
+        type: 'paragraph',
+        content: [
+          { type: 'text', text: 'Accounts, R2D <Solutions>' },
+          { type: 'hardBreak' },
+          {
+            type: 'text',
+            text: '{{ row.secret }}',
+            marks: [{ type: 'textColor', attrs: { color: '#2F5D8C' } }],
+          },
+        ],
+      },
+    ],
+  });
+  const look = lookFromBrand(null, '', signature);
   const doc = writeDocumentSchema.parse({
     type: 'doc',
     content: [
       { type: 'paragraph', content: [{ type: 'text', text: 'Thanks for your order.' }] },
-      { type: 'footer', content: [{ type: 'text', text: 'Unsubscribe any time' }] },
+      { type: 'signature' },
+      { type: 'paragraph', content: [{ type: 'text', text: 'P.S. See you soon' }] },
     ],
   });
-  const look = lookFromBrand(null, '', 'Asha Kapoor\nAccounts, R2D <Solutions>\n{{ row.secret }}');
 
-  it('adds the signature after the letter and before the footer', () => {
+  it('puts the formatted signature where the Signature block is', () => {
     const mjml = writeDocumentToMjml(doc, look);
-    const signature = mjml.indexOf('Asha Kapoor<br />Accounts, R2D &lt;Solutions&gt;');
-    expect(signature).toBeGreaterThan(mjml.indexOf('Thanks for your order.'));
-    expect(signature).toBeLessThan(mjml.indexOf('Unsubscribe any time'));
-    expect(writeDocumentToMjml(asCard(doc), look)).toContain('Asha Kapoor<br />');
+    const at = mjml.indexOf('<strong>Asha Kapoor</strong>');
+    expect(at).toBeGreaterThan(mjml.indexOf('Thanks for your order.'));
+    expect(at).toBeLessThan(mjml.indexOf('P.S. See you soon'));
+    expect(mjml).toContain('Accounts, R2D &lt;Solutions&gt;<br />');
+    expect(writeDocumentToMjml(asCard(doc), look)).toContain('<strong>Asha Kapoor</strong>');
   });
 
   it('never turns the signature into personalisation', async () => {
@@ -866,12 +892,35 @@ describe('sender signatures', () => {
     expect(sent).not.toContain('leaked');
   });
 
-  it('can be left off a template', () => {
-    const mjml = writeDocumentToMjml({ ...doc, attrs: { showSignature: false } }, look);
-    expect(mjml).not.toContain('Asha Kapoor');
+  it('adds nothing where there is no Signature block, or the sender has none', () => {
+    const without = { ...doc, content: doc.content.filter((block) => block.type !== 'signature') };
+    expect(writeDocumentToMjml(without, look)).not.toContain('Asha Kapoor');
+    expect(writeDocumentToMjml(doc, lookFromBrand(null, '', null))).toBe(
+      writeDocumentToMjml(without),
+    );
   });
 
-  it('adds nothing when the sender has no signature', () => {
-    expect(writeDocumentToMjml(doc, lookFromBrand(null, '', ''))).toBe(writeDocumentToMjml(doc));
+  it('reads signatures saved as plain text before they could be formatted', () => {
+    expect(signatureFromStored('Asha Kapoor\nAccounts')).toEqual({
+      type: 'doc',
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'Asha Kapoor' }] },
+        { type: 'paragraph', content: [{ type: 'text', text: 'Accounts' }] },
+      ],
+    });
+    expect(signatureFromStored(signatureToStored(signature))).toEqual(signature);
+    expect(signatureFromStored('{not json')).toBeNull();
+    expect(signatureToStored({ type: 'doc', content: [{ type: 'paragraph' }] })).toBeNull();
+  });
+
+  it('keeps personal details out of signatures', () => {
+    expect(
+      senderSignatureSchema.safeParse({
+        type: 'doc',
+        content: [
+          { type: 'paragraph', content: [{ type: 'field', attrs: { name: 'First Name' } }] },
+        ],
+      }).success,
+    ).toBe(false);
   });
 });

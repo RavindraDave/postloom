@@ -199,6 +199,30 @@ export const ButtonNode = Node.create({
   },
 });
 
+/**
+ * Where the sender's signature goes. The editor shows the chosen sender's
+ * signature here; each email gets the signature of the sender it's sent as.
+ */
+export const SignatureNode = Node.create({
+  name: 'signature',
+  group: 'block',
+  atom: true,
+  selectable: true,
+  draggable: true,
+
+  parseHTML() {
+    return [{ tag: 'div[data-signature]' }];
+  },
+
+  renderHTML() {
+    return ['div', { 'data-signature': '', class: 'pl-signature' }, 'Signature'];
+  },
+
+  renderText() {
+    return '[Signature]';
+  },
+});
+
 /** Where the app serves stored pictures (see the main process's app protocol). */
 export const APP_ASSET_URL_PREFIX = 'app://postloom/assets/';
 
@@ -256,7 +280,7 @@ export const ImageNode = Node.create({
 
 /** Blocks that can sit in a column or a "show only if" part. */
 const SIMPLE_BLOCKS =
-  'paragraph | heading | bulletList | orderedList | button | image | horizontalRule | spacer';
+  'paragraph | heading | bulletList | orderedList | button | image | horizontalRule | spacer | signature';
 
 /** Blank space between parts of the email. */
 export const SpacerNode = Node.create({
@@ -515,7 +539,33 @@ export const writeModeExtensions = [
   FieldNode,
   ButtonNode,
   ImageNode,
+  SignatureNode,
   ...designExtensions,
+];
+
+/** What a sender's signature can hold: lines of text, bold/italic/underline, colours and links. */
+export const signatureExtensions = [
+  StarterKit.configure({
+    blockquote: false,
+    bulletList: false,
+    code: false,
+    codeBlock: false,
+    heading: false,
+    horizontalRule: false,
+    listItem: false,
+    listKeymap: false,
+    orderedList: false,
+    strike: false,
+    link: {
+      openOnClick: false,
+      // Typing or pasting a web address makes it a link.
+      autolink: true,
+      protocols: ['http', 'https', 'mailto'],
+      defaultProtocol: 'https',
+    },
+  }),
+  TextColorMark,
+  HighlightMark,
 ];
 
 /**

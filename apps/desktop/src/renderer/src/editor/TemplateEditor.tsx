@@ -73,6 +73,7 @@ import { DesignTools } from './DesignTools';
 import { insertBlock } from './insertBlock';
 import { InsertDetailMenu } from './InsertDetailMenu';
 import { RuleDialog, type RuleValue } from './RuleDialog';
+import { SignatureContext } from './SignatureView';
 import { SubjectInput } from './SubjectInput';
 import classes from './TemplateEditor.module.css';
 import { VersionsDrawer } from './VersionsDrawer';
@@ -510,6 +511,9 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
               setDialog('editDetail');
             }}
             onPicture={choosePicture}
+            onSignature={() => {
+              insertBlock(editor, { type: 'signature' }, !bodyTouched.current);
+            }}
             onEditPicture={() => {
               setDialog('editPicture');
             }}
@@ -556,17 +560,11 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
                 width={Math.min(letterLook.logo.width, MAX_LOGO_WIDTH)}
               />
             )}
-            <EditorContent editor={editor} />
-            {letterLook.signature && (
-              // Shown as it will be sent; it's changed in Senders & accounts.
-              <p
-                className={classes.signature}
-                title={t('editor.signatureNote')}
-                data-testid="letter-signature"
-              >
-                {letterLook.signature}
-              </p>
-            )}
+            <SignatureContext.Provider
+              value={{ signature: letterLook.signature, hasSender: Boolean(sender) }}
+            >
+              <EditorContent editor={editor} />
+            </SignatureContext.Provider>
           </div>
         </Stack>
 

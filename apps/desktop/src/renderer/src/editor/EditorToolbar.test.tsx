@@ -19,6 +19,7 @@ function setUp(text = 'Hello there') {
     onEditButton: vi.fn(),
     onEditDetail: vi.fn(),
     onPicture: vi.fn(),
+    onSignature: vi.fn(),
     onEditPicture: vi.fn(),
   };
   renderWithProviders(<EditorToolbar editor={editor} insertDetail={null} {...handlers} />);
@@ -123,5 +124,31 @@ describe('EditorToolbar', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Button' }));
     expect(handlers.onButton).toHaveBeenCalled();
+  });
+
+  it('colours and highlights the selected words, and takes the colour off again', async () => {
+    setUp();
+    editor.commands.selectAll();
+    await userEvent.click(screen.getByRole('button', { name: 'Text colour' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Red' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Highlight' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Yellow' }));
+    expect(firstBlock()?.content?.[0]?.marks).toEqual([
+      { type: 'textColor', attrs: { color: '#B42318' } },
+      { type: 'highlight', attrs: { color: '#FFF4A3' } },
+    ]);
+
+    editor.commands.selectAll();
+    await userEvent.click(screen.getByRole('button', { name: 'Text colour' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Normal text colour' }));
+    expect(firstBlock()?.content?.[0]?.marks).toEqual([
+      { type: 'highlight', attrs: { color: '#FFF4A3' } },
+    ]);
+  });
+
+  it('asks for a Signature block', async () => {
+    const handlers = setUp();
+    await userEvent.click(screen.getByRole('button', { name: 'Signature' }));
+    expect(handlers.onSignature).toHaveBeenCalled();
   });
 });

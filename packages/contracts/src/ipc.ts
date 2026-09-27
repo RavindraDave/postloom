@@ -1,5 +1,10 @@
 import { isPlausibleEmail, type AppErrorShape } from '@postloom/core';
-import { assetIdSchema, EMAIL_FONTS, writeDocumentSchema } from '@postloom/editor';
+import {
+  assetIdSchema,
+  EMAIL_FONTS,
+  senderSignatureSchema,
+  writeDocumentSchema,
+} from '@postloom/editor';
 import { z } from 'zod';
 
 /**
@@ -211,8 +216,8 @@ export const senderSchema = z.object({
   fromAddress: z.string(),
   replyTo: z.string().nullable(),
   delayMs: z.number().int().nullable(),
-  /** Plain text added at the end of this sender's emails. */
-  signature: z.string().nullable(),
+  /** The sender's signature, placed in templates with a Signature block. */
+  signature: senderSignatureSchema.nullable(),
   templateCount: z.number().int(),
   /** The sender's brand look, if it has one. */
   brand: brandSchema.nullable(),
@@ -227,24 +232,6 @@ const nameInHeaderSchema = z
   .max(120)
   .refine((value) => !/[\r\n"<>]/.test(value), 'Names cannot contain line breaks, quotes or < >');
 
-/** A sender's signature: a few lines of plain text. */
-export const SIGNATURE_MAX_LINES = 8;
-/** One kind of line break, no spaces at line ends, no blank lines around it. */
-export function tidySignature(value: string): string {
-  return value
-    .replace(/\r\n?/g, '\n')
-    .replace(/[ \t]+$/gm, '')
-    .trim();
-}
-export const signatureSchema = z
-  .string()
-  .max(600)
-  .transform(tidySignature)
-  .refine(
-    (value) => value.split('\n').length <= SIGNATURE_MAX_LINES,
-    `A signature can have up to ${String(SIGNATURE_MAX_LINES)} lines`,
-  );
-
 export const createSenderInputSchema = z.object({
   name: z.string().trim().min(1).max(80),
   emailAccountId: idSchema,
@@ -252,7 +239,7 @@ export const createSenderInputSchema = z.object({
   fromAddress: emailSchema,
   replyTo: emailSchema.nullable().optional(),
   delayMs: z.number().int().min(0).max(60_000).nullable().optional(),
-  signature: signatureSchema.nullable().optional(),
+  signature: senderSignatureSchema.nullable().optional(),
 });
 
 export const updateSenderInputSchema = createSenderInputSchema.partial().extend({ id: idSchema });

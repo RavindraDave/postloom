@@ -327,9 +327,7 @@
     "replyToLabel": "Replies go to (optional)",
     "replyToHint": "Leave empty to get replies at the address above.",
     "signatureLabel": "Signature",
-    "signatureHint": "Added at the end of every email from this sender. You can leave it off in a template’s Look.",
-    "signaturePlaceholder": "Asha Kapoor\nAccounts Manager, R2DSolutions\n+91 98765 43210",
-    "signatureTooLong": "A signature can have up to {{count}} lines.",
+    "signatureHint": "Your name, job title, phone number or website. Add it to a template with the Signature button, where you want it.",
     "accountLabel": "Sends through",
     "save": "Save changes",
     "create": "Add sender",
@@ -366,7 +364,8 @@
     "font": "Font",
     "fontHint": "Fonts that look the same in almost every email app.",
     "brandSave": "Save brand look",
-    "brandSaved": "Brand look saved"
+    "brandSaved": "Brand look saved",
+    "signatureTools": "Signature formatting"
   },
   "setup": {
     "title": "Set up Postloom",
@@ -634,7 +633,12 @@
     "previewTextLabel": "Preview text",
     "previewTextHint": "The short line inboxes show after the subject. Leave it empty to show the start of the email.",
     "previewTextInsertDetail": "Insert detail in the inbox line",
-    "signatureNote": "The sender's signature. Change it in Senders & accounts, or leave it off in Look."
+    "signature": "Signature",
+    "signatureBlock": {
+      "label": "Signature of the sender",
+      "none": "This sender has no signature yet. Add one in Senders & accounts.",
+      "noSender": "Choose who it’s from to see the signature here."
+    }
   },
   "checks": {
     "subjectMissing": "Add a subject so people know what the email is about.",
@@ -919,7 +923,6 @@
     "buttonColour": "Button and link colour",
     "background": "Colour around the email",
     "showLogo": "Show the sender's logo",
-    "showSignature": "Add the sender's signature",
     "useSender": "Use the sender's",
     "colourInvalid": "Type a colour like #2F5D8C, or pick one",
     "pickFromScreen": "Pick a colour from the screen"

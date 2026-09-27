@@ -12,14 +12,13 @@ import {
   Stack,
   Tabs,
   Text,
-  Textarea,
   TextInput,
   Title,
   UnstyledButton,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
-import { SIGNATURE_MAX_LINES, type EmailAccountInfo, type SenderInfo } from '@postloom/contracts';
+import type { EmailAccountInfo, SenderInfo } from '@postloom/contracts';
 import { isPlausibleEmail, PROVIDER_PRESETS } from '@postloom/core';
 import { IconAlertTriangle, IconPlus } from '@tabler/icons-react';
 import { useState, type ReactNode } from 'react';
@@ -43,6 +42,7 @@ import { EmptyState } from '../components/EmptyState';
 import { FixPasswordForm } from '../components/FixPasswordForm';
 import { InheritedField } from '../components/InheritedField';
 import { PageHeader } from '../components/PageHeader';
+import { SignatureEditor } from '../components/SignatureEditor';
 import { PasswordProtectionNotice } from '../components/PasswordProtectionNotice';
 import { ProviderPicker } from '../components/ProviderPicker';
 import { StatusPill, type StatusTone } from '../components/StatusPill';
@@ -394,7 +394,7 @@ function SenderForm({
   const [fromName, setFromName] = useState(sender?.fromName ?? '');
   const [fromAddress, setFromAddress] = useState(sender?.fromAddress ?? account?.username ?? '');
   const [replyTo, setReplyTo] = useState(sender?.replyTo ?? '');
-  const [signature, setSignature] = useState(sender?.signature ?? '');
+  const [signature, setSignature] = useState(sender?.signature ?? null);
   const [submitted, setSubmitted] = useState(false);
 
   const problems = {
@@ -402,13 +402,8 @@ function SenderForm({
     fromAddress: isPlausibleEmail(fromAddress) ? null : t('accounts.addressInvalid'),
     replyTo:
       replyTo.trim() === '' || isPlausibleEmail(replyTo) ? null : t('accounts.addressInvalid'),
-    signature:
-      signature.trim().split(/\r?\n/).length > SIGNATURE_MAX_LINES
-        ? t('senders.signatureTooLong', { count: SIGNATURE_MAX_LINES })
-        : null,
   };
-  const valid =
-    !problems.fromName && !problems.fromAddress && !problems.replyTo && !problems.signature;
+  const valid = !problems.fromName && !problems.fromAddress && !problems.replyTo;
   const busy = createSender.isPending || updateSender.isPending;
   const failure = createSender.error ?? updateSender.error;
 
@@ -422,7 +417,7 @@ function SenderForm({
       fromName: fromName.trim(),
       fromAddress: fromAddress.trim(),
       replyTo: replyTo.trim() || null,
-      signature: signature.trim() || null,
+      signature,
     };
     try {
       const saved = sender
@@ -470,20 +465,7 @@ function SenderForm({
           }}
           error={submitted ? problems.replyTo : undefined}
         />
-        <Textarea
-          label={t('senders.signatureLabel')}
-          description={t('senders.signatureHint')}
-          placeholder={t('senders.signaturePlaceholder')}
-          autosize
-          minRows={3}
-          maxRows={SIGNATURE_MAX_LINES}
-          maxLength={600}
-          value={signature}
-          onChange={(event) => {
-            setSignature(event.currentTarget.value);
-          }}
-          error={submitted ? problems.signature : undefined}
-        />
+        <SignatureEditor value={signature} onChange={setSignature} />
         <Select
           label={t('senders.accountLabel')}
           data={accounts.map((option) => ({

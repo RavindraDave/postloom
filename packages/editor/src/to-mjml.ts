@@ -1,4 +1,12 @@
-import { collectAssetIds, documentLayout, type TemplateLook, type TextSize } from './document';
+import {
+  collectAssetIds,
+  documentLayout,
+  signatureHasText,
+  type ParagraphNode,
+  type SenderSignature,
+  type TemplateLook,
+  type TextSize,
+} from './document';
 import { formatValues } from './formats';
 import { parseSubject } from './subject';
 import type {
@@ -21,8 +29,8 @@ export interface BrandLook {
   backgroundColor: string;
   /** Shown at the top of every email from this sender. */
   logo?: { assetId: string; width: number; alt: string } | null | undefined;
-  /** Plain text added at the end of every email from this sender. */
-  signature?: string | null | undefined;
+  /** The sender's signature, shown wherever a template places a Signature block. */
+  signature?: SenderSignature | null | undefined;
 }
 
 /** A sender's saved brand look (see the contracts' `brandSchema`). */
@@ -36,7 +44,7 @@ export interface SavedBrand {
 export function lookFromBrand(
   brand: SavedBrand | null | undefined,
   logoAlt: string,
-  signature?: string | null,
+  signature?: SenderSignature | null,
 ): BrandLook {
   if (!brand) return signature ? { ...DEFAULT_BRAND, signature } : DEFAULT_BRAND;
   return {
@@ -107,7 +115,7 @@ export function writeDocumentToMjml(
   imageSrc: ImageSource = inlineImageSource,
 ): string {
   const look = sanitiseBrand(withTemplateLook(brand, own.attrs));
-  const doc: WriteDocument = { ...own, content: withSignature(own.content, look.signature) };
+  const doc = own;
   const textSize = TEXT_SIZES[doc.attrs?.textSize ?? 'normal'];
   // Example or test values are shown in the template's formats; "show only if"
   // parts decide on the values as they are in the list.
@@ -135,7 +143,10 @@ export function writeDocumentToMjml(
   if (logo) flow().push(logo);
   for (const block of doc.content) {
     if (block.type === 'columns') sections.push({ kind: 'columns', node: block });
-    else flow().push(renderBlock(block, context));
+    else {
+      const rendered = renderBlock(block, context);
+      if (rendered) flow().push(rendered);
+    }
   }
   if (sections.length === 0) flow();
 
@@ -210,30 +221,18 @@ export function withTemplateLook(brand: BrandLook, own: TemplateLook | undefined
     ...(own.primaryColor && { primaryColor: own.primaryColor }),
     ...(own.backgroundColor && { backgroundColor: own.backgroundColor }),
     ...(own.showLogo === false && { logo: null }),
-    ...(own.showSignature === false && { signature: null }),
   };
 }
 
-/**
- * The sender's signature as a paragraph, one line per line, placed after the
- * letter and before any footer.
- */
-function withSignature(content: BlockNode[], signature: string | null | undefined): BlockNode[] {
-  const lines = (signature ?? '')
-    .split(/\r?\n/)
-    .map((line) => line.trimEnd())
-    .slice(0, 8);
-  if (!lines.some((line) => line.trim())) return content;
-  const inline: InlineNode[] = lines.flatMap((line, index) => [
-    ...(index > 0 ? [{ type: 'hardBreak' as const }] : []),
-    ...(line ? [{ type: 'text' as const, text: line.slice(0, 200) }] : []),
-  ]);
-  let at = content.length;
-  while (at > 0 && content[at - 1]?.type === 'footer') at -= 1;
-  return [...content.slice(0, at), { type: 'paragraph', content: inline }, ...content.slice(at)];
-}
-
 type RenderableBlock = Exclude<BlockNode, ColumnsNode>;
+
+/**
+ * The sender's signature as paragraphs; nothing when the sender has none.
+ * Its words are escaped like the letter's own (it holds no personal details).
+ */
+function signatureParagraphs(signature: SenderSignature | null | undefined): ParagraphNode[] {
+  return signatureHasText(signature) ? (signature?.content ?? []) : [];
+}
 
 function renderBlock(block: RenderableBlock, context: RenderContext): string {
   const { look, fieldMode, imageSrc } = context;
@@ -252,6 +251,10 @@ function renderBlock(block: RenderableBlock, context: RenderContext): string {
     }
     case 'horizontalRule':
       return '<mj-divider border-color="#DDDDDD" border-width="1px" padding="14px 0" />';
+    case 'signature':
+      return signatureParagraphs(look.signature)
+        .map((paragraph) => renderBlock(paragraph, context))
+        .join('\n');
     case 'image': {
       const { assetId, alt, width, align, href } = block.attrs;
       const link = href ? safeHref(href) : null;
@@ -310,7 +313,10 @@ function letterMjml(doc: WriteDocument, context: RenderContext): string {
   const logo = look.logo
     ? `<div style="padding:0 0 16px"><img src="${escapeAttribute(imageSrc(look.logo.assetId))}" alt="${escapeAttribute(look.logo.alt)}" width="${String(Math.min(look.logo.width, MAX_LOGO_WIDTH))}" style="display:block;max-width:100%;height:auto;border:0" /></div>`
     : '';
-  const blocks = doc.content.map((block) => letterBlock(block, context)).join('\n');
+  const blocks = doc.content
+    .map((block) => letterBlock(block, context))
+    .filter(Boolean)
+    .join('\n');
   return [
     '<mjml>',
     '<mj-head>',
@@ -354,6 +360,10 @@ function letterBlock(block: BlockNode, context: RenderContext): string {
     }
     case 'horizontalRule':
       return '<hr style="border:0;border-top:1px solid #DDDDDD;margin:18px 0" />';
+    case 'signature':
+      return signatureParagraphs(context.look.signature)
+        .map((paragraph) => letterBlock(paragraph, context))
+        .join('\n');
     case 'image': {
       const { assetId, alt, width, align, href } = block.attrs;
       const img = `<img src="${escapeAttribute(imageSrc(assetId))}" alt="${escapeAttribute(alt)}" width="${String(width)}" style="display:inline-block;max-width:100%;height:auto;border:0" />`;
