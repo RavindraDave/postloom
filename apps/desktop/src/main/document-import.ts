@@ -2,7 +2,7 @@ import { AppError } from '@postloom/core';
 import type { Repositories } from '@postloom/db';
 import { MAX_IMAGE_WIDTH } from '@postloom/editor';
 import mammoth from 'mammoth';
-import { readFile, realpath, stat } from 'node:fs/promises';
+import { open, realpath } from 'node:fs/promises';
 import { basename, dirname, extname, isAbsolute, relative, resolve } from 'node:path';
 import { prepareImage, type ImageCodec } from './images';
 
@@ -40,16 +40,28 @@ export async function importDocumentFile(path: string, deps: ImportDeps): Promis
     throw new AppError({ code: 'VALIDATION_FAILED', messageKey: 'errors.wordOldFormat' });
   }
   if (extension === '.docx') {
-    if ((await stat(path)).size > MAX_WORD_FILE_BYTES) {
-      throw new AppError({ code: 'VALIDATION_FAILED', messageKey: 'errors.wordTooBig' });
-    }
-    return { name, kind: 'docx', ...(await wordToHtml(await readFile(path), deps)) };
+    const bytes = await readCapped(path, MAX_WORD_FILE_BYTES);
+    if (!bytes) throw new AppError({ code: 'VALIDATION_FAILED', messageKey: 'errors.wordTooBig' });
+    return { name, kind: 'docx', ...(await wordToHtml(bytes, deps)) };
   }
-  if ((await stat(path)).size > MAX_HTML_FILE_BYTES) {
-    throw new AppError({ code: 'VALIDATION_FAILED', messageKey: 'errors.htmlTooBig' });
-  }
-  const html = await readFile(path, 'utf8');
+  const bytes = await readCapped(path, MAX_HTML_FILE_BYTES);
+  if (!bytes) throw new AppError({ code: 'VALIDATION_FAILED', messageKey: 'errors.htmlTooBig' });
+  const html = bytes.toString('utf8');
   return { name, kind: 'html', ...(await keepHtmlPictures(html, dirname(path), deps)) };
+}
+
+/**
+ * Reads a file, or null when it is bigger than `max`. The size is checked on
+ * the open file itself, so the file can't be swapped between check and read.
+ */
+async function readCapped(path: string, max: number): Promise<Buffer | null> {
+  const file = await open(path, 'r');
+  try {
+    if ((await file.stat()).size > max) return null;
+    return await file.readFile();
+  } finally {
+    await file.close();
+  }
 }
 
 /** Stores one picture; null when it isn't a picture Postloom can use. */
@@ -144,8 +156,7 @@ async function pictureBytes(src: string, root: string): Promise<Uint8Array | nul
     const real = await realpath(resolve(root, path));
     const inside = relative(root, real);
     if (inside.startsWith('..') || isAbsolute(inside)) return null;
-    if ((await stat(real)).size > 20 * 1024 * 1024) return null;
-    return await readFile(real);
+    return await readCapped(real, 20 * 1024 * 1024);
   } catch {
     return null;
   }
