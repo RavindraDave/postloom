@@ -1,4 +1,4 @@
-import { mergeAttributes, Node, type JSONContent } from '@tiptap/core';
+import { Mark, mergeAttributes, Node, type JSONContent } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import { Table, TableCell, TableHeader, TableRow, TableView } from '@tiptap/extension-table';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
@@ -58,6 +58,120 @@ export const FieldNode = Node.create({
 
   renderText({ node }) {
     return `[${String(node.attrs['name'])}]`;
+  },
+});
+
+const HEX = /^#[0-9a-fA-F]{6}$/;
+
+/** Reads a CSS colour as #RRGGBB, or null (so only plain colours come in on paste). */
+function hexFrom(value: string | null | undefined): string | null {
+  const text = (value ?? '').trim();
+  if (HEX.test(text)) return text.toUpperCase();
+  const short = /^#([0-9a-f])([0-9a-f])([0-9a-f])$/i.exec(text);
+  if (short)
+    return `#${short
+      .slice(1)
+      .map((c) => `${c}${c}`)
+      .join('')}`.toUpperCase();
+  const rgb =
+    /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*1(?:\.0+)?\s*)?\)$/i.exec(text);
+  if (!rgb) return null;
+  const parts = rgb.slice(1, 4).map(Number);
+  if (parts.some((part) => part > 255)) return null;
+  return `#${parts.map((part) => part.toString(16).padStart(2, '0')).join('')}`.toUpperCase();
+}
+
+/** Text pasted from web pages and Word is mostly near-black; that's the normal text colour. */
+function isNearBlack(color: string): boolean {
+  return [1, 3, 5].every((at) => parseInt(color.slice(at, at + 2), 16) <= 0x40);
+}
+
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    emailColours: {
+      /** Colours the selected text, or removes its colour with null. */
+      setTextColour: (color: string | null) => ReturnType;
+      /** Highlights the selected text, or removes the highlight with null. */
+      setHighlightColour: (color: string | null) => ReturnType;
+    };
+  }
+}
+
+/** Text colour, stored as #RRGGBB. */
+export const TextColorMark = Mark.create({
+  name: 'textColor',
+  addAttributes() {
+    return { color: { default: null } };
+  },
+  parseHTML() {
+    return [
+      {
+        tag: 'span[style]',
+        getAttrs: (element) => {
+          const color = hexFrom(element.style.color);
+          return color && !isNearBlack(color) ? { color } : false;
+        },
+      },
+      {
+        tag: 'font[color]',
+        getAttrs: (element) => {
+          const color = hexFrom(element.getAttribute('color'));
+          return color && !isNearBlack(color) ? { color } : false;
+        },
+      },
+    ];
+  },
+  renderHTML({ mark }) {
+    const color = String(mark.attrs['color'] ?? '');
+    return ['span', HEX.test(color) ? { style: `color:${color}` } : {}, 0];
+  },
+  addCommands() {
+    return {
+      setTextColour:
+        (color) =>
+        ({ commands }) =>
+          color && HEX.test(color)
+            ? commands.setMark(this.name, { color: color.toUpperCase() })
+            : commands.unsetMark(this.name),
+    };
+  },
+});
+
+/** A highlighter behind text, stored as #RRGGBB. */
+export const HighlightMark = Mark.create({
+  name: 'highlight',
+  addAttributes() {
+    return { color: { default: null } };
+  },
+  parseHTML() {
+    return [
+      {
+        tag: 'mark',
+        getAttrs: (element) => ({ color: hexFrom(element.style.backgroundColor) ?? '#FFF4A3' }),
+      },
+      {
+        tag: 'span[style]',
+        getAttrs: (element) => {
+          const color = hexFrom(element.style.backgroundColor);
+          // White and transparent backgrounds pasted from web pages aren't highlights.
+          return color && color !== '#FFFFFF' ? { color } : false;
+        },
+      },
+    ];
+  },
+  renderHTML({ mark }) {
+    const color = String(mark.attrs['color'] ?? '');
+    return ['mark', HEX.test(color) ? { style: `background-color:${color};color:inherit` } : {}, 0];
+  },
+  addCommands() {
+    return {
+      setHighlightColour:
+        (color) =>
+        ({ commands }) =>
+          color && HEX.test(color)
+            ? commands.setMark(this.name, { color: color.toUpperCase() })
+            : commands.unsetMark(this.name),
+    };
   },
 });
 
@@ -239,8 +353,6 @@ const dataAttribute = (name: string, dataName = name) => ({
   },
 });
 
-const HEX = /^#[0-9a-fA-F]{6}$/;
-
 /** Puts a table's look on its element in the editor, where the CSS picks it up. */
 function showTableLook(table: HTMLTableElement, node: ProseMirrorNode): void {
   for (const name of ['borders', 'spacing'] as const) {
@@ -398,6 +510,8 @@ export const writeModeExtensions = [
     },
   }),
   TextAlign.configure({ types: ['heading', 'paragraph'], alignments: ['left', 'center', 'right'] }),
+  TextColorMark,
+  HighlightMark,
   FieldNode,
   ButtonNode,
   ImageNode,

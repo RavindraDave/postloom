@@ -86,6 +86,8 @@ export function templateFields(
     needsValue.set(name, (needsValue.get(name) ?? false) || needs);
   };
   for (const name of subjectFields(subject)) note(name, true);
+  // An empty detail in the inbox preview line just shortens it.
+  for (const name of subjectFields(document.attrs?.previewText ?? '')) note(name, false);
   walkBlocks(document, (block) => {
     if (block.type === 'conditional') note(block.attrs.field, false);
   });

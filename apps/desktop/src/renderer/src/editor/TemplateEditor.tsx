@@ -191,6 +191,18 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
     changeLook(Object.keys(detailFormats).length > 0 ? { ...look, detailFormats } : look);
   };
 
+  /** The inbox preview line lives with the template's look, in the document. */
+  const setPreviewText = (value: string) => {
+    setDocument((previous) => {
+      const attrs: TemplateLook = { ...previous.attrs };
+      delete attrs.previewText;
+      if (value.trim()) attrs.previewText = value;
+      const content: WriteDocument = { type: previous.type, content: previous.content };
+      return Object.keys(attrs).length > 0 ? { ...content, attrs } : content;
+    });
+    changed();
+  };
+
   const changeLook = (attrs: TemplateLook) => {
     setDocument((previous) => {
       const content: WriteDocument = { type: previous.type, content: previous.content };
@@ -282,8 +294,9 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
   );
   const pickImage = usePickImage();
   const [newPicture, setNewPicture] = useState<{ assetId: string; width: number } | null>(null);
-  const [detailTarget, setDetailTarget] = useState<'body' | 'subject'>('body');
+  const [detailTarget, setDetailTarget] = useState<'body' | 'subject' | 'preview'>('body');
   const subjectInsert = useRef<((name: string) => void) | null>(null);
+  const previewInsert = useRef<((name: string) => void) | null>(null);
   const [subjectKey, setSubjectKey] = useState(0);
 
   const status: 'saved' | 'saving' | 'unsaved' | 'error' | 'invalid' = invalid
@@ -462,6 +475,21 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
             }}
             insertRef={subjectInsert}
           />
+          <SubjectInput
+            key={`preview-${String(subjectKey)}`}
+            label={t('editor.previewTextLabel')}
+            hint={t('editor.previewTextHint')}
+            hintId="preview-text-hint"
+            insertLabel={t('editor.previewTextInsertDetail')}
+            value={document.attrs?.previewText ?? ''}
+            onChange={setPreviewText}
+            fields={fields}
+            onNewDetail={() => {
+              setDetailTarget('preview');
+              setDialog('detail');
+            }}
+            insertRef={previewInsert}
+          />
           {pickImage.error && (
             <Alert color="red" icon={<IconAlertTriangle />} role="alert">
               {t(errorKey(pickImage.error))}
@@ -627,6 +655,7 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
           } else {
             setExtraFields((current) => [...current, value.name]);
             if (detailTarget === 'subject') subjectInsert.current?.(value.name);
+            else if (detailTarget === 'preview') previewInsert.current?.(value.name);
             else insertField(value.name, value.fallback);
           }
           closeDialog();
