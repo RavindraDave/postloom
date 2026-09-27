@@ -611,3 +611,118 @@ describe('layouts and the template’s own look', () => {
     expect(withLook({ layout: 'poster' })).toBe(false);
   });
 });
+
+describe('table formatting', () => {
+  const cell = (text: string, attrs?: Record<string, unknown>, align?: 'right' | 'center') => ({
+    type: 'tableCell',
+    ...(attrs && { attrs }),
+    content: [
+      {
+        type: 'paragraph',
+        ...(align && { attrs: { textAlign: align } }),
+        content: [{ type: 'text', text }],
+      },
+    ],
+  });
+  const headerCell = (text: string, attrs?: Record<string, unknown>) => ({
+    ...cell(text, attrs),
+    type: 'tableHeader',
+  });
+  const invoice = (tableAttrs: Record<string, unknown>) =>
+    writeDocumentSchema.parse({
+      type: 'doc',
+      content: [
+        {
+          type: 'table',
+          attrs: tableAttrs,
+          content: [
+            {
+              type: 'tableRow',
+              content: [
+                headerCell('Item', { colwidth: [300] }),
+                headerCell('Amount', { colwidth: [100] }),
+              ],
+            },
+            { type: 'tableRow', content: [cell('Design'), cell('₹12,400', undefined, 'right')] },
+          ],
+        },
+      ],
+    });
+
+  it('keeps the columns at the widths set in the editor, for Outlook too', async () => {
+    const { html, warnings } = await compileMjml(writeDocumentToMjml(invoice({})));
+    expect(warnings).toEqual([]);
+    expect(html).toContain('width="75%"');
+    expect(html).toContain('width="25%"');
+  });
+
+  it('lines amounts up on the right', async () => {
+    const { html } = await compileMjml(writeDocumentToMjml(invoice({})));
+    expect(html).toMatch(/text-align:right[^>]*>₹12,400/);
+  });
+
+  it('draws a full grid in the chosen colour, with roomy cells', async () => {
+    const { html } = await compileMjml(
+      writeDocumentToMjml(invoice({ borders: 'grid', borderColor: '#2F5D8C', spacing: 'roomy' })),
+    );
+    expect(html).toContain('border:1px solid #2F5D8C');
+    expect(html).toContain('padding:12px 14px');
+  });
+
+  it('leaves the lines out when asked', () => {
+    const mjml = writeDocumentToMjml(invoice({ borders: 'none' }));
+    expect(mjml).not.toContain('border-bottom');
+    expect(mjml).not.toContain('border:1px');
+  });
+
+  it('colours the header row with readable text, and single cells', () => {
+    const dark = writeDocumentToMjml(invoice({ headerColor: '#0E6B66' }));
+    expect(dark).toContain('background-color:#0E6B66;color:#FFFFFF');
+    const light = writeDocumentToMjml(invoice({ headerColor: '#F3EFE7' }));
+    expect(light).toContain('background-color:#F3EFE7;color:#222222');
+
+    const doc = writeDocumentSchema.parse({
+      type: 'doc',
+      content: [
+        {
+          type: 'table',
+          content: [
+            {
+              type: 'tableRow',
+              content: [cell('Total', { background: '#FFF4CC', valign: 'middle' })],
+            },
+          ],
+        },
+      ],
+    });
+    const mjml = writeDocumentToMjml(doc);
+    expect(mjml).toContain('vertical-align:middle;background-color:#FFF4CC');
+  });
+
+  it('can be only as wide as its contents, in both layouts', () => {
+    expect(writeDocumentToMjml(invoice({ fit: true }))).not.toContain('width="100%"');
+    expect(writeDocumentToMjml(asCard(invoice({ fit: true })))).toContain('<mj-table width="auto"');
+  });
+
+  it('looks as it always did when nothing is set', () => {
+    const mjml = writeDocumentToMjml(invoice({}));
+    expect(mjml).toContain('border-bottom:2px solid #DDDDDD');
+    expect(mjml).toContain('border-bottom:1px solid #EEEEEE');
+    expect(mjml).toContain('padding:8px 10px');
+  });
+
+  it('refuses colours that could break out of the style', () => {
+    expect(
+      writeDocumentSchema.safeParse({
+        type: 'doc',
+        content: [
+          {
+            type: 'table',
+            attrs: { headerColor: 'red;background:url(x)' },
+            content: [{ type: 'tableRow', content: [cell('x')] }],
+          },
+        ],
+      }).success,
+    ).toBe(false);
+  });
+});

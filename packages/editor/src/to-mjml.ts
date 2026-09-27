@@ -309,7 +309,7 @@ function letterBlock(block: BlockNode, context: RenderContext): string {
     case 'footer':
       return `<p style="margin:24px 0 0;font-size:13px;line-height:1.5;color:#6B6B6B">${renderInline(block.content, fieldMode)}</p>`;
     case 'table':
-      return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;width:100%;margin:4px 0 16px;font-size:${String(context.textSize - 1)}px;line-height:1.5;color:#222222">${tableRows(block, fieldMode)}</table>`;
+      return `<table role="presentation" cellpadding="0" cellspacing="0" border="0"${block.attrs?.fit ? '' : ' width="100%"'} style="border-collapse:collapse;${block.attrs?.fit ? '' : 'width:100%;'}margin:4px 0 16px;font-size:${String(context.textSize - 1)}px;line-height:1.5;color:#222222">${tableRows(block, fieldMode)}</table>`;
     case 'columns': {
       const width = `${String(Math.floor(100 / block.content.length))}%`;
       const cells = block.content
@@ -376,34 +376,108 @@ function liquidCondition(rule: { field: string; op: ConditionOp; value?: string 
 }
 
 function renderTable(table: TableNode, fieldMode: FieldMode): string {
-  return `<mj-table font-size="15px" line-height="1.5" color="#222222" padding="10px 0">${tableRows(table, fieldMode)}</mj-table>`;
+  const width = table.attrs?.fit ? 'auto' : '100%';
+  return `<mj-table width="${width}" font-size="15px" line-height="1.5" color="#222222" padding="10px 0">${tableRows(table, fieldMode)}</mj-table>`;
 }
 
+/** Room inside each cell, by the table's spacing. */
+const CELL_PADDING = { compact: '4px 8px', normal: '8px 10px', roomy: '12px 14px' } as const;
+/** What the lines looked like before tables had a border colour. */
+const HEADER_LINE = '#DDDDDD';
+const ROW_LINE = '#EEEEEE';
+/** Width the editor gives a column nobody has resized. */
+const DEFAULT_COLUMN_PX = 120;
+
+/**
+ * The table's column widths as percentages, when any column was resized in
+ * the editor (read from the first row); null leaves the columns to the email app.
+ */
+export function columnPercents(table: TableNode): number[] | null {
+  const first = table.content[0];
+  if (!first) return null;
+  const widths: (number | null)[] = [];
+  for (const cell of first.content) {
+    const span = cell.attrs?.colspan ?? 1;
+    const sized = cell.attrs?.colwidth;
+    for (let i = 0; i < span; i += 1) widths.push(sized?.[i] ?? null);
+  }
+  if (widths.every((width) => width === null)) return null;
+  const px = widths.map((width) => width ?? DEFAULT_COLUMN_PX);
+  const total = px.reduce((sum, width) => sum + width, 0);
+  return px.map((width) => Math.round((width / total) * 1000) / 10);
+}
+
+/** White or near-black text, whichever reads better on this background. */
+export function readableTextOn(hex: string): string {
+  const channel = (offset: number) => {
+    const value = parseInt(hex.slice(offset, offset + 2), 16) / 255;
+    return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  };
+  const luminance = 0.2126 * channel(1) + 0.7152 * channel(3) + 0.0722 * channel(5);
+  return luminance > 0.4 ? '#222222' : '#FFFFFF';
+}
+
+/**
+ * The rows of a table as HTML, with every look setting as an inline style or
+ * attribute on the cells: what Outlook, Gmail and Apple Mail all respect.
+ */
 function tableRows(table: TableNode, fieldMode: FieldMode): string {
-  const striped = table.attrs?.striped ?? false;
+  const attrs = table.attrs;
+  const striped = attrs?.striped ?? false;
+  const borders = attrs?.borders ?? 'rows';
+  const padding = CELL_PADDING[attrs?.spacing ?? 'normal'];
+  const percents = columnPercents(table);
+
   return table.content
-    .map((row, index) => {
-      const background = striped && index % 2 === 1 ? ' style="background-color:#F6F7F9"' : '';
+    .map((row, rowIndex) => {
+      const stripe = striped && rowIndex % 2 === 1 ? ' style="background-color:#F6F7F9"' : '';
+      let column = 0;
       const cells = row.content
         .map((cell) => {
-          const tag = cell.type === 'tableHeader' ? 'th' : 'td';
+          const header = cell.type === 'tableHeader';
+          const tag = header ? 'th' : 'td';
+          const colspan = cell.attrs?.colspan ?? 1;
           const span = [
-            cell.attrs?.colspan && cell.attrs.colspan > 1
-              ? ` colspan="${String(cell.attrs.colspan)}"`
-              : '',
+            colspan > 1 ? ` colspan="${String(colspan)}"` : '',
             cell.attrs?.rowspan && cell.attrs.rowspan > 1
               ? ` rowspan="${String(cell.attrs.rowspan)}"`
               : '',
           ].join('');
-          const style =
-            cell.type === 'tableHeader'
-              ? 'padding:8px 10px;border-bottom:2px solid #DDDDDD;text-align:left;font-weight:700'
-              : 'padding:8px 10px;border-bottom:1px solid #EEEEEE;text-align:left';
+
+          // Widths go on the first row only, as an attribute (for Outlook) and a style.
+          let width = '';
+          const style = [`padding:${padding}`];
+          if (rowIndex === 0 && percents) {
+            const share = percents.slice(column, column + colspan).reduce((a, b) => a + b, 0);
+            width = ` width="${String(Math.round(share * 10) / 10)}%"`;
+            style.push(`width:${String(Math.round(share * 10) / 10)}%`);
+          }
+          column += colspan;
+
+          style.push(`text-align:${cell.content[0]?.attrs?.textAlign ?? 'left'}`);
+          if (cell.attrs?.valign) style.push(`vertical-align:${cell.attrs.valign}`);
+
+          const background = cell.attrs?.background ?? (header ? attrs?.headerColor : undefined);
+          if (background) {
+            style.push(`background-color:${background}`, `color:${readableTextOn(background)}`);
+          }
+          if (header) style.push('font-weight:700');
+
+          if (borders === 'grid') {
+            style.push(`border:1px solid ${attrs?.borderColor ?? HEADER_LINE}`);
+          } else if (borders === 'rows') {
+            style.push(
+              header
+                ? `border-bottom:2px solid ${attrs?.borderColor ?? HEADER_LINE}`
+                : `border-bottom:1px solid ${attrs?.borderColor ?? ROW_LINE}`,
+            );
+          }
+
           const text = cell.content.map((p) => renderInline(p.content, fieldMode)).join('<br />');
-          return `<${tag}${span} style="${style}">${text}</${tag}>`;
+          return `<${tag}${span}${width} style="${style.join(';')}">${text}</${tag}>`;
         })
         .join('');
-      return `<tr${background}>${cells}</tr>`;
+      return `<tr${stripe}>${cells}</tr>`;
     })
     .join('');
 }

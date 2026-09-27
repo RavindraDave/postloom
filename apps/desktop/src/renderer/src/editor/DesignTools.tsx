@@ -13,6 +13,7 @@ import type { Editor } from '@tiptap/react';
 import { useEditorState } from '@tiptap/react';
 import { useTranslation } from 'react-i18next';
 import { insertBlock, newTable } from './insertBlock';
+import { TableFormatPanel } from './TableFormatPanel';
 
 interface DesignToolsProps {
   editor: Editor;
@@ -141,6 +142,7 @@ export function DesignTools({ editor, onAddRule, onEditRule }: DesignToolsProps)
           >
             {t('editor.table.striped')}
           </Button>
+          <TableFormatPanel editor={editor} />
           <Button
             variant="subtle"
             size="xs"
