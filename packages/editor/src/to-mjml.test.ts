@@ -611,3 +611,44 @@ describe('layouts and the template’s own look', () => {
     expect(withLook({ layout: 'poster' })).toBe(false);
   });
 });
+
+describe('detail formats', () => {
+  const doc = writeDocumentSchema.parse({
+    type: 'doc',
+    attrs: { detailFormats: { 'Due Date': 'date-long', Amount: 'money-inr' } },
+    content: [
+      {
+        type: 'paragraph',
+        content: [
+          { type: 'field', attrs: { name: 'Amount' } },
+          { type: 'text', text: ' by ' },
+          { type: 'field', attrs: { name: 'Due Date' } },
+        ],
+      },
+      {
+        type: 'conditional',
+        attrs: { field: 'Due Date', op: 'equals', value: '2026-10-01' },
+        content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Due this week' }] }],
+      },
+    ],
+  });
+
+  it('previews example details in their formats', () => {
+    const mjml = writeDocumentToMjml(doc, DEFAULT_BRAND, {
+      values: { Amount: '124000', 'Due Date': '2026-10-01' },
+    });
+    expect(mjml).toContain('₹1,24,000.00 by 1 October 2026');
+    // "Show only if" still decides on the value as it is in the list.
+    expect(mjml).toContain('Due this week');
+  });
+
+  it('accepts only known formats', () => {
+    expect(
+      writeDocumentSchema.safeParse({
+        type: 'doc',
+        attrs: { detailFormats: { Amount: 'money-btc' } },
+        content: [],
+      }).success,
+    ).toBe(false);
+  });
+});

@@ -29,6 +29,7 @@ import {
   TEXT_SIZES,
   usesDesignBlocks,
   withTemplateLook,
+  type DetailFormat,
   type TemplateLook,
   type WriteDocument,
 } from '@postloom/editor';
@@ -146,6 +147,19 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
 
   const changed = () => {
     setRevision((value) => value + 1);
+  };
+
+  /** How a detail's dates or amounts are shown, everywhere it appears in this template. */
+  const setDetailFormat = (name: string, format: DetailFormat | undefined) => {
+    if (document.attrs?.detailFormats?.[name] === format) return;
+    const detailFormats = Object.fromEntries(
+      Object.entries({ ...document.attrs?.detailFormats, [name]: format }).filter(
+        ([, value]) => value !== undefined,
+      ),
+    ) as Record<string, DetailFormat>;
+    const look: TemplateLook = { ...document.attrs };
+    delete look.detailFormats;
+    changeLook(Object.keys(detailFormats).length > 0 ? { ...look, detailFormats } : look);
   };
 
   const changeLook = (attrs: TemplateLook) => {
@@ -570,10 +584,15 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
         onClose={closeDialog}
         initial={
           dialog === 'editDetail' && selectedField
-            ? { name: text(selectedField['name']), fallback: text(selectedField['fallback']) }
+            ? {
+                name: text(selectedField['name']),
+                fallback: text(selectedField['fallback']),
+                format: document.attrs?.detailFormats?.[text(selectedField['name'])],
+              }
             : undefined
         }
         onSave={(value) => {
+          setDetailFormat(value.name, value.format);
           if (dialog === 'editDetail') {
             editor.chain().focus().updateAttributes('field', { fallback: value.fallback }).run();
           } else {
@@ -707,7 +726,11 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
               <>
                 <Text size="sm" fw={600} data-testid="preview-subject">
                   {t('editor.examples.subject', {
-                    subject: renderSubject(subject, usingExamples ? exampleValues : undefined),
+                    subject: renderSubject(
+                      subject,
+                      usingExamples ? exampleValues : undefined,
+                      document.attrs?.detailFormats,
+                    ),
                   })}
                 </Text>
                 <EmailPreview

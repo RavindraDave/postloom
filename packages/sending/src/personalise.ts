@@ -1,4 +1,4 @@
-import { renderSubject } from '@postloom/editor';
+import { formatValues, renderSubject, type DetailFormat } from '@postloom/editor';
 import { toPlainText } from '@postloom/email';
 import { Liquid } from 'liquidjs';
 
@@ -9,6 +9,8 @@ export interface PreparedTemplate {
   subject: string;
   /** Used as the subject if it comes out empty. */
   fallbackSubject: string;
+  /** How the template shows each detail (dates, amounts), from its document. */
+  formats?: Partial<Record<string, DetailFormat>> | undefined;
 }
 
 export interface PersonalEmail {
@@ -31,10 +33,12 @@ export function createPersonaliser(prepared: PreparedTemplate) {
   });
   const parsed = liquid.parse(prepared.html);
   return async (values: Record<string, string>): Promise<PersonalEmail> => {
-    const row = Object.assign(Object.create(null) as Record<string, string>, values);
+    // Dates and amounts in the template's formats; everything else as it is.
+    const shown = formatValues(values, prepared.formats);
+    const row = Object.assign(Object.create(null) as Record<string, string>, shown);
     const html = (await liquid.render(parsed, { row })) as string;
     return {
-      subject: renderSubject(prepared.subject, values) || prepared.fallbackSubject,
+      subject: renderSubject(prepared.subject, shown) || prepared.fallbackSubject,
       html,
       text: toPlainText(html),
     };

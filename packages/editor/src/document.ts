@@ -1,4 +1,5 @@
 import { EMAIL_FONT_STACKS } from './fonts';
+import { detailFormatSchema } from './formats';
 import { z } from 'zod';
 
 /**
@@ -259,6 +260,11 @@ export const templateLookSchema = z.object({
     .optional(),
   /** False hides the sender's logo in this template. */
   showLogo: z.boolean().optional(),
+  /** How each personal detail is shown (dates, amounts), in the subject and the letter. */
+  detailFormats: z
+    .record(fieldNameSchema, detailFormatSchema)
+    .refine((formats) => Object.keys(formats).length <= 100, 'Too many detail formats')
+    .optional(),
 });
 
 export const writeDocumentSchema = z.object({

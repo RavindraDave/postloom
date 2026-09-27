@@ -1,4 +1,5 @@
 import { collectAssetIds, documentLayout, type TemplateLook, type TextSize } from './document';
+import { formatValues } from './formats';
 import type {
   BlockNode,
   ColumnsNode,
@@ -99,7 +100,14 @@ export function writeDocumentToMjml(
 ): string {
   const look = sanitiseBrand(withTemplateLook(brand, doc.attrs));
   const textSize = TEXT_SIZES[doc.attrs?.textSize ?? 'normal'];
-  const context: RenderContext = { look, fieldMode, imageSrc, textSize };
+  // Example or test values are shown in the template's formats; "show only if"
+  // parts decide on the values as they are in the list.
+  const conditionValues = typeof fieldMode === 'object' ? fieldMode.values : undefined;
+  const shown: FieldMode =
+    typeof fieldMode === 'object'
+      ? { values: formatValues(fieldMode.values, doc.attrs?.detailFormats) }
+      : fieldMode;
+  const context: RenderContext = { look, fieldMode: shown, imageSrc, textSize, conditionValues };
   if (documentLayout(doc) === 'letter') return letterMjml(doc, context);
   const logo = look.logo
     ? `<mj-image src="${escapeAttribute(imageSrc(look.logo.assetId))}" alt="${escapeAttribute(look.logo.alt)}" width="${String(Math.min(look.logo.width, MAX_LOGO_WIDTH))}px" align="left" padding="0 0 20px" />`
@@ -170,6 +178,8 @@ interface RenderContext {
   imageSrc: ImageSource;
   /** Body text size in px. */
   textSize: number;
+  /** The unformatted example values that "show only if" parts decide on. */
+  conditionValues?: Record<string, string> | undefined;
 }
 
 /** Every stored picture an email carries: the logo (unless hidden) and its pictures. */
@@ -228,7 +238,9 @@ function renderBlock(block: RenderableBlock, context: RenderContext): string {
       const inner = block.content.map((child) => renderBlock(child, context)).join('\n');
       if (fieldMode === 'placeholder') return inner;
       if (fieldMode !== 'liquid') {
-        return conditionHolds(block.attrs, fieldMode.values) ? inner : '';
+        return conditionHolds(block.attrs, context.conditionValues ?? fieldMode.values)
+          ? inner
+          : '';
       }
       return [
         `<mj-raw>${liquidCondition(block.attrs)}</mj-raw>`,
@@ -324,7 +336,9 @@ function letterBlock(block: BlockNode, context: RenderContext): string {
       const inner = block.content.map((child) => letterBlock(child, context)).join('\n');
       if (fieldMode === 'placeholder') return inner;
       if (fieldMode !== 'liquid') {
-        return conditionHolds(block.attrs, fieldMode.values) ? inner : '';
+        return conditionHolds(block.attrs, context.conditionValues ?? fieldMode.values)
+          ? inner
+          : '';
       }
       return [liquidCondition(block.attrs), inner, '{% endif %}'].join('\n');
     }
