@@ -47,8 +47,14 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     env:
-      # Unsigned test builds until code signing is set up (PLAN.md decision D4).
+      # No signing certificates anywhere (decision D10): Windows is signed by the
+      # Store, macOS only ad-hoc.
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      # electron-builder skips all signing on pull-request builds, even ad-hoc,
+      # which leaves the macOS app with a broken signature. Sign PRs the same way
+      # as releases, so CI checks what ships. Safe here: there are no certificates
+      # to expose (ad-hoc only), and GitHub gives fork PRs no secrets anyway.
+      CSC_FOR_PULL_REQUEST: 'true'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
