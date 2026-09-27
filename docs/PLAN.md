@@ -543,11 +543,13 @@ A fuller STRIDE threat model lives in `docs/security/threat-model.md` and is rev
 | Preview re-render on change | < 300ms |
 | Import 10k-row spreadsheet | < 5s, UI stays responsive |
 | Memory during a 5k-recipient send | Flat (no growth per recipient); sending adds < 300MB (Linux) / < 420MB (macOS) to the app at rest* |
-| Installer size | < 150MB |
+| Installer size | < 150MB; the Microsoft Store package < 190MB† |
 
 Checked in CI: `pnpm e2e:perf` (Linux, `apps/desktop/e2e/performance.spec.ts`) times each budget in the built app and prints the numbers; the installer size is checked on all three systems after packaging. `scripts/verify-mac.sh` runs the same suite on macOS.
 
 \* Changed from "< 400MB total" (Phase 5): Electron's own processes (main, screen, graphics and network) already use about 600MB at rest on a CI machine with no graphics card, before Postloom does anything. What Postloom controls is what sending adds (measured on Linux CI: 187MB) and whether it grows (the sending process holds memory it tidies up later; `memory.test.ts` in `@postloom/sending` shows the memory in use stays flat). macOS runs a real, Metal-backed GPU process and a larger Chromium baseline that the headless Linux runner doesn't have, so it gets its own budget rather than inheriting the Linux figure: measured 303-363MB across repeated local runs (Phase 6, verifying feat/phase-6-security on a Mac), with headroom set at 420MB.
+
+† The Store package (AppX) holds the same app as the `.exe`, but AppX compresses each file on its own where NSIS compresses the lot together, so the same payload is bigger: measured 167MB against the installer's 112MB (Phase 6, the first Store build). People get it through the Store rather than as a direct download, so it has its own ceiling rather than loosening the one for downloads.
 
 ---
 
