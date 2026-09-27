@@ -1,3 +1,4 @@
+import { collectAssetIds, documentLayout, type TemplateLook, type TextSize } from './document';
 import type {
   BlockNode,
   ColumnsNode,
@@ -56,16 +57,7 @@ export function imageContentId(assetId: string): string {
 
 export const inlineImageSource: ImageSource = (assetId) => `cid:${imageContentId(assetId)}`;
 
-/** Fonts that look the same in (almost) every email app. */
-export const EMAIL_FONTS = [
-  { id: 'arial', label: 'Arial', stack: 'Arial, Helvetica, sans-serif' },
-  { id: 'verdana', label: 'Verdana', stack: 'Verdana, Geneva, sans-serif' },
-  { id: 'tahoma', label: 'Tahoma', stack: 'Tahoma, Geneva, sans-serif' },
-  { id: 'trebuchet', label: 'Trebuchet MS', stack: "'Trebuchet MS', Helvetica, sans-serif" },
-  { id: 'georgia', label: 'Georgia', stack: 'Georgia, Times, serif' },
-  { id: 'times', label: 'Times New Roman', stack: "'Times New Roman', Times, serif" },
-  { id: 'courier', label: 'Courier New', stack: "'Courier New', Courier, monospace" },
-] as const;
+export { EMAIL_FONTS } from './fonts';
 
 export const DEFAULT_BRAND: BrandLook = {
   primaryColor: '#2F5D8C',
@@ -90,7 +82,10 @@ export type FieldMode = 'liquid' | 'placeholder' | { values: Record<string, stri
 /**
  * Converts a Write- or Design-mode document to MJML.
  *
- * The letter becomes a run of white sections: plain blocks share one
+ * A `letter` (the default) is plain HTML that fills the reader's window, like
+ * an email typed in Gmail or Outlook: no box, no coloured surround. A `card`
+ * is a centred column on the brand's background, like a newsletter: it
+ * becomes a run of white sections: plain blocks share one
  * section, and each set of columns gets its own, so the email reads as one
  * page. Everything the user typed is HTML-escaped, and `{` is encoded so
  * typed text can never become a Liquid tag. Only http(s) and mailto links
@@ -102,8 +97,10 @@ export function writeDocumentToMjml(
   fieldMode: FieldMode = 'liquid',
   imageSrc: ImageSource = inlineImageSource,
 ): string {
-  const look = sanitiseBrand(brand);
-  const context: RenderContext = { look, fieldMode, imageSrc };
+  const look = sanitiseBrand(withTemplateLook(brand, doc.attrs));
+  const textSize = TEXT_SIZES[doc.attrs?.textSize ?? 'normal'];
+  const context: RenderContext = { look, fieldMode, imageSrc, textSize };
+  if (documentLayout(doc) === 'letter') return letterMjml(doc, context);
   const logo = look.logo
     ? `<mj-image src="${escapeAttribute(imageSrc(look.logo.assetId))}" alt="${escapeAttribute(look.logo.alt)}" width="${String(Math.min(look.logo.width, MAX_LOGO_WIDTH))}px" align="left" padding="0 0 20px" />`
     : '';
@@ -157,7 +154,7 @@ export function writeDocumentToMjml(
     '<mj-head>',
     '<mj-attributes>',
     `<mj-all font-family="${escapeAttribute(look.fontFamily)}" />`,
-    '<mj-text font-size="16px" line-height="1.6" color="#222222" padding="6px 0" />',
+    `<mj-text font-size="${String(context.textSize)}px" line-height="1.6" color="#222222" padding="6px 0" />`,
     '</mj-attributes>',
     '</mj-head>',
     `<mj-body background-color="${look.backgroundColor}">`,
@@ -171,6 +168,29 @@ interface RenderContext {
   look: BrandLook;
   fieldMode: FieldMode;
   imageSrc: ImageSource;
+  /** Body text size in px. */
+  textSize: number;
+}
+
+/** Every stored picture an email carries: the logo (unless hidden) and its pictures. */
+export function emailAssetIds(doc: WriteDocument, brand: BrandLook): string[] {
+  const logo = withTemplateLook(brand, doc.attrs).logo;
+  return [...(logo ? [logo.assetId] : []), ...collectAssetIds(doc)];
+}
+
+/** Body text sizes a template can choose. */
+export const TEXT_SIZES: Record<TextSize, number> = { small: 14, normal: 16, large: 18 };
+
+/** The sender's look with the template's own choices on top. */
+export function withTemplateLook(brand: BrandLook, own: TemplateLook | undefined): BrandLook {
+  if (!own) return brand;
+  return {
+    ...brand,
+    ...(own.fontFamily && { fontFamily: own.fontFamily }),
+    ...(own.primaryColor && { primaryColor: own.primaryColor }),
+    ...(own.backgroundColor && { backgroundColor: own.backgroundColor }),
+    ...(own.showLogo === false && { logo: null }),
+  };
 }
 
 type RenderableBlock = Exclude<BlockNode, ColumnsNode>;
@@ -219,6 +239,102 @@ function renderBlock(block: RenderableBlock, context: RenderContext): string {
   }
 }
 
+// ------------------------------------------------------------ Letter layout
+
+const LETTER_HEADING_MARGIN = 'margin:18px 0 8px';
+
+/**
+ * A letter: the blocks as plain HTML inside one `mj-raw`, so MJML adds its
+ * usual head (and the phone rules below) but no fixed-width column.
+ */
+function letterMjml(doc: WriteDocument, context: RenderContext): string {
+  const { look, imageSrc, textSize } = context;
+  const logo = look.logo
+    ? `<div style="padding:0 0 16px"><img src="${escapeAttribute(imageSrc(look.logo.assetId))}" alt="${escapeAttribute(look.logo.alt)}" width="${String(Math.min(look.logo.width, MAX_LOGO_WIDTH))}" style="display:block;max-width:100%;height:auto;border:0" /></div>`
+    : '';
+  const blocks = doc.content.map((block) => letterBlock(block, context)).join('\n');
+  return [
+    '<mjml>',
+    '<mj-head>',
+    // On phones, columns sit one under the other.
+    '<mj-style>@media only screen and (max-width:480px){.pl-columns,.pl-columns tbody,.pl-columns tr,.pl-column{display:block!important;width:100%!important}.pl-column{padding:0!important}}</mj-style>',
+    '</mj-head>',
+    '<mj-body>',
+    '<mj-raw>',
+    `<div style="font-family:${escapeAttribute(look.fontFamily)};font-size:${String(textSize)}px;line-height:1.6;color:#222222;padding:8px 4px;text-align:left">`,
+    logo,
+    blocks,
+    '</div>',
+    '</mj-raw>',
+    '</mj-body>',
+    '</mjml>',
+  ].join('\n');
+}
+
+function letterBlock(block: BlockNode, context: RenderContext): string {
+  const { look, fieldMode, imageSrc } = context;
+  switch (block.type) {
+    case 'paragraph':
+      return `<p style="margin:0 0 14px${letterAlign(block.attrs?.textAlign)}">${renderInline(block.content, fieldMode) || '&nbsp;'}</p>`;
+    case 'heading': {
+      const tag = `h${String(block.attrs.level)}`;
+      return `<${tag} style="${LETTER_HEADING_MARGIN};font-size:${HEADING_SIZES[block.attrs.level]};line-height:1.3;font-weight:700${letterAlign(block.attrs.textAlign)}">${renderInline(block.content, fieldMode)}</${tag}>`;
+    }
+    case 'bulletList':
+    case 'orderedList':
+      return renderList(block, fieldMode, 'margin:0 0 14px;padding-left:28px');
+    case 'button': {
+      const href = safeHref(block.attrs.href);
+      const hrefAttribute = href ? ` href="${escapeAttribute(href)}"` : '';
+      return [
+        '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 18px;border-collapse:separate">',
+        `<tr><td style="border-radius:5px;background-color:${look.primaryColor}">`,
+        `<a${hrefAttribute} style="display:inline-block;padding:11px 24px;border-radius:5px;color:#FFFFFF;font-weight:700;text-decoration:none">${escapeText(block.attrs.label)}</a>`,
+        '</td></tr></table>',
+      ].join('');
+    }
+    case 'horizontalRule':
+      return '<hr style="border:0;border-top:1px solid #DDDDDD;margin:18px 0" />';
+    case 'image': {
+      const { assetId, alt, width, align, href } = block.attrs;
+      const img = `<img src="${escapeAttribute(imageSrc(assetId))}" alt="${escapeAttribute(alt)}" width="${String(width)}" style="display:inline-block;max-width:100%;height:auto;border:0" />`;
+      const link = href ? safeHref(href) : null;
+      const picture = link ? `<a href="${escapeAttribute(link)}">${img}</a>` : img;
+      return `<div style="margin:4px 0 14px;text-align:${align ?? 'left'}">${picture}</div>`;
+    }
+    case 'spacer': {
+      const height = String(block.attrs.height);
+      return `<div style="height:${height}px;line-height:${height}px;font-size:1px">&nbsp;</div>`;
+    }
+    case 'footer':
+      return `<p style="margin:24px 0 0;font-size:13px;line-height:1.5;color:#6B6B6B">${renderInline(block.content, fieldMode)}</p>`;
+    case 'table':
+      return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;width:100%;margin:4px 0 16px;font-size:${String(context.textSize - 1)}px;line-height:1.5;color:#222222">${tableRows(block, fieldMode)}</table>`;
+    case 'columns': {
+      const width = `${String(Math.floor(100 / block.content.length))}%`;
+      const cells = block.content
+        .map(
+          (column, index) =>
+            `<td class="pl-column" valign="top" width="${width}" style="vertical-align:top;padding:0 ${index === block.content.length - 1 ? '0' : '16px'} 0 0">${column.content.map((child) => letterBlock(child, context)).join('\n')}</td>`,
+        )
+        .join('');
+      return `<table role="presentation" class="pl-columns" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;width:100%;margin:0 0 4px"><tr>${cells}</tr></table>`;
+    }
+    case 'conditional': {
+      const inner = block.content.map((child) => letterBlock(child, context)).join('\n');
+      if (fieldMode === 'placeholder') return inner;
+      if (fieldMode !== 'liquid') {
+        return conditionHolds(block.attrs, fieldMode.values) ? inner : '';
+      }
+      return [liquidCondition(block.attrs), inner, '{% endif %}'].join('\n');
+    }
+  }
+}
+
+function letterAlign(align: 'left' | 'center' | 'right' | null | undefined): string {
+  return align && align !== 'left' ? `;text-align:${align}` : '';
+}
+
 /** Whether a "show only if" part shows for someone with these details. */
 export function conditionHolds(
   rule: { field: string; op: ConditionOp; value?: string | undefined },
@@ -260,8 +376,12 @@ function liquidCondition(rule: { field: string; op: ConditionOp; value?: string 
 }
 
 function renderTable(table: TableNode, fieldMode: FieldMode): string {
+  return `<mj-table font-size="15px" line-height="1.5" color="#222222" padding="10px 0">${tableRows(table, fieldMode)}</mj-table>`;
+}
+
+function tableRows(table: TableNode, fieldMode: FieldMode): string {
   const striped = table.attrs?.striped ?? false;
-  const rows = table.content
+  return table.content
     .map((row, index) => {
       const background = striped && index % 2 === 1 ? ' style="background-color:#F6F7F9"' : '';
       const cells = row.content
@@ -286,10 +406,13 @@ function renderTable(table: TableNode, fieldMode: FieldMode): string {
       return `<tr${background}>${cells}</tr>`;
     })
     .join('');
-  return `<mj-table font-size="15px" line-height="1.5" color="#222222" padding="10px 0">${rows}</mj-table>`;
 }
 
-function renderList(list: ListNode, fieldMode: FieldMode): string {
+function renderList(
+  list: ListNode,
+  fieldMode: FieldMode,
+  style = 'margin:0;padding-left:22px',
+): string {
   const items = list.content
     .map((item) => {
       const parts = item.content.map((child) =>
@@ -301,11 +424,11 @@ function renderList(list: ListNode, fieldMode: FieldMode): string {
     })
     .join('');
   if (list.type === 'bulletList') {
-    return `<ul style="margin:0;padding-left:22px">${items}</ul>`;
+    return `<ul style="${style}">${items}</ul>`;
   }
   const start = list.attrs?.start;
   const startAttribute = start !== undefined && start !== 1 ? ` start="${String(start)}"` : '';
-  return `<ol${startAttribute} style="margin:0;padding-left:22px">${items}</ol>`;
+  return `<ol${startAttribute} style="${style}">${items}</ol>`;
 }
 
 function alignAttribute(align: 'left' | 'center' | 'right' | null | undefined): string {

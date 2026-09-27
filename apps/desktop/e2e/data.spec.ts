@@ -1,4 +1,4 @@
-import { expect, firstPage, launchApp, test } from './fixtures';
+import { appVersion, expect, firstPage, launchApp, test } from './fixtures';
 
 test('backs up on request and keeps History and sending settings after a restart', async ({
   userDataDir,
@@ -23,7 +23,7 @@ test('backs up on request and keeps History and sending settings after a restart
   const limit = page.getByRole('textbox', { name: /Most emails a day/ });
   await limit.fill('200');
   await limit.blur();
-  await expect(page.getByText('Version 0.1.0')).toBeVisible();
+  await expect(page.getByText(`Version ${appVersion}`)).toBeVisible();
 
   await app.close();
   app = await launchApp(userDataDir);

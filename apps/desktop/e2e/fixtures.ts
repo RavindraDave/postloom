@@ -4,12 +4,17 @@ import {
   type ElectronApplication,
   type Page,
 } from '@playwright/test';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const appDir = join(dirname(fileURLToPath(import.meta.url)), '..');
+
+/** The app's version, as the About and Home screens show it. */
+export const appVersion = (
+  JSON.parse(readFileSync(join(appDir, 'package.json'), 'utf8')) as { version: string }
+).version;
 
 /**
  * Launches the built app (run `electron-vite build` first; `pnpm e2e` does)

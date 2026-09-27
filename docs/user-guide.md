@@ -111,6 +111,18 @@ Change the words to your own. Postloom saves as you type.
 - **From** is who this template usually comes from. You can change it when
   you send.
 
+**Look** (on the right) sets how this template's emails look:
+
+- **Layout:** **Full width** fills the reader's window, like an email you type
+  yourself. It's best for letters, reminders and business email. **Centred**
+  puts the email in a column on a coloured background, like a newsletter.
+- **Font**, **Text size** and **Button and link colour**.
+- **Colour around the email** (Centred only), and whether to **show the
+  sender's logo**.
+
+Anything left on "Same as sender" follows the sender's brand look, so one
+sender can use different looks in different templates.
+
 **Design** mode is for when you need more than words. It adds columns, tables,
 spacers, a footer, and parts shown only to some people. For example, a line
 can appear only to people who have a Discount in your list.

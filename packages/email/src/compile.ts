@@ -54,6 +54,11 @@ export function toPlainText(html: string): string {
     selectors: [
       { selector: 'img', format: 'skip' },
       { selector: 'a', options: { hideLinkHrefIfSameAsText: true } },
+      // Headings keep the case they were typed in, rather than shouting.
+      ...(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] as const).map((selector) => ({
+        selector,
+        options: { uppercase: false },
+      })),
     ],
   }).trim();
 }

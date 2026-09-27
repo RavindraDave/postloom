@@ -187,6 +187,7 @@ export const STARTER_GALLERY: StarterTemplate[] = [
     category: 'News',
     document: {
       type: 'doc',
+      attrs: { layout: 'card' },
       content: [
         heading('Big news'),
         greeting,
@@ -205,6 +206,7 @@ export const STARTER_GALLERY: StarterTemplate[] = [
     category: 'News',
     document: {
       type: 'doc',
+      attrs: { layout: 'card' },
       content: [
         heading('This month', 1),
         paragraph(
@@ -232,6 +234,7 @@ export const STARTER_GALLERY: StarterTemplate[] = [
     category: 'People',
     document: {
       type: 'doc',
+      attrs: { layout: 'card' },
       content: [
         {
           type: 'heading',

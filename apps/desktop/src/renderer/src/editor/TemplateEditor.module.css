@@ -75,7 +75,7 @@
   outline: none;
   min-height: 360px;
   font-family: var(--pl-letter-font, Arial, Helvetica, sans-serif);
-  font-size: 16px;
+  font-size: var(--pl-letter-size, 16px);
   line-height: 1.6;
 }
 

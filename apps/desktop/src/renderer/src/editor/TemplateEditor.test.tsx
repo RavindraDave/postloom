@@ -45,6 +45,36 @@ describe('TemplateEditor (Write mode)', () => {
     });
   });
 
+  it('gives the template its own look, over the sender’s', async () => {
+    const api = mockApi();
+    renderEditor();
+
+    const look = screen.getByRole('region', { name: 'Look' });
+    expect(within(look).getByText(/Fills the reader's window/)).toBeInTheDocument();
+    await userEvent.click(within(look).getByText('Centred'));
+    expect(within(look).getByLabelText('Colour around the email')).toBeInTheDocument();
+    await userEvent.click(within(look).getByText('Small'));
+
+    const savedLooks = () =>
+      vi.mocked(api.templates.save).mock.calls.map(([input]) => input.document?.attrs);
+    await waitFor(
+      () => {
+        expect(savedLooks()).toContainEqual({ layout: 'card', textSize: 'small' });
+      },
+      { timeout: 3000 },
+    );
+
+    // Back to Normal leaves the size to the default, so nothing extra is saved.
+    await userEvent.click(within(look).getByText('Normal'));
+    await userEvent.click(within(look).getByText('Full width'));
+    await waitFor(
+      () => {
+        expect(savedLooks().at(-1)).toEqual({ layout: 'letter' });
+      },
+      { timeout: 3000 },
+    );
+  });
+
   it('tells people what to fix before sending', async () => {
     mockApi();
     renderEditor();
