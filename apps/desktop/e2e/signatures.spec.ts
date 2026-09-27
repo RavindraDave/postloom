@@ -53,7 +53,8 @@ test('puts the sender’s formatted signature where the template places it', asy
   const letter = page.getByRole('textbox', { name: 'Email text' });
   await letter.click();
   await page.keyboard.press('ControlOrMeta+End');
-  await page.getByRole('button', { name: 'Signature', exact: true }).click();
+  await page.getByRole('button', { name: 'Insert', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Signature' }).click();
   await expect(page.getByTestId('letter-signature')).toContainText('Club secretary');
   await expect(page.getByTestId('save-status')).toHaveText('Saved');
 

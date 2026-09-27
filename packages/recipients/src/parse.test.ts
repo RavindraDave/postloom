@@ -63,7 +63,7 @@ describe('reading spreadsheets', () => {
     await expect(
       readSpreadsheet(new Uint8Array([0xd0, 0xcf, 0x11, 0xe0]), 'old.xls'),
     ).rejects.toMatchObject({
-      messageKey: 'errors.spreadsheetType',
+      messageKey: 'errors.spreadsheetOldExcel',
     });
     await expect(readSpreadsheet(utf8('%PDF-1.7'), 'file.pdf')).rejects.toMatchObject({
       messageKey: 'errors.spreadsheetType',

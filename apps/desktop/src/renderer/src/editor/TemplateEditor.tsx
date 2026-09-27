@@ -112,6 +112,10 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
   });
   const [writeBlocked, setWriteBlocked] = useState(false);
   const [invalid, setInvalid] = useState(false);
+  // Preview text is optional polish: folded away until wanted.
+  const [showPreviewText, setShowPreviewText] = useState(
+    Boolean(template.document.attrs?.previewText),
+  );
   const [extraFields, setExtraFields] = useState<string[]>([]);
   // Each change bumps `revision`; autosave catches `savedRevision` up to it.
   const [revision, setRevision] = useState(0);
@@ -476,21 +480,36 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
             }}
             insertRef={subjectInsert}
           />
-          <SubjectInput
-            key={`preview-${String(subjectKey)}`}
-            label={t('editor.previewTextLabel')}
-            hint={t('editor.previewTextHint')}
-            hintId="preview-text-hint"
-            insertLabel={t('editor.previewTextInsertDetail')}
-            value={document.attrs?.previewText ?? ''}
-            onChange={setPreviewText}
-            fields={fields}
-            onNewDetail={() => {
-              setDetailTarget('preview');
-              setDialog('detail');
-            }}
-            insertRef={previewInsert}
-          />
+          {showPreviewText ? (
+            <SubjectInput
+              key={`preview-${String(subjectKey)}`}
+              label={t('editor.previewTextLabel')}
+              hint={t('editor.previewTextHint')}
+              hintId="preview-text-hint"
+              insertLabel={t('editor.previewTextInsertDetail')}
+              value={document.attrs?.previewText ?? ''}
+              onChange={setPreviewText}
+              fields={fields}
+              onNewDetail={() => {
+                setDetailTarget('preview');
+                setDialog('detail');
+              }}
+              insertRef={previewInsert}
+            />
+          ) : (
+            <Anchor
+              component="button"
+              type="button"
+              size="sm"
+              ta="left"
+              mt={-8}
+              onClick={() => {
+                setShowPreviewText(true);
+              }}
+            >
+              {t('editor.previewTextAdd')}
+            </Anchor>
+          )}
           {pickImage.error && (
             <Alert color="red" icon={<IconAlertTriangle />} role="alert">
               {t(errorKey(pickImage.error))}

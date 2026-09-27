@@ -291,7 +291,8 @@ async function pickSpreadsheetFile(): Promise<(PickedFile & { folder: string }) 
     const options = {
       title: 'Choose your list of people',
       properties: ['openFile' as const],
-      filters: [{ name: 'Spreadsheets', extensions: ['xlsx', 'csv', 'txt'] }],
+      // .xls is listed so it can be picked and explained, not silently hidden.
+      filters: [{ name: 'Spreadsheets', extensions: ['xlsx', 'xls', 'csv', 'tsv', 'txt'] }],
     };
     const result = window
       ? await dialog.showOpenDialog(window, options)

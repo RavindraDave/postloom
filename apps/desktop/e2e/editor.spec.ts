@@ -127,7 +127,8 @@ test('adds a picture and a brand logo that arrive inside the test email', async 
   const letter = page.getByRole('textbox', { name: 'Email text' });
   await letter.click();
   await page.keyboard.press('Control+End');
-  await page.getByRole('button', { name: 'Picture' }).click();
+  await page.getByRole('button', { name: 'Insert', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Picture' }).click();
   await page.getByLabel(/Describe the picture/).fill('Our shop');
   await page.getByRole('button', { name: 'Add picture' }).click();
 

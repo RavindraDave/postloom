@@ -82,8 +82,10 @@ describe('SendersPage', () => {
     const api = mockApi();
     renderWithProviders(<SendersPage />);
 
-    await userEvent.click(await screen.findByRole('tab', { name: /Email accounts/ }));
+    // One account and one sender: one page, no tabs to tell them apart.
     const card = await screen.findByRole('region', { name: 'Office Gmail' });
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Email account' })).toBeInTheDocument();
     expect(within(card).getByText('Working')).toBeInTheDocument();
     expect(within(card).getByRole('button', { name: 'Remove' })).toBeDisabled();
     expect(
@@ -97,7 +99,9 @@ describe('SendersPage', () => {
 
   it('guides fixing an account whose password stopped working', async () => {
     const broken = { ...sampleAccount, lastTestOk: false };
-    const api = mockApi({ accounts: { list: vi.fn(() => ok([broken])) } });
+    const other = { ...sampleAccount, id: 'a2', name: 'Home mail', username: 'asha@home.example' };
+    // With a second account, accounts get their own tab, flagged when one needs you.
+    const api = mockApi({ accounts: { list: vi.fn(() => ok([broken, other])) } });
     renderWithProviders(<SendersPage />);
 
     const tab = await screen.findByRole('tab', { name: /Email accounts/ });

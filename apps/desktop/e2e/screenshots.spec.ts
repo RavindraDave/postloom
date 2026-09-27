@@ -101,10 +101,10 @@ test('capture setup and senders screens', async ({ userDataDir }) => {
     await page.waitForTimeout(300);
     await page.screenshot({ path: `${out}/home-checklist-${scheme}.png` });
     await page.getByRole('link', { name: 'Senders & accounts' }).click();
-    await page.getByRole('tab', { name: /Senders/ }).click();
     await page.waitForTimeout(300);
     await page.screenshot({ path: `${out}/senders-${scheme}.png` });
-    await page.getByRole('tab', { name: /Email accounts/ }).click();
+    // One account and one sender share a page; the account is below.
+    await page.getByRole('heading', { name: 'Email account' }).scrollIntoViewIfNeeded();
     await page.waitForTimeout(300);
     await page.screenshot({ path: `${out}/accounts-${scheme}.png` });
   }
@@ -112,7 +112,6 @@ test('capture setup and senders screens', async ({ userDataDir }) => {
   // A brand look with a logo.
   await page.emulateMedia({ colorScheme: 'light' });
   await page.getByRole('link', { name: 'Senders & accounts' }).click();
-  await page.getByRole('tab', { name: /Senders/ }).click();
   const brand = page.getByRole('region', { name: 'Brand look' });
   await brand.getByRole('button', { name: 'Add a brand look' }).click();
   await brand.getByRole('button', { name: 'Choose logo' }).click();

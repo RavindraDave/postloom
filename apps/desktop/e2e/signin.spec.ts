@@ -33,7 +33,6 @@ test('connects Gmail by signing in with Google, and sends through the Gmail API'
   await page.getByRole('button', { name: 'Go to Home' }).click();
 
   await page.getByRole('link', { name: 'Senders & accounts' }).click();
-  await page.getByRole('tab', { name: /Email accounts/ }).click();
   const card = page.getByRole('region', { name: 'asha@gmail.example' });
   await expect(card).toContainText('Signed in with Google');
 
