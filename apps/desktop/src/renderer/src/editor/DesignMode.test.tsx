@@ -165,7 +165,9 @@ describe('importing HTML from the Templates page', () => {
     );
 
     await userEvent.click(await screen.findByRole('button', { name: 'More template options' }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Import an HTML email or Word document…' }));
+    await userEvent.click(
+      await screen.findByRole('menuitem', { name: 'Import an HTML email or Word document…' }),
+    );
 
     await waitFor(() => {
       expect(api.templates.create).toHaveBeenCalledWith(
