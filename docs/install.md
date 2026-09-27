@@ -32,6 +32,10 @@ from then on.
 4. Click **Open Anyway** once more. Postloom opens, and your Mac remembers the
    choice.
 
+If there is no message about Postloom in Privacy & Security, try opening
+Postloom again: the **Open Anyway** button only appears for about an hour after
+your Mac blocks it, and then goes away.
+
 Updating: when a new version is out, Postloom tells you. Download it and drag
 it into Applications again, replacing the old one. Your templates, lists and
 settings are kept.
