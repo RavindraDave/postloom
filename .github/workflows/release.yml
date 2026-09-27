@@ -74,6 +74,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Package
         run: pnpm package
+        env:
+          # Sign in with Google/Microsoft (docs/oauth-setup.md). Left unset,
+          # the build offers passwords only.
+          POSTLOOM_GOOGLE_CLIENT_ID: ${{ vars.POSTLOOM_GOOGLE_CLIENT_ID }}
+          POSTLOOM_GOOGLE_CLIENT_SECRET: ${{ secrets.POSTLOOM_GOOGLE_CLIENT_SECRET }}
+          POSTLOOM_MICROSOFT_CLIENT_ID: ${{ vars.POSTLOOM_MICROSOFT_CLIENT_ID }}
       - name: Installer size budget
         run: node scripts/check-installer-size.mjs apps/desktop/release
       - name: The macOS app is signed (ad-hoc) and intact

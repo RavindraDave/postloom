@@ -122,7 +122,8 @@ export function mockApi(overrides: DeepPartial<PostloomApi> = {}): PostloomApi {
       update: vi.fn(() => ok(sampleAccount)),
       delete: vi.fn(() => ok({ ok: true as const })),
       testConnection: vi.fn(() => ok({ ok: true as const })),
-      signInProviders: vi.fn(() => ok(['google', 'microsoft'] as ('google' | 'microsoft')[])),
+      // Passwords only by default, like a build without sign-in app ids.
+      signInProviders: vi.fn(() => ok([] as ('google' | 'microsoft')[])),
       signIn: vi.fn((input: { provider: 'google' | 'microsoft' }) =>
         ok({
           ...sampleAccount,

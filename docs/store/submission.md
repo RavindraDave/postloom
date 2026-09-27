@@ -70,8 +70,9 @@ Expected result: suitable for all ages, with a "Users Interact" notice.
 **Notes for certification** — paste:
 
 > Postloom sends personal emails from the user's own email account to a list in
-> a spreadsheet. Sending needs an email account: any Gmail or Outlook.com
-> account with an app password works (Home → Connect your email). Everything
+> a spreadsheet. Sending needs an email account: any Gmail account works
+> (Home → Connect your email → Gmail → Sign in with Google, or a Gmail app
+> password). Outlook.com accounts sign in with Microsoft. Everything
 > else can be tried without one: Templates → New template (pick a starter),
 > the Write/Design editor, Preview, and Send emails → choose a spreadsheet
 > (any .xlsx or .csv with an "Email" column) to see how Postloom reads it. The
@@ -94,7 +95,8 @@ or pick manual publishing if you want to choose the day.
 >
 > It's built for people who aren't technical. A guided setup connects Gmail,
 > Outlook, Yahoo, Zoho, iCloud or your company's email in a few minutes, and
-> checks your password works before saving it. Starter templates for payment
+> checks it can send before saving it. Gmail and Outlook connect by signing in
+> with Google or Microsoft, so Postloom never sees your password. Starter templates for payment
 > reminders, invoices, thank-you notes, newsletters and invitations get you
 > going, and you can always send yourself a test first.
 >

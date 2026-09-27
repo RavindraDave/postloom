@@ -42,10 +42,18 @@ you. Choose **Connect your email** on Home, then pick your email provider.
 
 ![Choosing your email provider](images/setup-provider-light.png)
 
-Most providers need an **app password**. This is a separate password just for
+**Gmail and Outlook: sign in.** Choose **Sign in with Google** or **Sign in
+with Microsoft**. Your web browser opens the provider's own sign-in page; sign
+in there and allow Postloom to send email for you. Postloom never sees your
+password. For Gmail it asks only for permission to *send* email, not to read
+it. If you remove Postloom's access later (or change your password), the
+account shows **Sign in again** in Senders & accounts.
+
+**Everything else: an app password.** This is a separate password just for
 Postloom, not your normal one, and you can remove it at any time.
 
-- **Gmail and Google Workspace:**
+- **Gmail and Google Workspace** (if you'd rather not sign in, choose **Use an
+  app password instead**):
   1. Go to [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords).
      If the page won't let you create one, turn on 2-Step Verification first.
   2. Name the password "Postloom", then copy the 16 letters into Postloom.
@@ -53,18 +61,18 @@ Postloom, not your normal one, and you can remove it at any time.
   Work or school accounts may have app passwords switched off by the
   administrator. Accounts in Google's Advanced Protection Program can't use
   them at all.
-- **Outlook, Hotmail:**
-  1. In your Microsoft account, open Security and turn on two-step
-     verification.
-  2. Create an app password and paste it into Postloom.
-- **Microsoft 365 at work:** your IT team may need to turn on "Authenticated
-  SMTP" for your mailbox.
+- **Outlook.com and Hotmail:** sign in with Microsoft. Microsoft no longer
+  lets personal accounts send with an app password.
+- **Microsoft 365 at work:** sign in with Microsoft. If your IT team still
+  allows passwords, **Use a password instead** works too. Either way your IT
+  team may need to turn on "Authenticated SMTP" for your mailbox.
 - **Yahoo, Zoho, iCloud:** Postloom fills in the server details for you. You
   add your address and an app password.
-- **Something else:** you need your outgoing mail server (SMTP) name and port
-  from your provider.
+- **Something else** (your company's or your own mail server): you need your
+  outgoing mail server (SMTP) name, port and security setting from your
+  provider, plus the username and password.
 
-Postloom checks that the password works before saving it. On a Mac, the first time
+Postloom checks that the account can send before saving it. On a Mac, the first time
 it saves or uses a password your Mac asks to let Postloom use "Postloom Safe
 Storage": enter your Mac password and choose **Always Allow**. It asks once
 more after each update. It only connects

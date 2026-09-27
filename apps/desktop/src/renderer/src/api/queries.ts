@@ -12,6 +12,7 @@ import type {
   SaveTemplateInput,
   SendSummary,
   SendTemplateTestInput,
+  SignInProvider,
   TemplateDetail,
 } from '@postloom/contracts';
 import {
@@ -37,6 +38,7 @@ export const queryKeys = {
     values: Record<string, string> | null,
   ) => ['preview', document, look, values] as const,
   security: ['security'] as const,
+  signInProviders: ['signInProviders'] as const,
   accounts: ['accounts'] as const,
   senders: ['senders'] as const,
 };
@@ -276,6 +278,29 @@ export function useDeleteAccount() {
     mutationFn: (id: string) => unwrap(window.postloom.accounts.delete({ id })),
     onSuccess: refresh,
   });
+}
+
+/** Which sign-ins (Google, Microsoft) this build offers. */
+export function useSignInProviders() {
+  return useQuery({
+    queryKey: queryKeys.signInProviders,
+    queryFn: () => unwrap(window.postloom.accounts.signInProviders()),
+    staleTime: Infinity,
+  });
+}
+
+/** Signs in with Google or Microsoft in the browser (and saves, or signs an account in again). */
+export function useSignIn() {
+  const refresh = useRefreshPeople();
+  return useMutation({
+    mutationFn: (input: { provider: SignInProvider; accountId?: string }) =>
+      unwrap(window.postloom.accounts.signIn(input)),
+    onSettled: refresh,
+  });
+}
+
+export function cancelSignIn() {
+  void window.postloom.accounts.signInCancel();
 }
 
 export function useTestAccount() {

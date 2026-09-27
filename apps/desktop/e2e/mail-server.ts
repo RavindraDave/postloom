@@ -21,6 +21,8 @@ export interface MailServerOptions {
   acceptDelayMs?: number;
   /** Addresses refused with "550 no such user". */
   rejectRecipients?: string[];
+  /** Sign-in tokens accepted (XOAUTH2), like Microsoft's servers with "Sign in with Microsoft". */
+  oauthTokens?: Set<string>;
 }
 
 /**
@@ -65,12 +67,23 @@ export async function startTestMailServer(
     secure: false,
     key: leaf.private,
     cert: leaf.cert,
-    authMethods: ['PLAIN', 'LOGIN'],
+    authMethods: options.oauthTokens ? ['PLAIN', 'LOGIN', 'XOAUTH2'] : ['PLAIN', 'LOGIN'],
     // Refuse to sign in over an unencrypted connection, like real providers.
     allowInsecureAuth: false,
     disabledCommands: [],
     logger: false,
     onAuth(auth, _session, callback) {
+      if (auth.method === 'XOAUTH2') {
+        if (
+          auth.username === credentials.username &&
+          options.oauthTokens?.has(auth.accessToken ?? '')
+        ) {
+          callback(null, { user: auth.username });
+        } else {
+          callback(null, { data: { status: '401', schemes: 'bearer' } });
+        }
+        return;
+      }
       if (auth.username === credentials.username && auth.password === credentials.password) {
         callback(null, { user: auth.username });
       } else {

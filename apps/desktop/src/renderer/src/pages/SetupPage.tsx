@@ -12,7 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { errorKey } from '../api/ipc';
 import { useCreateSender, useSendTestEmail } from '../api/queries';
-import { ConnectAccountForm } from '../components/ConnectAccountForm';
+import { ConnectAccount, useSignInFor } from '../components/ConnectAccount';
 import { LoomMark } from '../components/LoomMark';
 import { PasswordProtectionNotice } from '../components/PasswordProtectionNotice';
 import { ProviderPicker } from '../components/ProviderPicker';
@@ -127,7 +127,7 @@ export function SetupPage() {
               </Title>
               <PasswordProtectionNotice />
               <Paper withBorder p="lg" radius="lg">
-                <ConnectAccountForm
+                <ConnectAccount
                   key={provider}
                   provider={provider}
                   onConnected={(connected) => {
@@ -194,6 +194,15 @@ function ProviderNext({ provider }: { provider: ProviderId }) {
   const { t } = useTranslation();
   const label = t(`accounts.providers.${provider}.label`);
   const needsAppPassword = PROVIDER_PRESETS[provider].needsAppPassword;
+  const signIn = useSignInFor(provider);
+  if (signIn) {
+    return (
+      <Alert color="loom" variant="light" icon={<IconInfoCircle />} role="note">
+        <Text fw={650}>{t(`signIn.${signIn}.next`)}</Text>
+        <Text size="sm">{t(`signIn.${signIn}.nextBody`)}</Text>
+      </Alert>
+    );
+  }
   return (
     <Alert color="loom" variant="light" icon={<IconInfoCircle />} role="note">
       <Text fw={650}>

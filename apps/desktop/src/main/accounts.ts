@@ -354,6 +354,8 @@ export function createAccountHandlers({
     'accounts:test': async ({ id }) => {
       const account = await repos.accounts.get(id);
       try {
+        // A signed-in account checks with its provider that access is still allowed.
+        if (account.auth !== 'password') await tokens?.accessToken(account, true);
         await smtp.verify(await savedConfig(account));
         await repos.accounts.recordTest(id, true);
       } catch (error) {
