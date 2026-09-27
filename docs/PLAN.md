@@ -542,12 +542,12 @@ A fuller STRIDE threat model lives in `docs/security/threat-model.md` and is rev
 | Designer opens an existing template | < 1s |
 | Preview re-render on change | < 300ms |
 | Import 10k-row spreadsheet | < 5s, UI stays responsive |
-| Memory during a 5k-recipient send | Flat (no growth per recipient); sending adds < 300MB to the app at rest* |
+| Memory during a 5k-recipient send | Flat (no growth per recipient); sending adds < 300MB (Linux) / < 420MB (macOS) to the app at rest* |
 | Installer size | < 150MB |
 
-Checked in CI: `pnpm e2e:perf` (Linux, `apps/desktop/e2e/performance.spec.ts`) times each budget in the built app and prints the numbers; the installer size is checked on all three systems after packaging.
+Checked in CI: `pnpm e2e:perf` (Linux, `apps/desktop/e2e/performance.spec.ts`) times each budget in the built app and prints the numbers; the installer size is checked on all three systems after packaging. `scripts/verify-mac.sh` runs the same suite on macOS.
 
-\* Changed from "< 400MB total" (Phase 5): Electron's own processes (main, screen, graphics and network) already use about 600MB at rest on a CI machine with no graphics card, before Postloom does anything. What Postloom controls is what sending adds (measured: 187MB) and whether it grows (the sending process holds memory it tidies up later; `memory.test.ts` in `@postloom/sending` shows the memory in use stays flat).
+\* Changed from "< 400MB total" (Phase 5): Electron's own processes (main, screen, graphics and network) already use about 600MB at rest on a CI machine with no graphics card, before Postloom does anything. What Postloom controls is what sending adds (measured on Linux CI: 187MB) and whether it grows (the sending process holds memory it tidies up later; `memory.test.ts` in `@postloom/sending` shows the memory in use stays flat). macOS runs a real, Metal-backed GPU process and a larger Chromium baseline that the headless Linux runner doesn't have, so it gets its own budget rather than inheriting the Linux figure: measured 303-363MB across repeated local runs (Phase 6, verifying feat/phase-6-security on a Mac), with headroom set at 420MB.
 
 ---
 
@@ -677,6 +677,7 @@ Estimates assume one developer working with AI assistance; they're rough and get
 - **Phase 6 (in progress):** done so far:
   - Releases: pushing a version tag (`v1.2.3`) builds the installers on all three systems and attaches them, with `.sha256` checksums, to a draft GitHub Release that is published by hand. The tag must match the app's version.
   - macOS builds for Apple silicon and Intel, signed ad-hoc (D10), checked with `codesign --verify` in CI; the app icon; and [docs/install.md](install.md), which shows how to open the unsigned downloads on each system.
+  - Security review before beta ([security/review-1.0.md](security/review-1.0.md)): every threat-model control checked in code and tests, no high or critical findings; the threat model updated for D10; an SBOM (SPDX) attached to each release.
 
 **Total:** roughly 19-23 weeks to 1.0 stable. Phases 2 and 3 can overlap once Phase 1 is done.
 
