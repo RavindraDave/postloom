@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
-import { mockApi, renderWithProviders } from '../test/render';
+import { describe, expect, it, vi } from 'vitest';
+import { mockApi, ok, renderWithProviders } from '../test/render';
 import { SettingsPage } from './SettingsPage';
 
 describe('SettingsPage', () => {
@@ -94,5 +94,36 @@ describe('SettingsPage', () => {
     mockApi();
     renderWithProviders(<SettingsPage />);
     expect(await screen.findByText('Version 0.1.0')).toBeInTheDocument();
+  });
+
+  it('checks for a new version on request, and can be turned off', async () => {
+    const api = mockApi();
+    renderWithProviders(<SettingsPage />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Check now' }));
+    await waitFor(() => {
+      expect(api.app.updateStatus).toHaveBeenCalledWith({ check: true });
+    });
+    expect(await screen.findByText('You have the latest version.')).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole('switch', { name: /Tell me when a new version is out/ }),
+    );
+    await waitFor(() => {
+      expect(api.settings.update).toHaveBeenCalledWith({ checkForUpdates: false });
+    });
+  });
+
+  it('leaves Store installs to the Store', async () => {
+    mockApi({
+      app: {
+        updateStatus: vi.fn(() =>
+          ok({ state: 'managedByStore' as const, latestVersion: null, checkedAt: null }),
+        ),
+      },
+    });
+    renderWithProviders(<SettingsPage />);
+    expect(
+      await screen.findByText('The Microsoft Store keeps Postloom up to date.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Check now' })).not.toBeInTheDocument();
   });
 });

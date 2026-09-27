@@ -104,6 +104,14 @@ export function mockApi(overrides: DeepPartial<PostloomApi> = {}): PostloomApi {
       exportDiagnostics: vi.fn(() =>
         ok({ saved: true, fileName: 'Postloom diagnostics 2026-09-25.json' }),
       ),
+      updateStatus: vi.fn(() =>
+        ok({
+          state: 'upToDate' as const,
+          latestVersion: null,
+          checkedAt: '2026-09-25T09:00:00.000Z',
+        }),
+      ),
+      openDownloadPage: vi.fn(() => ok({ ok: true as const })),
       ...overrides.app,
     },
     accounts: {

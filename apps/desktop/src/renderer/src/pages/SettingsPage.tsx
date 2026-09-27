@@ -1,6 +1,8 @@
 import {
   Alert,
   Button,
+  Group,
+  Switch,
   Paper,
   SegmentedControl,
   Skeleton,
@@ -13,7 +15,14 @@ import { IconAlertTriangle } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { errorKey } from '../api/ipc';
-import { useAppInfo, usePreferences, useUpdatePreferences } from '../api/queries';
+import {
+  useAppInfo,
+  useCheckForUpdate,
+  useOpenDownloadPage,
+  usePreferences,
+  useUpdatePreferences,
+  useUpdateStatus,
+} from '../api/queries';
 import { PageHeader } from '../components/PageHeader';
 import { DataSettings } from './DataSettings';
 import { SendingDefaults } from './SendingDefaults';
@@ -100,7 +109,12 @@ export function SettingsPage() {
             }}
           />
 
-          <About />
+          <About
+            checkForUpdates={preferences.data.checkForUpdates}
+            onCheckForUpdates={(checkForUpdates) => {
+              change({ checkForUpdates });
+            }}
+          />
         </>
       )}
     </Stack>
@@ -108,9 +122,30 @@ export function SettingsPage() {
 }
 
 /** Settings → About: the version, for when someone asks. */
-function About() {
+function About({
+  checkForUpdates,
+  onCheckForUpdates,
+}: {
+  checkForUpdates: boolean;
+  onCheckForUpdates: (on: boolean) => void;
+}) {
   const { t } = useTranslation();
   const info = useAppInfo();
+  const status = useUpdateStatus();
+  const check = useCheckForUpdate();
+  const open = useOpenDownloadPage();
+  const state = status.data?.state;
+  const version = status.data?.latestVersion;
+  // Nothing to say until there has been a look (a failed first look says so once asked).
+  const message =
+    state === 'available' && version
+      ? t('updates.available', { version })
+      : state === 'upToDate'
+        ? t('updates.upToDate')
+        : state === 'unknown' && (status.data?.checkedAt || check.isSuccess)
+          ? t('updates.unknown')
+          : '';
+
   return (
     <Paper withBorder radius="lg" p="lg">
       <Stack gap="sm" align="flex-start">
@@ -119,6 +154,53 @@ function About() {
         </Title>
         {info.data && <Text fw={600}>{t('settings.version', { version: info.data.version })}</Text>}
         <Text c="var(--pl-ink-soft)">{t('settings.aboutBody')}</Text>
+
+        {state === 'managedByStore' ? (
+          <Text size="sm" c="var(--pl-ink-soft)">
+            {t('updates.store')}
+          </Text>
+        ) : (
+          <>
+            <Switch
+              size="md"
+              checked={checkForUpdates}
+              onChange={(event) => {
+                onCheckForUpdates(event.currentTarget.checked);
+              }}
+              label={t('updates.setting')}
+              description={t('updates.settingHint')}
+            />
+            {checkForUpdates && (
+              <Group gap="sm">
+                <Button
+                  variant="default"
+                  size="xs"
+                  loading={check.isPending}
+                  onClick={() => {
+                    check.mutate();
+                  }}
+                >
+                  {t('updates.checkNow')}
+                </Button>
+                <Text size="sm" c="var(--pl-ink-soft)" role="status">
+                  {message}
+                </Text>
+                {state === 'available' && version && (
+                  <Button
+                    size="xs"
+                    aria-label={t('updates.getLabel', { version })}
+                    onClick={() => {
+                      open.mutate();
+                    }}
+                  >
+                    {t('updates.get')}
+                  </Button>
+                )}
+              </Group>
+            )}
+          </>
+        )}
+
         <Button component={Link} to="/help" variant="default">
           {t('settings.openHelp')}
         </Button>
