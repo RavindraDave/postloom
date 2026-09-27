@@ -1,6 +1,9 @@
 import { mergeAttributes, Node, type JSONContent } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
-import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table';
+import { Table, TableCell, TableHeader, TableRow, TableView } from '@tiptap/extension-table';
+import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
+import type { EditorView } from '@tiptap/pm/view';
+import { readableTextOn } from './to-mjml';
 import TextAlign from '@tiptap/extension-text-align';
 import type { WriteDocument } from './document';
 import { formatSubject, parseSubject, type SubjectPart } from './subject';
@@ -226,7 +229,65 @@ export const ConditionalNode = Node.create({
   ],
 });
 
-/** Tables hold plain paragraphs in each cell, which every email app can show. */
+/** A data-* attribute that holds a table setting (null when it isn't set). */
+const dataAttribute = (name: string, dataName = name) => ({
+  default: null,
+  parseHTML: (element: HTMLElement) => element.getAttribute(`data-${dataName}`),
+  renderHTML: (attributes: Record<string, unknown>) => {
+    const value = attributes[name];
+    return typeof value === 'string' ? { [`data-${dataName}`]: value } : {};
+  },
+});
+
+const HEX = /^#[0-9a-fA-F]{6}$/;
+
+/** Puts a table's look on its element in the editor, where the CSS picks it up. */
+function showTableLook(table: HTMLTableElement, node: ProseMirrorNode): void {
+  for (const name of ['borders', 'spacing'] as const) {
+    const value = node.attrs[name] as string | null;
+    if (value) table.setAttribute(`data-${name}`, value);
+    else table.removeAttribute(`data-${name}`);
+  }
+  table.setAttribute('data-striped', String(Boolean(node.attrs['striped'])));
+  if (node.attrs['fit']) table.setAttribute('data-fit', 'true');
+  else table.removeAttribute('data-fit');
+  for (const [attr, property] of [
+    ['borderColor', '--pl-table-line'],
+    ['headerColor', '--pl-table-header'],
+  ] as const) {
+    const colour = String(node.attrs[attr]);
+    if (HEX.test(colour)) table.style.setProperty(property, colour);
+    else table.style.removeProperty(property);
+  }
+  const header = String(node.attrs['headerColor']);
+  if (HEX.test(header)) table.style.setProperty('--pl-table-header-text', readableTextOn(header));
+  else table.style.removeProperty('--pl-table-header-text');
+}
+
+/** The editor's table, with its column sizing (from TipTap) and its look. */
+class EmailTableView extends TableView {
+  constructor(
+    node: ProseMirrorNode,
+    cellMinWidth: number,
+    view: EditorView,
+    HTMLAttributes?: Record<string, unknown>,
+  ) {
+    super(node, cellMinWidth, view, HTMLAttributes);
+    showTableLook(this.table, node);
+  }
+
+  override update(node: ProseMirrorNode): boolean {
+    if (!super.update(node)) return false;
+    showTableLook(this.table, node);
+    return true;
+  }
+}
+
+/**
+ * Tables hold plain paragraphs in each cell, which every email app can show.
+ * Their look (lines, colours, spacing, width) is kept as attributes and shown
+ * in the editor through data-* attributes and the header colour.
+ */
 export const EmailTable = Table.extend({
   addAttributes() {
     return {
@@ -236,11 +297,74 @@ export const EmailTable = Table.extend({
         parseHTML: (element) => element.getAttribute('data-striped') === 'true',
         renderHTML: (attributes) => ({ 'data-striped': String(Boolean(attributes['striped'])) }),
       },
+      borders: dataAttribute('borders'),
+      borderColor: dataAttribute('borderColor', 'border-color'),
+      headerColor: dataAttribute('headerColor', 'header-color'),
+      spacing: dataAttribute('spacing'),
+      fit: {
+        default: null,
+        parseHTML: (element) => (element.getAttribute('data-fit') === 'true' ? true : null),
+        renderHTML: (attributes) => (attributes['fit'] ? { 'data-fit': 'true' } : {}),
+      },
     };
   },
-}).configure({ resizable: false });
-export const EmailTableCell = TableCell.extend({ content: 'paragraph+' });
-export const EmailTableHeader = TableHeader.extend({ content: 'paragraph+' });
+  renderHTML({ node, HTMLAttributes }) {
+    const parent = this.parent?.({ node, HTMLAttributes });
+    // Colours reach the editor's CSS as custom properties (validated hex only).
+    const colours = [
+      HEX.test(String(node.attrs['borderColor'])) &&
+        `--pl-table-line:${String(node.attrs['borderColor'])}`,
+      HEX.test(String(node.attrs['headerColor'])) &&
+        `--pl-table-header:${String(node.attrs['headerColor'])}`,
+    ].filter(Boolean);
+    if (!parent || colours.length === 0 || !Array.isArray(parent)) return parent as never;
+    const [tag, attrs, ...rest] = parent as [string, Record<string, unknown>, ...unknown[]];
+    const style = [attrs['style'], ...colours].filter(Boolean).join(';');
+    return [tag, { ...attrs, style }, ...rest] as never;
+  },
+}).configure({
+  resizable: true,
+  lastColumnResizable: false,
+  cellMinWidth: 40,
+  View: EmailTableView,
+});
+
+/** Cell settings every cell type shares: vertical alignment and background colour. */
+const cellAttributes = {
+  valign: {
+    default: null,
+    parseHTML: (element: HTMLElement) => element.getAttribute('data-valign'),
+    renderHTML: (attributes: Record<string, unknown>) => {
+      const valign = attributes['valign'];
+      return valign === 'top' || valign === 'middle' || valign === 'bottom'
+        ? { 'data-valign': valign, style: `vertical-align:${valign}` }
+        : {};
+    },
+  },
+  background: {
+    default: null,
+    parseHTML: (element: HTMLElement) => element.getAttribute('data-background'),
+    renderHTML: (attributes: Record<string, unknown>) => {
+      const colour = String(attributes['background']);
+      return HEX.test(colour)
+        ? { 'data-background': colour, style: `background-color:${colour}` }
+        : {};
+    },
+  },
+};
+
+export const EmailTableCell = TableCell.extend({
+  content: 'paragraph+',
+  addAttributes() {
+    return { ...this.parent?.(), ...cellAttributes };
+  },
+});
+export const EmailTableHeader = TableHeader.extend({
+  content: 'paragraph+',
+  addAttributes() {
+    return { ...this.parent?.(), ...cellAttributes };
+  },
+});
 
 export const designExtensions = [
   SpacerNode,

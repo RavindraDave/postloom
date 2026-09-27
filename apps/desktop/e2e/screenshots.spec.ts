@@ -188,6 +188,61 @@ test('capture setup and senders screens', async ({ userDataDir }) => {
   await page.waitForTimeout(800);
   await page.screenshot({ path: `${out}/preview-examples-light.png` });
 
+  // A table pasted from Excel, then formatted.
+  await page.keyboard.press('Escape');
+  await page
+    .getByRole('navigation', { name: 'Main' })
+    .getByRole('link', { name: 'Templates' })
+    .click();
+  await page.getByRole('button', { name: 'New template' }).first().click();
+  await page.getByLabel('Name').fill('Quarterly statement');
+  await page.getByRole('button', { name: 'Make template' }).click();
+  const statement = page.getByRole('textbox', { name: 'Email text' });
+  await statement.locator('p').nth(1).click();
+  await page.keyboard.press('End');
+  await statement.evaluate((element) => {
+    const clipboard = new DataTransfer();
+    clipboard.setData(
+      'text/html',
+      '<table><tr><td>Invoice</td><td>Due</td><td>Amount</td></tr>' +
+        '<tr><td>INV-1001</td><td>1 October</td><td>₹12,400</td></tr>' +
+        '<tr><td>INV-1002</td><td>15 October</td><td>₹8,150</td></tr>' +
+        '<tr><td>Total</td><td></td><td>₹20,550</td></tr></table>',
+    );
+    element.dispatchEvent(
+      new ClipboardEvent('paste', { clipboardData: clipboard, bubbles: true, cancelable: true }),
+    );
+  });
+  const pasted = statement.locator('table');
+  await pasted.locator('td').first().click();
+  await page.getByRole('button', { name: 'Header row' }).click();
+  // Amounts on the right.
+  await pasted.locator('tr').nth(1).locator('td').nth(2).click();
+  await pasted
+    .locator('tr')
+    .nth(3)
+    .locator('td')
+    .nth(2)
+    .click({ modifiers: ['Shift'] });
+  await page.getByRole('button', { name: 'Align right' }).click();
+  await page.getByRole('button', { name: 'Format table' }).click();
+  await page.getByText('Grid', { exact: true }).click();
+  await page.getByLabel('Header row colour').fill('#2F5D8C');
+  await page.getByLabel('Line colour').fill('#C9D6E5');
+  await page.getByText('Lines', { exact: true }).click();
+  await page.getByText('Switched to Design mode, where the table tools are.').waitFor({
+    state: 'hidden',
+    timeout: 10_000,
+  });
+  await page.getByTestId('save-status').filter({ hasText: 'Saved' }).waitFor({ timeout: 10_000 });
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `${out}/table-format-light.png` });
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Preview' }).click();
+  await page.frameLocator('iframe[title="Email preview"]').getByText('₹20,550').waitFor();
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: `${out}/table-preview-light.png` });
+
   await app.close();
   await mail.close();
 });

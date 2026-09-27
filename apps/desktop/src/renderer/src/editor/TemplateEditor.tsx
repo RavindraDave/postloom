@@ -26,6 +26,7 @@ import {
   MAX_LOGO_WIDTH,
   renderSubject,
   subjectFields,
+  tableFromTabbedText,
   TEXT_SIZES,
   usesDesignBlocks,
   withTemplateLook,
@@ -102,6 +103,11 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
   const [document, setDocument] = useState<WriteDocument>(template.document);
   const [senderId, setSenderId] = useState(template.defaultSenderProfileId);
   const [mode, setMode] = useState(template.editorMode);
+  // Read by the editor's update handler, which is set up once.
+  const modeRef = useRef(mode);
+  useLayoutEffect(() => {
+    modeRef.current = mode;
+  });
   const [writeBlocked, setWriteBlocked] = useState(false);
   const [invalid, setInvalid] = useState(false);
   const [extraFields, setExtraFields] = useState<string[]>([]);
@@ -125,10 +131,33 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
         role: 'textbox',
         class: classes.prose ?? '',
       },
+      // Cells copied as plain text (tab-separated) become a table. Spreadsheets
+      // that also give HTML (Excel, Google Sheets) paste as a table already.
+      handlePaste: (view, event) => {
+        const data = event.clipboardData;
+        if (!data || data.types.includes('text/html')) return false;
+        const { $from } = view.state.selection;
+        for (let depth = $from.depth; depth > 0; depth -= 1) {
+          if ($from.node(depth).type.name === 'table') return false;
+        }
+        const table = tableFromTabbedText(data.getData('text/plain'));
+        if (!table) return false;
+        const node = view.state.schema.nodeFromJSON(table);
+        view.dispatch(view.state.tr.replaceSelectionWith(node).scrollIntoView());
+        return true;
+      },
     },
     onUpdate: ({ editor: current }) => {
       try {
         const content = fromEditorJson(current.getJSON());
+        // A table (or another Design block) arrived in Write mode, e.g. pasted
+        // from Excel: switch to Design, where its tools are.
+        if (modeRef.current === 'write' && usesDesignBlocks(content)) {
+          modeRef.current = 'design';
+          setMode('design');
+          save.mutate({ id: template.id, editorMode: 'design' });
+          notifications.show({ message: t('editor.switchedToDesign') });
+        }
         // The editor only knows the words; the template's look lives alongside.
         setDocument((previous) =>
           previous.attrs ? { ...content, attrs: previous.attrs } : content,
