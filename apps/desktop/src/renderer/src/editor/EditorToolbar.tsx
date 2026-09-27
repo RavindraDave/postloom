@@ -21,6 +21,7 @@ import { useEditorState } from '@tiptap/react';
 import type { ComponentType, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import classes from './TemplateEditor.module.css';
+import { TextColourMenus } from './TextColourMenu';
 
 interface EditorToolbarProps {
   editor: Editor;
@@ -132,6 +133,7 @@ export function EditorToolbar({
             onClick={onLink}
           />
         )}
+        <TextColourMenus editor={editor} />
       </Group>
       <Divider orientation="vertical" />
       <Group gap={2} wrap="nowrap">

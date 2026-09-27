@@ -53,6 +53,8 @@ export function toPlainText(html: string): string {
     wordwrap: 78,
     selectors: [
       { selector: 'img', format: 'skip' },
+      // The hidden inbox preview line (mj-preview) isn't part of the letter.
+      { selector: 'div[style*="display:none"]', format: 'skip' },
       { selector: 'a', options: { hideLinkHrefIfSameAsText: true } },
       // Headings keep the case they were typed in, rather than shouting.
       ...(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] as const).map((selector) => ({

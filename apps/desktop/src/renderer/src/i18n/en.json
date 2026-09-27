@@ -608,7 +608,28 @@
       "showing": "Showing the email one person with these details would get.",
       "subject": "Subject: {{subject}}"
     },
-    "switchedToDesign": "Switched to Design mode, where the table tools are."
+    "switchedToDesign": "Switched to Design mode, where the table tools are.",
+    "colour": {
+      "text": "Text colour",
+      "highlight": "Highlight",
+      "noText": "Normal text colour",
+      "noHighlight": "No highlight",
+      "names": {
+        "red": "Red",
+        "orange": "Orange",
+        "teal": "Teal",
+        "blue": "Blue",
+        "green": "Green",
+        "purple": "Purple",
+        "grey": "Grey",
+        "black": "Black",
+        "yellow": "Yellow",
+        "pink": "Pink"
+      }
+    },
+    "previewTextLabel": "Preview text",
+    "previewTextHint": "The short line inboxes show after the subject. Leave it empty to show the start of the email.",
+    "previewTextInsertDetail": "Insert detail in the inbox line"
   },
   "checks": {
     "subjectMissing": "Add a subject so people know what the email is about.",

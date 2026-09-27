@@ -25,6 +25,16 @@ const markSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('italic') }),
   z.object({ type: z.literal('underline') }),
   z.object({ type: z.literal('link'), attrs: z.object({ href: z.string().max(2048) }) }),
+  /** Text colour, as #RRGGBB. */
+  z.object({
+    type: z.literal('textColor'),
+    attrs: z.object({ color: z.string().regex(/^#[0-9a-fA-F]{6}$/) }),
+  }),
+  /** A highlighter behind the text, as #RRGGBB. */
+  z.object({
+    type: z.literal('highlight'),
+    attrs: z.object({ color: z.string().regex(/^#[0-9a-fA-F]{6}$/) }),
+  }),
 ]);
 
 const textNodeSchema = z.object({
@@ -282,6 +292,11 @@ export const templateLookSchema = z.object({
   backgroundColor: hexColourSchema.optional(),
   /** False hides the sender's logo in this template. */
   showLogo: z.boolean().optional(),
+  /**
+   * The short line inboxes show after the subject ("preheader"). Stored like
+   * the subject: plain text, with a personal detail written `{{First Name}}`.
+   */
+  previewText: z.string().max(200).optional(),
   /** How each personal detail is shown (dates, amounts), in the subject and the letter. */
   detailFormats: z
     .record(fieldNameSchema, detailFormatSchema)

@@ -82,4 +82,13 @@ describe('the details a template needs', () => {
       { name: 'Amount', hasFallback: false },
     ]);
   });
+
+  it('counts details in the preview text, which may be empty', () => {
+    const doc = {
+      type: 'doc' as const,
+      attrs: { previewText: 'For {{Company}}' },
+      content: [],
+    };
+    expect(templateFields('Hello', doc)).toEqual([{ name: 'Company', hasFallback: true }]);
+  });
 });

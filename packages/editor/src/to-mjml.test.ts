@@ -767,3 +767,71 @@ describe('table formatting', () => {
     ).toBe(false);
   });
 });
+
+describe('text colour, highlight and preview text', () => {
+  const doc = writeDocumentSchema.parse({
+    type: 'doc',
+    attrs: { previewText: 'Your invoice {{Invoice No}} is ready' },
+    content: [
+      {
+        type: 'paragraph',
+        content: [
+          {
+            type: 'text',
+            text: 'Overdue',
+            marks: [{ type: 'textColor', attrs: { color: '#B42318' } }],
+          },
+          { type: 'text', text: ' ' },
+          {
+            type: 'text',
+            text: 'today',
+            marks: [{ type: 'highlight', attrs: { color: '#FFF4A3' } }],
+          },
+        ],
+      },
+    ],
+  });
+
+  it('colours and highlights text with inline styles', () => {
+    const mjml = writeDocumentToMjml(doc);
+    expect(mjml).toContain('<span style="color:#B42318">Overdue</span>');
+    expect(mjml).toContain('<span style="background-color:#FFF4A3">today</span>');
+  });
+
+  it('fills in details in the preview text for each person', async () => {
+    const html = await personalise(doc, { 'Invoice No': 'INV-7<b>' });
+    expect(html).toContain('Your invoice INV-7&lt;b&gt; is ready');
+    expect(writeDocumentToMjml(asCard(doc), DEFAULT_BRAND, 'placeholder')).toContain(
+      '<mj-preview>Your invoice [Invoice No] is ready</mj-preview>',
+    );
+  });
+
+  it('leaves the preview out when there is none', () => {
+    expect(writeDocumentToMjml({ ...doc, attrs: {} })).not.toContain('mj-preview');
+  });
+
+  it('keeps typed braces in the preview text from becoming Liquid', async () => {
+    const html = await personalise(
+      { ...doc, attrs: { previewText: '{% raw %}{{ row.secret }}' } },
+      { secret: 'leaked' },
+    );
+    expect(html).not.toContain('leaked');
+  });
+
+  it('accepts only #RRGGBB colours', () => {
+    const coloured = (color: string) =>
+      writeDocumentSchema.safeParse({
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [
+              { type: 'text', text: 'x', marks: [{ type: 'textColor', attrs: { color } }] },
+            ],
+          },
+        ],
+      }).success;
+    expect(coloured('#0E6B66')).toBe(true);
+    expect(coloured('red;background:url(x)')).toBe(false);
+  });
+});

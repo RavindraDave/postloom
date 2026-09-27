@@ -25,6 +25,11 @@ interface SubjectInputProps {
   onNewDetail: () => void;
   /** Filled in with a function that inserts a detail here (for "New detail…"). */
   insertRef?: RefObject<((name: string) => void) | null>;
+  /** The same one-line box for another line with details, e.g. the preview text. */
+  label?: string;
+  hint?: string;
+  hintId?: string;
+  insertLabel?: string;
 }
 
 /** The subject line, with personal details shown as chips (never as `{{…}}`). */
@@ -34,8 +39,13 @@ export function SubjectInput({
   fields,
   onNewDetail,
   insertRef,
+  label,
+  hint,
+  hintId = 'subject-hint',
+  insertLabel,
 }: SubjectInputProps) {
   const { t } = useTranslation();
+  const shownLabel = label ?? t('editor.subjectLabel');
   // Until the person has clicked into the subject, add details at the end.
   const touched = useRef(false);
   const editor = useEditor({
@@ -44,9 +54,9 @@ export function SubjectInput({
     editorProps: {
       attributes: {
         role: 'textbox',
-        'aria-label': t('editor.subjectLabel'),
+        'aria-label': shownLabel,
         'aria-multiline': 'false',
-        'aria-describedby': 'subject-hint',
+        'aria-describedby': hintId,
         class: classes.subjectInput ?? '',
       },
       transformPastedText: (text) => text.replace(/[\r\n]+/g, ' '),
@@ -71,12 +81,13 @@ export function SubjectInput({
   });
 
   return (
-    <Input.Wrapper label={t('editor.subjectLabel')} labelElement="div">
-      <Text id="subject-hint" size="xs" c="var(--pl-muted)" mb={6}>
-        {t('editor.subjectHint', {
-          count: renderSubject(value).length,
-          limit: SUBJECT_SOFT_LIMIT,
-        })}
+    <Input.Wrapper label={shownLabel} labelElement="div">
+      <Text id={hintId} size="xs" c="var(--pl-muted)" mb={6}>
+        {hint ??
+          t('editor.subjectHint', {
+            count: renderSubject(value).length,
+            limit: SUBJECT_SOFT_LIMIT,
+          })}
       </Text>
       <div className={classes.subjectRow}>
         <div className={classes.subjectBox}>
@@ -86,7 +97,7 @@ export function SubjectInput({
           fields={fields}
           onInsert={insert}
           onNew={onNewDetail}
-          label={t('editor.subjectInsertDetail')}
+          label={insertLabel ?? t('editor.subjectInsertDetail')}
           compact
         />
       </div>

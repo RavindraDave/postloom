@@ -1,5 +1,6 @@
 import { collectAssetIds, documentLayout, type TemplateLook, type TextSize } from './document';
 import { formatValues } from './formats';
+import { parseSubject } from './subject';
 import type {
   BlockNode,
   ColumnsNode,
@@ -160,6 +161,7 @@ export function writeDocumentToMjml(
   return [
     '<mjml>',
     '<mj-head>',
+    previewMjml(doc, context),
     '<mj-attributes>',
     `<mj-all font-family="${escapeAttribute(look.fontFamily)}" />`,
     `<mj-text font-size="${String(context.textSize)}px" line-height="1.6" color="#222222" padding="6px 0" />`,
@@ -259,6 +261,22 @@ const LETTER_HEADING_MARGIN = 'margin:18px 0 8px';
  * A letter: the blocks as plain HTML inside one `mj-raw`, so MJML adds its
  * usual head (and the phone rules below) but no fixed-width column.
  */
+/** The inbox preview line ("preheader"), with personal details filled in like the letter's. */
+function previewMjml(doc: WriteDocument, context: RenderContext): string {
+  const text = doc.attrs?.previewText?.trim();
+  if (!text) return '';
+  const { fieldMode } = context;
+  const inner = parseSubject(text.replace(/[\r\n]+/g, ' '))
+    .map((part) => {
+      if (part.type === 'text') return escapeText(part.text);
+      if (fieldMode === 'liquid') return liquidField(part.name, undefined);
+      if (fieldMode === 'placeholder') return escapeText(`[${part.name}]`);
+      return escapeText(fieldMode.values[part.name]?.trim() ?? '');
+    })
+    .join('');
+  return `<mj-preview>${inner}</mj-preview>`;
+}
+
 function letterMjml(doc: WriteDocument, context: RenderContext): string {
   const { look, imageSrc, textSize } = context;
   const logo = look.logo
@@ -268,6 +286,7 @@ function letterMjml(doc: WriteDocument, context: RenderContext): string {
   return [
     '<mjml>',
     '<mj-head>',
+    previewMjml(doc, context),
     // On phones, columns sit one under the other.
     '<mj-style>@media only screen and (max-width:480px){.pl-columns,.pl-columns tbody,.pl-columns tr,.pl-column{display:block!important;width:100%!important}.pl-column{padding:0!important}}</mj-style>',
     '</mj-head>',
@@ -555,6 +574,14 @@ function applyMarks(html: string, marks: Mark[]): string {
           ? `<a href="${escapeAttribute(href)}" style="color:inherit">${inner}</a>`
           : inner;
       }
+      case 'textColor':
+        return HEX_COLOUR.test(mark.attrs.color)
+          ? `<span style="color:${mark.attrs.color}">${inner}</span>`
+          : inner;
+      case 'highlight':
+        return HEX_COLOUR.test(mark.attrs.color)
+          ? `<span style="background-color:${mark.attrs.color}">${inner}</span>`
+          : inner;
     }
   }, html);
 }

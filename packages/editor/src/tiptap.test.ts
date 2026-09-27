@@ -12,6 +12,31 @@ import { writeModeExtensions } from './tiptap';
 describe('Write mode editor schema', () => {
   const schema = getSchema(writeModeExtensions);
 
+  it('keeps text colour and highlight through the editor', () => {
+    const doc = {
+      type: 'doc',
+      content: [
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'text',
+              text: 'Due now',
+              marks: [
+                { type: 'bold' },
+                { type: 'textColor', attrs: { color: '#B42318' } },
+                { type: 'highlight', attrs: { color: '#FFF4A3' } },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const node = ProseMirrorNode.fromJSON(schema, doc);
+    node.check();
+    expect(fromEditorJson(node.toJSON())).toEqual(doc);
+  });
+
   it('treats fields as inline, atomic chips', () => {
     const field = schema.nodes['field'];
     expect(field?.isInline).toBe(true);

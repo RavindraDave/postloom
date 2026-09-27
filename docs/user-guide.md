@@ -115,6 +115,12 @@ Change the words to your own. Postloom saves as you type.
   even when people have internet pictures switched off. Give each one a short
   description for people who can't see pictures.
 - **Button** adds a button with a link.
+- **Text colour** and **Highlight** colour the words you've selected, for
+  example an amount that's overdue. Use them sparingly: a little colour stands
+  out, a lot is hard to read.
+- **Preview text**, under the subject, is the short line inboxes show after
+  the subject. It can have personal details too. Leave it empty and inboxes
+  show the start of the email instead.
 - The **Checklist** on the right lists what still needs attention. For
   example, it warns you when a button still points to the example address.
 - **From** is who this template usually comes from. You can change it when

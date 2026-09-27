@@ -51,4 +51,12 @@ describe('toPlainText', () => {
 
     expect(text).toBe('Hi https://example.com');
   });
+
+  it('leaves out the hidden inbox preview line', () => {
+    const text = toPlainText(
+      '<div style="display:none;font-size:1px">Preview line</div><p>Dear Asha,</p>',
+    );
+
+    expect(text).toBe('Dear Asha,');
+  });
 });
