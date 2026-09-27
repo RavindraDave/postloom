@@ -155,6 +155,22 @@ the toolbar.
 
 ![Formatting a pasted table](images/table-format-light.png)
 
+### Starting from an email or Word document you already have
+
+In **Templates**, open the **⋯** menu next to New template and choose **Import
+an HTML email or Word document**. Postloom brings in the words, headings,
+links, lists and tables, and:
+
+- **Pictures** inside a Word document, written into an HTML email, or kept
+  next to it in the same folder come along. Pictures on the web don't; add
+  them again with **Picture**.
+- **Gaps** written as `{{First Name}}`, `«First Name»` (Word mail merge) or
+  `[First Name]` become personal details.
+- Scripts, forms and other things that aren't safe in email are left out.
+
+Old Word files (`.doc`) need saving as `.docx` in Word first. Check the
+imported template and send yourself a test before using it.
+
 **Preview** shows the email as people will see it, on a computer or a phone.
 **Send me a test** sends a copy to you, filled in with example details.
 Always send yourself a test before a real send.

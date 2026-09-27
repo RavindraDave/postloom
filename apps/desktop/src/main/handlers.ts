@@ -13,6 +13,7 @@ import { createAccountHandlers, type AccountDeps } from './accounts';
 import { createAssetHandlers, type AssetDeps } from './assets';
 import { applyHistoryRetention, createDataHandlers, type DataStore } from './data';
 import { buildDiagnostics } from './diagnostics';
+import { importDocumentFile } from './document-import';
 import { readDocument } from './documents';
 import { loadPreferences as loadSavedPreferences, PREFERENCES_KEY } from './preferences';
 import { createListService, type RecipientDeps } from './recipients';
@@ -31,7 +32,8 @@ export interface HandlerDeps extends Omit<AccountDeps, 'repos'>, Partial<Omit<As
   appInfo: AppInfo;
   repos: Repositories;
   /** Shows the computer's file picker for an HTML file; null if cancelled. */
-  pickHtmlFile?: () => Promise<{ name: string; html: string } | null>;
+  /** Shows the computer's file picker for an HTML email or Word document; null if cancelled. */
+  pickDocumentPath?: () => Promise<string | null>;
   /** Shows the computer's file picker for a spreadsheet; null if cancelled. */
   pickSpreadsheetFile?: RecipientDeps['pickSpreadsheetFile'];
   todayUtc?: RecipientDeps['todayUtc'];
@@ -82,7 +84,7 @@ export function createMainServices({
   repos,
   codec,
   pickImageFile,
-  pickHtmlFile = () => Promise.resolve(null),
+  pickDocumentPath = () => Promise.resolve(null),
   pickSpreadsheetFile = () => Promise.resolve(null),
   todayUtc,
   createSendRunner,
@@ -166,7 +168,10 @@ export function createMainServices({
 
     'templates:renderPreview': async ({ mjml }) => compileMjml(mjml),
 
-    'templates:pickHtml': () => pickHtmlFile(),
+    'templates:pickHtml': async () => {
+      const path = await pickDocumentPath();
+      return path ? importDocumentFile(path, { repos, codec: codec ?? noPicker.codec }) : null;
+    },
 
     'templates:list': async () => (await repos.templates.list()).map(toSummary),
     'templates:get': async ({ id }) => toDetail(await repos.templates.get(id)),

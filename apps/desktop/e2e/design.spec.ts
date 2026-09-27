@@ -1,6 +1,7 @@
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, firstPage, launchApp, test } from './fixtures';
+import { makeDocx } from './docx';
 
 test('designs with columns and a show-only-if part, previewed with example details', async ({
   page,
@@ -62,7 +63,7 @@ test('imports an HTML email as a template', async ({ userDataDir }) => {
 
   await page.getByRole('link', { name: 'Templates' }).click();
   await page.getByRole('button', { name: 'More template options' }).click();
-  await page.getByRole('menuitem', { name: 'Import an HTML email…' }).click();
+  await page.getByRole('menuitem', { name: 'Import an HTML email or Word document…' }).click();
 
   await expect(page.getByRole('textbox', { name: 'Template name' })).toHaveValue('Spring news');
   await expect(page.getByText(/1 picture from the file wasn't brought in/)).toBeVisible();
@@ -72,6 +73,32 @@ test('imports an HTML email as a template', async ({ userDataDir }) => {
   await expect(letter.getByRole('heading', { name: 'Spring is here' })).toBeVisible();
   await expect(letter.locator('table')).toContainText('Tulip');
   expect(await page.evaluate(() => 'hacked' in window)).toBe(false);
+
+  await app.close();
+});
+
+test('imports a Word document with its picture and details', async ({ userDataDir }) => {
+  const file = join(userDataDir, 'Invoice letter.docx');
+  writeFileSync(file, makeDocx());
+  const app = await launchApp(userDataDir, { POSTLOOM_TEST_PICK_HTML: file });
+  const page = await firstPage(app);
+
+  await page.getByRole('link', { name: 'Templates' }).click();
+  await page.getByRole('button', { name: 'More template options' }).click();
+  await page.getByRole('menuitem', { name: 'Import an HTML email or Word document…' }).click();
+
+  await expect(page.getByRole('textbox', { name: 'Template name' })).toHaveValue('Invoice letter');
+  await expect(
+    page.getByText(/These became personal details: First Name, Invoice No/),
+  ).toBeVisible();
+  const letter = page.getByRole('textbox', { name: 'Email text' });
+  await expect(letter.getByRole('img', { name: 'Company logo' })).toBeVisible();
+  await expect(letter.locator('table')).toContainText('Tulips');
+
+  await page.getByRole('button', { name: 'Preview' }).click();
+  await page.getByLabel('First Name').fill('Asha');
+  const preview = page.frameLocator('iframe[title="Email preview"]');
+  await expect(preview.getByText('Dear Asha,')).toBeVisible();
 
   await app.close();
 });

@@ -150,6 +150,8 @@ describe('importing HTML from the Templates page', () => {
           ok({
             name: 'spring.html',
             html: '<title>Spring news</title><h1>Hello</h1><p>News <img src="https://x.example/a.png"></p>',
+            kind: 'html',
+            assetIds: [],
           }),
         ),
       },
@@ -163,7 +165,7 @@ describe('importing HTML from the Templates page', () => {
     );
 
     await userEvent.click(await screen.findByRole('button', { name: 'More template options' }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Import an HTML email…' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Import an HTML email or Word document…' }));
 
     await waitFor(() => {
       expect(api.templates.create).toHaveBeenCalledWith(

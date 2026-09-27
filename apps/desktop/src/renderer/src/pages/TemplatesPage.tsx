@@ -71,8 +71,9 @@ export function TemplatesPage() {
     try {
       const file = await pickHtml.mutateAsync();
       if (!file) return;
-      const result = importHtml(file.html);
-      const name = (result.title ?? file.name.replace(/\.html?$/i, '')).slice(0, 120) || file.name;
+      const result = importHtml(file.html, { assetIds: file.assetIds, kind: file.kind });
+      const name =
+        (result.title ?? file.name.replace(/\.(html?|docx)$/i, '')).slice(0, 120) || file.name;
       const template = await createTemplate.mutateAsync({
         name,
         subject: (result.title ?? name).slice(0, 200),
@@ -81,8 +82,14 @@ export function TemplatesPage() {
       });
       const notes = [
         t('templates.imported', { name }),
+        ...(file.assetIds.length > 0
+          ? [t('templates.importedPicturesKept', { count: file.assetIds.length })]
+          : []),
         ...(result.picturesLeftOut > 0
           ? [t('templates.importedPictures', { count: result.picturesLeftOut })]
+          : []),
+        ...(result.details.length > 0
+          ? [t('templates.importedDetails', { names: result.details.join(', ') })]
           : []),
         ...(result.textOnly ? [t('templates.importedTextOnly')] : []),
       ];

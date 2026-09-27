@@ -519,9 +519,17 @@ export const ipcContract = {
   /** Deletes finished and stopped sends from History. */
   'data:clearHistory': { input: z.undefined(), output: z.object({ deleted: z.number().int() }) },
   /** Opens the computer's file picker for an .html file; null if cancelled. */
+  /** An HTML email or Word document to import, with its pictures already stored. */
   'templates:pickHtml': {
     input: z.undefined(),
-    output: z.object({ name: z.string(), html: z.string() }).nullable(),
+    output: z
+      .object({
+        name: z.string(),
+        html: z.string(),
+        kind: z.enum(['html', 'docx']),
+        assetIds: z.array(assetIdSchema).max(30),
+      })
+      .nullable(),
   },
   'templates:sendTest': {
     input: sendTemplateTestInputSchema,

@@ -21,6 +21,16 @@ const ALLOWED = new Set([
   'Python-2.0',
   'Unlicense',
   'WTFPL',
+  'Zlib',
+]);
+
+/**
+ * Packages whose package.json names a licence loosely, checked by reading
+ * their LICENSE file. Name → the licence that file actually is.
+ */
+const REVIEWED = new Map([
+  // Used by mammoth (Word import). package.json says "BSD"; LICENSE is BSD-2-Clause.
+  ['duck', 'BSD-2-Clause'],
 ]);
 
 /** "MIT (http://…)" → "MIT"; "(MIT OR CC0-1.0)" → alternatives; AND needs all parts. */
@@ -46,7 +56,9 @@ const byLicense = JSON.parse(output);
 const problems = Object.entries(byLicense)
   .filter(([license]) => !isAllowed(license))
   .flatMap(([license, packages]) =>
-    packages.map((p) => `${p.name}@${p.versions.join(',')}: ${license}`),
+    packages
+      .filter((p) => !isAllowed(REVIEWED.get(p.name) ?? ''))
+      .map((p) => `${p.name}@${p.versions.join(',')}: ${license}`),
   );
 
 if (problems.length > 0) {
