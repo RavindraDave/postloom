@@ -26,6 +26,7 @@ test('colours and highlights words, and sets the inbox preview text', async ({ p
     .click();
   await expect(letter.locator('mark', { hasText: 'overdue' })).toBeVisible();
 
+  await page.getByRole('button', { name: /Add the line inboxes show/ }).click();
   const previewText = page.getByRole('textbox', { name: 'Preview text' });
   await previewText.click();
   await page.keyboard.type('Please pay by Friday');

@@ -23,18 +23,22 @@ export async function readSpreadsheet(bytes: Uint8Array, fileName: string): Prom
     throw new AppError({ code: 'VALIDATION_FAILED', messageKey: 'errors.spreadsheetTooBig' });
   }
   const kind = spreadsheetKind(bytes, fileName);
+  if (kind === 'xls') {
+    throw new AppError({ code: 'VALIDATION_FAILED', messageKey: 'errors.spreadsheetOldExcel' });
+  }
   if (kind === 'xlsx') return readXlsx(bytes);
   if (kind === 'csv') return [{ name: sheetNameFor(fileName), rows: readCsv(bytes) }];
   throw new AppError({ code: 'VALIDATION_FAILED', messageKey: 'errors.spreadsheetType' });
 }
 
-function spreadsheetKind(bytes: Uint8Array, fileName: string): 'xlsx' | 'csv' | null {
+function spreadsheetKind(bytes: Uint8Array, fileName: string): 'xlsx' | 'xls' | 'csv' | null {
   // .xlsx files are zip archives: "PK\x03\x04".
   if (bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04) {
     return 'xlsx';
   }
-  // Old binary .xls starts with the OLE signature; it isn't supported.
-  if (bytes[0] === 0xd0 && bytes[1] === 0xcf) return null;
+  // Old binary .xls starts with the OLE signature; it isn't supported, but
+  // it is common enough to say exactly how to fix it.
+  if (bytes[0] === 0xd0 && bytes[1] === 0xcf) return 'xls';
   return /\.(csv|txt|tsv)$/i.test(fileName) ? 'csv' : null;
 }
 

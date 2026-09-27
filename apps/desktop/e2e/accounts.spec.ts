@@ -58,7 +58,6 @@ test('first-run setup connects an account and sends a real test email', async ({
   await page.getByRole('link', { name: 'Senders & accounts' }).click();
   await expect(page.getByRole('button', { name: /Asha Kapoor/ })).toBeVisible();
   await expectAccessible(page, 'Senders & accounts, with an account');
-  await page.getByRole('tab', { name: /Email accounts/ }).click();
   await expect(page.getByRole('region', { name: 'Office mail' })).toContainText('Working');
 
   await app.close();
@@ -94,7 +93,6 @@ test('the saved account keeps working after a restart', async ({ userDataDir }) 
   app = await launchApp(userDataDir, env);
   page = await firstPage(app);
   await page.getByRole('link', { name: 'Senders & accounts' }).click();
-  await page.getByRole('tab', { name: /Email accounts/ }).click();
   const card = page.getByRole('region', { name: ADDRESS });
   await card.getByRole('button', { name: 'Send me a test email' }).click();
   await expect(page.getByText(`Test email sent to ${ADDRESS}`)).toBeVisible();

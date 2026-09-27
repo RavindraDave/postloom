@@ -1,4 +1,4 @@
-import { ActionIcon, Button, Divider, Group, NativeSelect, Tooltip } from '@mantine/core';
+import { ActionIcon, Button, Divider, Group, Menu, NativeSelect, Tooltip } from '@mantine/core';
 import {
   IconAlignCenter,
   IconAlignLeft,
@@ -6,12 +6,14 @@ import {
   IconArrowBackUp,
   IconArrowForwardUp,
   IconBold,
+  IconChevronDown,
   IconItalic,
   IconLink,
   IconLinkOff,
   IconList,
   IconListNumbers,
   IconPhoto,
+  IconPlus,
   IconSeparatorHorizontal,
   IconSignature,
   IconSquareRoundedPlus,
@@ -170,32 +172,38 @@ export function EditorToolbar({
           active={state.alignRight}
           onClick={() => chain().setTextAlign('right').run()}
         />
-        <Tool
-          label={t('editor.divider')}
-          icon={IconSeparatorHorizontal}
-          onClick={() => chain().setHorizontalRule().run()}
-        />
       </Group>
       <Divider orientation="vertical" />
-      <Button variant="default" size="sm" leftSection={<IconPhoto size={18} />} onClick={onPicture}>
-        {t('editor.picture')}
-      </Button>
-      <Button
-        variant="default"
-        size="sm"
-        leftSection={<IconSquareRoundedPlus size={18} />}
-        onClick={onButton}
-      >
-        {t('editor.button')}
-      </Button>
-      <Button
-        variant="default"
-        size="sm"
-        leftSection={<IconSignature size={18} />}
-        onClick={onSignature}
-      >
-        {t('editor.signature')}
-      </Button>
+      {/* One "Insert" menu keeps the toolbar short; details have their own. */}
+      <Menu position="bottom-start" shadow="md" width={220}>
+        <Menu.Target>
+          <Button
+            variant="default"
+            size="sm"
+            leftSection={<IconPlus size={18} />}
+            rightSection={<IconChevronDown size={14} />}
+          >
+            {t('editor.insert')}
+          </Button>
+        </Menu.Target>
+        <Menu.Dropdown>
+          <Menu.Item leftSection={<IconPhoto size={18} />} onClick={onPicture}>
+            {t('editor.picture')}
+          </Menu.Item>
+          <Menu.Item leftSection={<IconSquareRoundedPlus size={18} />} onClick={onButton}>
+            {t('editor.button')}
+          </Menu.Item>
+          <Menu.Item leftSection={<IconSignature size={18} />} onClick={onSignature}>
+            {t('editor.signature')}
+          </Menu.Item>
+          <Menu.Item
+            leftSection={<IconSeparatorHorizontal size={18} />}
+            onClick={() => chain().setHorizontalRule().run()}
+          >
+            {t('editor.divider')}
+          </Menu.Item>
+        </Menu.Dropdown>
+      </Menu>
       {insertDetail}
       {state.buttonSelected && (
         <Button variant="subtle" size="sm" onClick={onEditButton}>

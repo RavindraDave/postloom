@@ -83,7 +83,9 @@ You can manage everything later in **Senders & accounts**.
 
 ## 3. Senders and brand looks
 
-**Senders & accounts** has two tabs:
+**Senders & accounts** shows who your emails come from and the email account
+that sends them. With one of each, they share one page. Once you add a second
+account or sender, they get a tab each:
 
 - **Email accounts** do the sending. Each one holds the login and the daily
   limit.
@@ -101,7 +103,7 @@ sent from that sender use it.
 A sender can also have a **signature**: a few lines like your name, job title,
 phone number and website. Format it like the letter: bold, italic, underline,
 text colour and highlight; web addresses become links as you type them. Add it
-to a template with the **Signature** button, wherever you want it. Each email
+to a template with **Insert → Signature**, wherever you want it. Each email
 gets the signature of the sender it's sent from, so one template works for
 every sender.
 
@@ -126,23 +128,27 @@ Change the words to your own. Postloom saves as you type.
   *₹12,400.00* or *1,24,000*. It applies everywhere that detail appears,
   including the subject. Values that aren't a date or a number (like "on
   receipt") are left as they are.
-- **Picture** adds a picture. Pictures travel inside each email, so they show
-  even when people have internet pictures switched off. Give each one a short
-  description for people who can't see pictures.
-- **Button** adds a button with a link.
-- **Signature** adds the sender's signature where you are.
+- **Insert** adds the things that aren't words:
+  - **Picture**. Pictures travel inside each email, so they show
+    even when people have internet pictures switched off. Give each one a
+    short description for people who can't see pictures.
+  - **Button**, with a link.
+  - **Signature**: the sender's signature, where you are.
+  - **Divider line**.
 - **Text colour** and **Highlight** colour the words you've selected, for
   example an amount that's overdue. Use them sparingly: a little colour stands
   out, a lot is hard to read.
-- **Preview text**, under the subject, is the short line inboxes show after
-  the subject. It can have personal details too. Leave it empty and inboxes
+- **Preview text** is the short line inboxes show after the subject. Choose
+  **+ Add the line inboxes show after the subject** under the subject to add
+  it. It can have personal details too. Leave it empty and inboxes
   show the start of the email instead.
 - The **Checklist** on the right lists what still needs attention. For
   example, it warns you when a button still points to the example address.
 - **From** is who this template usually comes from. You can change it when
   you send.
 
-**Look** (on the right) sets how this template's emails look:
+**Look** (on the right) uses the sender's brand look unless you choose
+**Change the look for this template**. Then you can set:
 
 - **Layout:** **Full width** fills the reader's window, like an email you type
   yourself. It's best for letters, reminders and business email. **Centred**
@@ -191,7 +197,7 @@ links, lists and tables, and:
 
 - **Pictures** inside a Word document, written into an HTML email, or kept
   next to it in the same folder come along. Pictures on the web don't; add
-  them again with **Picture**.
+  them again with **Insert → Picture**.
 - **Gaps** written as `{{First Name}}`, `«First Name»` (Word mail merge) or
   `[First Name]` become personal details.
 - Scripts, forms and other things that aren't safe in email are left out.
@@ -213,7 +219,8 @@ Your list is an Excel (`.xlsx`) or CSV file:
 - one column per detail;
 - the column names in the first row.
 
-Older `.xls` files need saving as `.xlsx` first.
+Older `.xls` files need saving as `.xlsx` first (in Excel: File → Save As →
+"Excel Workbook"); Postloom tells you so if you pick one.
 
 | Email | First Name | Invoice No | Amount | Due Date | Send? |
 |---|---|---|---|---|---|

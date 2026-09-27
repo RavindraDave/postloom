@@ -83,7 +83,8 @@ describe('EditorToolbar', () => {
   it('adds a divider, and undoes and redoes it', async () => {
     setUp();
     editor.commands.setTextSelection(3);
-    await userEvent.click(screen.getByRole('button', { name: 'Divider line' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Insert' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Divider line' }));
     const hasDivider = () =>
       editor.getJSON().content.some((block) => block.type === 'horizontalRule');
     expect(hasDivider()).toBe(true);
@@ -122,7 +123,8 @@ describe('EditorToolbar', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Edit button' }));
     expect(handlers.onEditButton).toHaveBeenCalled();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Button' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Insert' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Button' }));
     expect(handlers.onButton).toHaveBeenCalled();
   });
 
@@ -148,7 +150,8 @@ describe('EditorToolbar', () => {
 
   it('asks for a Signature block', async () => {
     const handlers = setUp();
-    await userEvent.click(screen.getByRole('button', { name: 'Signature' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Insert' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Signature' }));
     expect(handlers.onSignature).toHaveBeenCalled();
   });
 });

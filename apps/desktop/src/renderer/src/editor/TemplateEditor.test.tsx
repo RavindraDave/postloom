@@ -45,11 +45,38 @@ describe('TemplateEditor (Write mode)', () => {
     });
   });
 
+  it('keeps preview text folded away until it is wanted', async () => {
+    mockApi();
+    renderEditor();
+    expect(screen.queryByRole('textbox', { name: 'Preview text' })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /Add the line inboxes show/ }));
+    expect(screen.getByRole('textbox', { name: 'Preview text' })).toBeInTheDocument();
+  });
+
+  it('shows preview text a template already has', () => {
+    mockApi();
+    renderEditor({
+      ...sampleTemplate,
+      document: { ...sampleTemplate.document, attrs: { previewText: 'Pay by Friday' } },
+    });
+    expect(screen.getByRole('textbox', { name: 'Preview text' })).toHaveTextContent(
+      'Pay by Friday',
+    );
+    expect(
+      screen.queryByRole('button', { name: /Add the line inboxes show/ }),
+    ).not.toBeInTheDocument();
+  });
+
   it('gives the template its own look, over the sender’s', async () => {
     const api = mockApi();
     renderEditor();
 
     const look = screen.getByRole('region', { name: 'Look' });
+    // Folded until wanted: the sender's look is the usual choice.
+    expect(within(look).getByText(/Uses the sender's brand look/)).toBeInTheDocument();
+    await userEvent.click(
+      within(look).getByRole('button', { name: 'Change the look for this template' }),
+    );
     expect(within(look).getByText(/Fills the reader's window/)).toBeInTheDocument();
     await userEvent.click(within(look).getByText('Centred'));
     expect(within(look).getByLabelText('Colour around the email')).toBeInTheDocument();
@@ -134,7 +161,8 @@ describe('TemplateEditor (Write mode)', () => {
     const api = mockApi();
     renderEditor();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Button' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Insert' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Button' }));
     const dialog = await screen.findByRole('dialog', { name: 'Add a button' });
     await userEvent.type(within(dialog).getByLabelText('Button text'), 'Pay now');
     await userEvent.type(within(dialog).getByLabelText(/Where it goes/), 'not a link');
@@ -184,7 +212,8 @@ describe('TemplateEditor (Write mode)', () => {
     const api = mockApi();
     renderEditor();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Picture' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Insert' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Picture' }));
     expect(api.assets.pickImage).toHaveBeenCalled();
     const dialog = await screen.findByRole('dialog', { name: 'Add a picture' });
     expect(within(dialog).getByText(/travels inside each email/)).toBeInTheDocument();
@@ -219,7 +248,8 @@ describe('TemplateEditor (Write mode)', () => {
   it('does nothing when no picture is chosen', async () => {
     mockApi({ assets: { pickImage: vi.fn(() => ok(null)) } });
     renderEditor();
-    await userEvent.click(screen.getByRole('button', { name: 'Picture' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Insert' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Picture' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 

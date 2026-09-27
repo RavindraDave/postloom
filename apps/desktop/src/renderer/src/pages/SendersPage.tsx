@@ -66,6 +66,8 @@ export function SendersPage() {
 
   const needingYou = accounts.data?.filter(accountNeedsYou).length ?? 0;
   const noAccounts = accounts.data?.length === 0;
+  // Accounts and senders only need telling apart once there is more than one.
+  const simple = accounts.data?.length === 1 && (senders.data?.length ?? 0) <= 1;
 
   const newButton = (
     <Button leftSection={<IconPlus size={18} />} onClick={openCreate} disabled={noAccounts}>
@@ -105,7 +107,26 @@ export function SendersPage() {
         />
       )}
 
-      {accounts.data && accounts.data.length > 0 && senders.data && (
+      {/* One account and one sender: no tabs, just the sender and its account. */}
+      {simple && accounts.data && senders.data && (
+        <Stack gap="xl">
+          <SendersTab
+            senders={senders.data}
+            accounts={accounts.data}
+            chosenId={chosenId}
+            onChoose={setChosenId}
+            newButton={newButton}
+          />
+          <Stack gap="md" component="section" aria-labelledby="email-account-heading">
+            <Title order={2} size="h4" id="email-account-heading">
+              {t('senders.accountHeading')}
+            </Title>
+            <AccountsTab accounts={accounts.data} />
+          </Stack>
+        </Stack>
+      )}
+
+      {accounts.data && accounts.data.length > 0 && senders.data && !simple && (
         <Tabs value={tab} onChange={setTab} keepMounted={false}>
           <Tabs.List>
             <Tabs.Tab
