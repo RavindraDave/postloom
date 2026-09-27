@@ -143,7 +143,14 @@
     "sendAccountBusy": "This email account is already sending. Wait for that send to finish (or pause it), then try again.",
     "restoreWhileSending": "Emails are being sent right now. Wait for the send to finish (or pause it), then restore.",
     "wordOldFormat": "That's an older Word file (.doc). Open it in Word, choose Save As, pick Word Document (.docx), then import that file.",
-    "wordTooBig": "That Word document is too big to import (over 25 MB). Try a copy with smaller pictures."
+    "wordTooBig": "That Word document is too big to import (over 25 MB). Try a copy with smaller pictures.",
+    "signInFailed": "Signing in didn’t work. Please try again.",
+    "signInCancelled": "Signing in was cancelled. Nothing was saved.",
+    "signInTimedOut": "Signing in took too long, so Postloom stopped waiting. Please try again.",
+    "signInExpired": "This account needs you to sign in again (you may have changed your password or removed Postloom’s access). Open Senders & accounts to sign in.",
+    "signInOffline": "Couldn’t reach the sign-in service. Check your internet connection and try again.",
+    "signInUnavailable": "Signing in with Google or Microsoft isn’t available in this copy of Postloom. Use an app password instead.",
+    "signInOtherAddress": "You signed in with a different address. Sign in as the address this account uses, or add it as a new account."
   },
   "common": {
     "loading": "Loading…",
@@ -222,7 +229,7 @@
       "outlook": {
         "label": "Outlook",
         "hint": "Outlook.com, Hotmail, Microsoft 365",
-        "appPasswordHelp": "Outlook needs an app password. Sign in to your Microsoft account, open Security → Advanced security options → App passwords, create one and paste it here."
+        "appPasswordHelp": "Only for work accounts whose IT still allows passwords (ask your IT team to turn on \"Authenticated SMTP\"). Outlook.com and Hotmail accounts can’t use passwords: sign in with Microsoft instead."
       },
       "yahoo": {
         "label": "Yahoo Mail",
@@ -926,5 +933,33 @@
     "useSender": "Use the sender's",
     "colourInvalid": "Type a colour like #2F5D8C, or pick one",
     "pickFromScreen": "Pick a colour from the screen"
+  },
+  "signIn": {
+    "waiting": "Finish signing in in your browser",
+    "waitingBody": "A sign-in page opened in your web browser. When you’re done there, come back here.",
+    "cancel": "Cancel",
+    "againTitle": "Sign in to {{name}} again",
+    "google": {
+      "button": "Sign in with Google",
+      "again": "Sign in with Google again",
+      "body": "Google’s own page opens in your browser. Postloom only gets permission to send emails from your account: it can’t read your email, and it never sees your password.",
+      "next": "Next: sign in with Google",
+      "nextBody": "It takes a minute, in your web browser. You don’t need an app password.",
+      "passwordInstead": "Prefer an app password?",
+      "usePassword": "Use an app password instead",
+      "useSignIn": "← Sign in with Google instead",
+      "signedInWith": "Signed in with Google"
+    },
+    "microsoft": {
+      "button": "Sign in with Microsoft",
+      "again": "Sign in with Microsoft again",
+      "body": "Microsoft’s own page opens in your browser. Works for Outlook.com, Hotmail and Microsoft 365. Postloom only gets permission to send emails from your account, and never sees your password.",
+      "next": "Next: sign in with Microsoft",
+      "nextBody": "It takes a minute, in your web browser. Outlook.com and Hotmail accounts can only connect this way.",
+      "passwordInstead": "Work account whose IT still allows passwords?",
+      "usePassword": "Use a password instead",
+      "useSignIn": "← Sign in with Microsoft instead",
+      "signedInWith": "Signed in with Microsoft"
+    }
   }
 }

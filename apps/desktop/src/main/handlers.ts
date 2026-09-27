@@ -17,7 +17,14 @@ import { importDocumentFile } from './document-import';
 import { readDocument } from './documents';
 import { loadPreferences as loadSavedPreferences, PREFERENCES_KEY } from './preferences';
 import { createListService, type RecipientDeps } from './recipients';
-import { createInProcessRunner, type RunnerEvents, type SendRunner } from './send-runner';
+import type { OAuthClient, OAuthProvider } from './oauth';
+import { createAccountTokens } from './oauth-tokens';
+import {
+  createInProcessRunner,
+  type RenewForAccount,
+  type RunnerEvents,
+  type SendRunner,
+} from './send-runner';
 import { createSendService, type SendService } from './sends';
 import { createTemplateTestHandler } from './template-test';
 import type { IpcHandlers } from './ipc-router';
@@ -38,7 +45,9 @@ export interface HandlerDeps extends Omit<AccountDeps, 'repos'>, Partial<Omit<As
   pickSpreadsheetFile?: RecipientDeps['pickSpreadsheetFile'];
   todayUtc?: RecipientDeps['todayUtc'];
   /** Where sends run; defaults to this process (tests). The app uses the sending process. */
-  createSendRunner?: (events: RunnerEvents) => SendRunner;
+  createSendRunner?: (events: RunnerEvents, renewAccessToken?: RenewForAccount) => SendRunner;
+  /** Google and Microsoft apps this build can sign in with (none: passwords only). */
+  oauthClients?: Partial<Record<OAuthProvider, OAuthClient>>;
   /** Opens the connection an in-process send uses (tests fake it). */
   openMailer?: typeof openMailer;
   /** Shows a notification from the computer. */
@@ -93,17 +102,25 @@ export function createMainServices({
   saveFile,
   dataStore = noDataStore,
   updates = noUpdates,
-  ...accountDeps
+  oauthClients = {},
+  ...rest
 }: HandlerDeps): { handlers: IpcHandlers; sends: SendService } {
+  const tokens = createAccountTokens({ repos, vault: rest.vault, clients: oauthClients });
+  const accountDeps = { ...rest, tokens };
+  const renewAccessToken: RenewForAccount = async (accountId, renew) =>
+    tokens.accessToken(await repos.accounts.get(accountId), renew);
   const lists = createListService({ repos, pickSpreadsheetFile, ...(todayUtc && { todayUtc }) });
   const sends = createSendService({
     repos,
     vault: accountDeps.vault,
     extraCa: accountDeps.extraCa,
+    tokens,
+    oauth: accountDeps.oauth,
     lists,
-    createRunner:
-      createSendRunner ??
-      ((events) => createInProcessRunner({ repos, openMailer: mailerFor }, events)),
+    createRunner: (events) =>
+      createSendRunner
+        ? createSendRunner(events, renewAccessToken)
+        : createInProcessRunner({ repos, openMailer: mailerFor, renewAccessToken }, events),
     ...(notify && { notify }),
     ...(saveFile && { saveFile }),
   });
@@ -124,6 +141,8 @@ export function createMainServices({
       repos,
       vault: accountDeps.vault,
       extraCa: accountDeps.extraCa,
+      tokens,
+      oauth: accountDeps.oauth,
       send: accountDeps.smtp?.send ?? sendEmail,
     }),
 

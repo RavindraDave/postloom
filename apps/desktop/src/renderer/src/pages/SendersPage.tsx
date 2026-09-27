@@ -36,10 +36,11 @@ import {
   useTestAccount,
   useUpdateSender,
 } from '../api/queries';
-import { ConnectAccountForm } from '../components/ConnectAccountForm';
+import { ConnectAccount } from '../components/ConnectAccount';
 import { BrandLookCard } from '../components/BrandLookCard';
 import { EmptyState } from '../components/EmptyState';
 import { FixPasswordForm } from '../components/FixPasswordForm';
+import { SignInPanel } from '../components/SignInPanel';
 import { InheritedField } from '../components/InheritedField';
 import { PageHeader } from '../components/PageHeader';
 import { SignatureEditor } from '../components/SignatureEditor';
@@ -533,7 +534,7 @@ function AccountsTab({ accounts }: { accounts: EmailAccountInfo[] }) {
           {provider && (
             <>
               <PasswordProtectionNotice />
-              <ConnectAccountForm key={provider} provider={provider} onConnected={close} />
+              <ConnectAccount key={provider} provider={provider} onConnected={close} />
             </>
           )}
         </Stack>
@@ -582,6 +583,11 @@ function AccountCard({ account }: { account: EmailAccountInfo }) {
             <Text size="sm" c="var(--pl-muted)">
               {account.username} · {t('accounts.usedBy', { count: account.senderCount })}
             </Text>
+            {account.auth !== 'password' && (
+              <Text size="sm" c="var(--pl-muted)">
+                {t(`signIn.${account.auth}.signedInWith`)}
+              </Text>
+            )}
             <Text size="sm" c="var(--pl-muted)">
               {lastChecked}
             </Text>
@@ -593,22 +599,39 @@ function AccountCard({ account }: { account: EmailAccountInfo }) {
       {broken && (
         <Stack gap="sm" mt="md" className={classes.fix}>
           <Title order={3} size="h4">
-            {account.hasPassword
-              ? t('accounts.fixTitle', { name: account.name })
-              : t('accounts.fixMissingTitle', { name: account.name })}
+            {account.auth !== 'password'
+              ? t('signIn.againTitle', { name: account.name })
+              : account.hasPassword
+                ? t('accounts.fixTitle', { name: account.name })
+                : t('accounts.fixMissingTitle', { name: account.name })}
           </Title>
-          <Text size="sm" c="var(--pl-ink-soft)">
-            {account.hasPassword ? t('accounts.fixBody') : t('accounts.fixMissingBody')}
-          </Text>
-          <FixPasswordForm
-            account={account}
-            onFixed={() => {
-              notifications.show({
-                message: t('accounts.fixed', { name: account.name }),
-                color: 'green',
-              });
-            }}
-          />
+          {account.auth === 'password' && (
+            <Text size="sm" c="var(--pl-ink-soft)">
+              {account.hasPassword ? t('accounts.fixBody') : t('accounts.fixMissingBody')}
+            </Text>
+          )}
+          {account.auth === 'password' ? (
+            <FixPasswordForm
+              account={account}
+              onFixed={() => {
+                notifications.show({
+                  message: t('accounts.fixed', { name: account.name }),
+                  color: 'green',
+                });
+              }}
+            />
+          ) : (
+            <SignInPanel
+              provider={account.auth}
+              accountId={account.id}
+              onSignedIn={() => {
+                notifications.show({
+                  message: t('accounts.fixed', { name: account.name }),
+                  color: 'green',
+                });
+              }}
+            />
+          )}
         </Stack>
       )}
 

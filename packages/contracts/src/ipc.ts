@@ -153,10 +153,15 @@ const passwordSchema = z.string().min(1).max(256);
 
 export const providerIdSchema = z.enum(['gmail', 'outlook', 'yahoo', 'zoho', 'icloud', 'other']);
 
+/** How an account signs in: a password, or Google's or Microsoft's own sign-in. */
+export const accountAuthSchema = z.enum(['password', 'google', 'microsoft']);
+export const signInProviderSchema = z.enum(['google', 'microsoft']);
+
 export const emailAccountSchema = connectionSchema.extend({
   id: idSchema,
   name: z.string(),
   provider: providerIdSchema,
+  auth: accountAuthSchema,
   hasPassword: z.boolean(),
   dailyLimit: z.number().int().nullable(),
   delayMs: z.number().int().nullable(),
@@ -402,6 +407,22 @@ export const ipcContract = {
   'accounts:delete': { input: byId, output: ok },
   /** Signs in without sending (setup wizard, before saving). */
   'accounts:testConnection': { input: testConnectionInputSchema, output: ok },
+  /** Which sign-ins (Google, Microsoft) this build offers. */
+  'accounts:signInProviders': { input: z.undefined(), output: z.array(signInProviderSchema) },
+  /**
+   * Signs in with Google or Microsoft in the browser and saves the account
+   * (or, with accountId, signs a saved account in again).
+   */
+  'accounts:signIn': {
+    input: z.object({
+      provider: signInProviderSchema,
+      accountId: idSchema.optional(),
+      name: z.string().trim().max(80).optional(),
+    }),
+    output: emailAccountSchema,
+  },
+  /** Stops waiting for a sign-in the person gave up on. */
+  'accounts:signInCancel': { input: z.undefined(), output: ok },
   /** Signs in with a saved account and records the result. */
   'accounts:test': { input: byId, output: emailAccountSchema },
   'accounts:sendTestEmail': {
@@ -573,6 +594,8 @@ export type EmailAccountInfo = z.infer<typeof emailAccountSchema>;
 export type CreateAccountInput = z.infer<typeof createAccountInputSchema>;
 export type UpdateAccountInput = z.infer<typeof updateAccountInputSchema>;
 export type TestConnectionInput = z.infer<typeof testConnectionInputSchema>;
+export type SignInProvider = z.infer<typeof signInProviderSchema>;
+export type AccountAuth = z.infer<typeof accountAuthSchema>;
 export type SenderInfo = z.infer<typeof senderSchema>;
 export type CreateSenderInput = z.infer<typeof createSenderInputSchema>;
 export type UpdateSenderInput = z.infer<typeof updateSenderInputSchema>;
@@ -610,6 +633,9 @@ export interface PostloomApi {
     update: Call<'accounts:update'>;
     delete: Call<'accounts:delete'>;
     testConnection: Call<'accounts:testConnection'>;
+    signInProviders: Call<'accounts:signInProviders'>;
+    signIn: Call<'accounts:signIn'>;
+    signInCancel: Call<'accounts:signInCancel'>;
     test: Call<'accounts:test'>;
     sendTestEmail: Call<'accounts:sendTestEmail'>;
   };

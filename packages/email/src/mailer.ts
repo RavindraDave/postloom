@@ -4,9 +4,11 @@ import {
   createSmtpTransport,
   toMailOptions,
   type OutgoingEmail,
+  type RenewAccessToken,
   type SendResult,
   type SmtpAccountConfig,
 } from './smtp';
+import { sendWithGmailApi } from './gmail-api';
 
 /**
  * What a failed send means for the person being emailed (PLAN.md §9):
@@ -34,7 +36,7 @@ export class SendFailure extends Error {
 }
 
 const BEFORE_SENDING = new Set(['ECONNREFUSED', 'ENOTFOUND', 'EDNS', 'ETLS', 'EAI_AGAIN']);
-const AUTH_CODES = new Set(['EAUTH', 'ENOAUTH']);
+const AUTH_CODES = new Set(['EAUTH', 'ENOAUTH', 'EOAUTH2']);
 
 /** Sorts a Nodemailer/Node error into what it means for the person being emailed. */
 export function classifyFailure(error: unknown): SendFailure {
@@ -77,9 +79,17 @@ export interface Mailer {
   close(): void;
 }
 
-/** One connection kept open for a whole send (reconnecting if it drops). */
-export function openMailer(config: SmtpAccountConfig): Mailer {
-  const transport = createSmtpTransport(config, { pool: true });
+/**
+ * One connection kept open for a whole send (reconnecting if it drops). For
+ * accounts that signed in with Google or Microsoft, `renewAccessToken` gets a
+ * fresh token when the current one runs out part-way through a long send.
+ */
+export function openMailer(config: SmtpAccountConfig, renewAccessToken?: RenewAccessToken): Mailer {
+  if (config.via === 'gmail-api') return openGmailApiMailer({ ...config }, renewAccessToken);
+  const transport = createSmtpTransport(config, {
+    pool: true,
+    ...(renewAccessToken ? { renewAccessToken } : {}),
+  });
   return {
     async send(email) {
       try {
@@ -97,5 +107,24 @@ export function openMailer(config: SmtpAccountConfig): Mailer {
     close: () => {
       transport.close();
     },
+  };
+}
+
+/** The Gmail API has no connection to keep open; each email is one request. */
+function openGmailApiMailer(config: SmtpAccountConfig, renew?: RenewAccessToken): Mailer {
+  return {
+    async send(email) {
+      try {
+        assertNoHeaderInjection(email);
+        // Renew a token that's about to run out before using it.
+        if (renew && config.oauth && config.oauth.expiresAt - 60_000 < Date.now()) {
+          config.oauth = await renew(false);
+        }
+        return await sendWithGmailApi(config, email, renew);
+      } catch (error) {
+        throw classifyFailure(error);
+      }
+    },
+    close: () => undefined,
   };
 }

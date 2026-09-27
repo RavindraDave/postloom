@@ -4,6 +4,7 @@ import { assetDetails } from './0002-asset-details';
 import { sendPauses } from './0003-send-pauses';
 import { sendAttachments } from './0004-send-attachments';
 import { senderSignatures } from './0005-sender-signatures';
+import { accountAuth } from './0006-account-auth';
 
 /** All migrations, in order. Names sort lexically, so keep the numeric prefix. */
 export const MIGRATIONS: Record<string, Migration> = {
@@ -12,6 +13,7 @@ export const MIGRATIONS: Record<string, Migration> = {
   '0003-send-pauses': sendPauses,
   '0004-send-attachments': sendAttachments,
   '0005-sender-signatures': senderSignatures,
+  '0006-account-auth': accountAuth,
 };
 
 export const migrationProvider: MigrationProvider = {

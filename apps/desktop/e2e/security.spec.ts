@@ -60,7 +60,18 @@ test('the preload exposes only the typed Postloom API', async ({ page }) => {
     app: ['exportDiagnostics', 'getInfo', 'getSecurity', 'openDownloadPage', 'updateStatus'],
     settings: ['get', 'update'],
     // No channel ever returns a saved password.
-    accounts: ['create', 'delete', 'list', 'sendTestEmail', 'test', 'testConnection', 'update'],
+    accounts: [
+      'create',
+      'delete',
+      'list',
+      'sendTestEmail',
+      'signIn',
+      'signInCancel',
+      'signInProviders',
+      'test',
+      'testConnection',
+      'update',
+    ],
     senders: ['create', 'delete', 'list', 'setBrand', 'update'],
     assets: ['pickImage', 'totalSize'],
     // The screen never gets a file path, only a token for the picked list.

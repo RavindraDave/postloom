@@ -26,8 +26,33 @@ const post = (message: FromSender) => {
   port.postMessage(message);
 };
 
+/** Tokens asked of the app, waiting for its answer. */
+const waiting = new Map<
+  number,
+  { resolve: (token: TokenReply) => void; reject: (error: Error) => void }
+>();
+let nextRequest = 1;
+type TokenReply = { accessToken: string; expiresAt: number };
+
+/** Asks the app for a fresh sign-in token; a refusal reads as "signed out". */
+const renewAccessToken = (renew: boolean) =>
+  new Promise<TokenReply>((resolve, reject) => {
+    const requestId = nextRequest++;
+    waiting.set(requestId, { resolve, reject });
+    post({ type: 'token-request', requestId, renew });
+  });
+
 port.on('message', (event: { data: ToSender }) => {
   const message = event.data;
+  if (message.type === 'token') {
+    const pending = waiting.get(message.requestId);
+    waiting.delete(message.requestId);
+    if (message.token) pending?.resolve(message.token);
+    else
+      pending?.reject(
+        Object.assign(new Error(message.error ?? 'errors.signInExpired'), { code: 'EOAUTH2' }),
+      );
+  }
   if (message.type === 'pause') control.pause(message.reason);
   if (message.type === 'stop') control.stop();
   if (message.type === 'start') void run(message.job, message.dbFile);
@@ -41,6 +66,7 @@ async function run(job: Extract<ToSender, { type: 'start' }>['job'], dbFile: str
       outcome = await runJob(job, {
         repos: createRepositories(opened.db),
         openMailer,
+        renewAccessToken,
         control,
         onProgress: (progress) => {
           post({ type: 'progress', progress });

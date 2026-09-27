@@ -387,6 +387,33 @@ describe('the sending process runner', () => {
 
   const job = { sendId: 's1' } as Parameters<ReturnType<typeof createProcessRunner>['start']>[0];
 
+  it('answers the process when a sign-in token runs out part-way', async () => {
+    const fake = fakeChild();
+    const renew = vi
+      .fn()
+      .mockResolvedValueOnce({ accessToken: 'fresh', expiresAt: 1 })
+      .mockRejectedValueOnce(Object.assign(new Error('x'), { messageKey: 'errors.signInExpired' }));
+    const runner = createProcessRunner(
+      { fork: () => fake.child, dbFile: '/db', renewAccessToken: renew },
+      { onDone: vi.fn(), onProgress: vi.fn() },
+    );
+    runner.start({ ...job, accountId: 'a1' });
+    fake.emit({ type: 'token-request', requestId: 7, renew: true });
+    fake.emit({ type: 'token-request', requestId: 8, renew: false });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(renew).toHaveBeenCalledWith('a1', true);
+    expect(fake.posted).toContainEqual({
+      type: 'token',
+      requestId: 7,
+      token: { accessToken: 'fresh', expiresAt: 1 },
+    });
+    expect(fake.posted).toContainEqual({
+      type: 'token',
+      requestId: 8,
+      error: 'errors.signInExpired',
+    });
+  });
+
   it('passes the job, Pause and Stop to the process, and reports its outcome', () => {
     const fake = fakeChild();
     const onDone = vi.fn();

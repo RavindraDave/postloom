@@ -18,7 +18,10 @@ import type { ListService } from './recipients';
 import { buildReport } from './report';
 import type { RunnerEvents, RunnerResult, SendRunner } from './send-runner';
 
-export interface SendServiceDeps extends Pick<AccountDeps, 'repos' | 'vault' | 'extraCa'> {
+export interface SendServiceDeps extends Pick<
+  AccountDeps,
+  'repos' | 'vault' | 'extraCa' | 'tokens' | 'oauth'
+> {
   repos: Repositories;
   lists: ListService;
   createRunner: (events: RunnerEvents) => SendRunner;

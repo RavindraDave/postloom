@@ -29,6 +29,12 @@ Keychain, or the Linux secret service). Only the encrypted password is kept in
 Postloom's database; it is never put in backups or diagnostics, and it can't be
 read on another computer or by another user account.
 
+**If you sign in with Google or Microsoft**, Postloom never sees your password.
+It keeps the permission the provider gives it (a "refresh token"), encrypted in
+the same way. For Google, that permission is only to send email as you
+(`gmail.send`): Postloom can't read, delete or search your mailbox. You can
+remove it at any time in your Google or Microsoft account's security settings.
+
 None of this is sent to R2DSolutions.
 
 ## What leaves your computer
@@ -39,6 +45,10 @@ Postloom connects to the internet only:
   you ask it to send. This uses the account and server you set up, over an
   encrypted connection (TLS). Your provider's own privacy policy covers what
   happens to those emails.
+- **To Google or Microsoft, if you sign in with them**: once to sign in (in your
+  web browser), and then about once an hour while sending, to renew Postloom's
+  permission to send. Gmail accounts that sign in send through Google's Gmail
+  API instead of SMTP.
 - **To GitHub, once a day, to check for a new version** (only in the versions
   downloaded from GitHub; not in the Microsoft Store version, which the Store
   updates). This check sends no information about you or your data. You can turn
@@ -59,7 +69,7 @@ shared if you send it to someone yourself.
 - **Settings → Your data** lets you choose how long History is kept, clear it,
   take a backup or restore one, and open the folder where Postloom keeps its
   data.
-- Deleting an email account in Senders & accounts deletes its saved password.
+- Deleting an email account in Senders & accounts deletes its saved password or sign-in.
 - Uninstalling Postloom and deleting its data folder removes everything it kept.
 
 ## Security

@@ -17,6 +17,13 @@ import { compileMjml, sendEmail, verifySmtpAccount, type SmtpAccountConfig } fro
 import { saveSenderBrand, senderBrand } from './brand';
 import { appSendingDefaults } from './preferences';
 import type { IpcHandlers } from './ipc-router';
+import {
+  signIn as browserSignIn,
+  type OAuthClient,
+  type OAuthProvider,
+  type SignedIn,
+} from './oauth';
+import type { AccountTokens } from './oauth-tokens';
 import type { SecretVault } from './secrets';
 
 export interface AccountDeps {
@@ -28,6 +35,9 @@ export interface AccountDeps {
     verify: typeof verifySmtpAccount;
     send: typeof sendEmail;
   };
+  /** Google and Microsoft sign-in; without it only passwords are offered. */
+  tokens?: AccountTokens | undefined;
+  oauth?: OAuthDeps | undefined;
 }
 
 type AccountHandlers = Pick<
@@ -38,6 +48,9 @@ type AccountHandlers = Pick<
   | 'accounts:update'
   | 'accounts:delete'
   | 'accounts:testConnection'
+  | 'accounts:signIn'
+  | 'accounts:signInCancel'
+  | 'accounts:signInProviders'
   | 'accounts:test'
   | 'accounts:sendTestEmail'
   | 'senders:list'
@@ -47,11 +60,66 @@ type AccountHandlers = Pick<
   | 'senders:setBrand'
 >;
 
-/** Decrypts the saved password just in time; it never leaves the main process. */
+export interface OAuthDeps {
+  /** Signs in in the browser (tests replace it). */
+  signIn?: (client: OAuthClient, signal: AbortSignal) => Promise<SignedIn>;
+  openBrowser: (url: string) => Promise<void>;
+  /** Tests only: a fake Gmail API, and a local SMTP server standing in for Microsoft's. */
+  gmailApiBase?: string | undefined;
+  microsoftSmtp?: { host: string; port: number } | undefined;
+}
+
+/** Where each sign-in's accounts send from. */
+function oauthConnection(provider: OAuthProvider, oauth: OAuthDeps | undefined) {
+  if (provider === 'google') {
+    const preset = PROVIDER_PRESETS.gmail;
+    return {
+      provider: 'gmail' as const,
+      host: preset.host,
+      port: preset.port,
+      security: preset.security,
+    };
+  }
+  const preset = PROVIDER_PRESETS.outlook;
+  return {
+    provider: 'outlook' as const,
+    host: oauth?.microsoftSmtp?.host ?? preset.host,
+    port: oauth?.microsoftSmtp?.port ?? preset.port,
+    security: preset.security,
+  };
+}
+
+/**
+ * How to reach an account's email server, with its password or a fresh
+ * sign-in token. Secrets are decrypted just in time and never leave the
+ * app's own processes.
+ */
 export async function loadSmtpConfig(
   account: EmailAccount,
-  { repos, vault, extraCa }: Pick<AccountDeps, 'repos' | 'vault' | 'extraCa'>,
+  {
+    repos,
+    vault,
+    extraCa,
+    tokens,
+    oauth,
+  }: Pick<AccountDeps, 'repos' | 'vault' | 'extraCa' | 'tokens' | 'oauth'>,
 ): Promise<SmtpAccountConfig> {
+  if (account.auth !== 'password') {
+    if (!tokens) {
+      throw new AppError({ code: 'EMAIL_AUTH_FAILED', messageKey: 'errors.signInUnavailable' });
+    }
+    return {
+      host: account.host,
+      port: account.port,
+      security: account.security,
+      username: account.username,
+      password: '',
+      oauth: await tokens.accessToken(account),
+      via: account.auth === 'google' ? 'gmail-api' : 'smtp',
+      gmailApiBase: oauth?.gmailApiBase,
+      extraCa,
+    };
+  }
   const cipher = await repos.accounts.getSecret(account.id);
   if (!cipher) {
     throw new AppError({ code: 'EMAIL_AUTH_FAILED', messageKey: 'errors.passwordMissing' });
@@ -89,6 +157,8 @@ export function createAccountHandlers({
   vault,
   extraCa,
   smtp = { verify: verifySmtpAccount, send: sendEmail },
+  tokens,
+  oauth,
 }: AccountDeps): AccountHandlers {
   const senderCounts = async () => {
     const counts = new Map<string, number>();
@@ -106,6 +176,7 @@ export function createAccountHandlers({
     port: account.port,
     security: account.security,
     username: account.username,
+    auth: account.auth,
     hasPassword: account.hasSecret,
     dailyLimit: account.dailyLimit,
     delayMs: account.delayMs,
@@ -119,7 +190,9 @@ export function createAccountHandlers({
     return toAccountInfo(account, (await senderCounts()).get(id) ?? 0);
   };
 
-  const savedConfig = (account: EmailAccount) => loadSmtpConfig(account, { repos, vault, extraCa });
+  const savedConfig = (account: EmailAccount) =>
+    loadSmtpConfig(account, { repos, vault, extraCa, tokens, oauth });
+  let signingIn: AbortController | undefined;
 
   const toSenderInfo = async (
     sender: SenderProfile,
@@ -207,7 +280,70 @@ export function createAccountHandlers({
 
     'accounts:delete': async ({ id }) => {
       await repos.accounts.delete(id);
+      tokens?.forget(id);
       return { ok: true as const };
+    },
+
+    'accounts:signInProviders': () => Promise.resolve(tokens?.providers() ?? []),
+
+    // Signs in in the browser, checks the account can send, then saves it.
+    // Signing in again with the same address updates the saved account.
+    'accounts:signIn': async ({ provider, accountId, name }) => {
+      if (!tokens || !oauth) {
+        throw new AppError({ code: 'EMAIL_AUTH_FAILED', messageKey: 'errors.signInUnavailable' });
+      }
+      signingIn?.abort();
+      const controller = new AbortController();
+      signingIn = controller;
+      let signedIn: SignedIn;
+      try {
+        signedIn = await (
+          oauth.signIn ??
+          ((client, signal) => browserSignIn(client, { openBrowser: oauth.openBrowser, signal }))
+        )(tokens.client(provider), controller.signal);
+      } finally {
+        if (signingIn === controller) signingIn = undefined;
+      }
+
+      const existing = accountId
+        ? await repos.accounts.get(accountId)
+        : (await repos.accounts.list()).find(
+            (account) => account.auth === provider && account.username === signedIn.email,
+          );
+      if (existing && existing.username !== signedIn.email) {
+        throw new AppError({ code: 'EMAIL_AUTH_FAILED', messageKey: 'errors.signInOtherAddress' });
+      }
+      const connection = oauthConnection(provider, oauth);
+      const access = { accessToken: signedIn.accessToken, expiresAt: signedIn.expiresAt };
+      // Microsoft: sign in to the mail server once, so nothing is saved that can't send.
+      await smtp.verify({
+        ...connection,
+        username: signedIn.email,
+        password: '',
+        oauth: access,
+        via: provider === 'google' ? 'gmail-api' : 'smtp',
+        extraCa,
+      });
+      const account = existing
+        ? await repos.accounts.update(existing.id, { ...connection, auth: provider })
+        : await repos.accounts.create({
+            ...connection,
+            auth: provider,
+            name: name?.trim() || signedIn.email,
+            username: signedIn.email,
+            dailyLimit: null,
+            delayMs: null,
+          });
+      await repos.accounts.setSecret(account.id, vault.encrypt(signedIn.refreshToken));
+      tokens.remember(account.id, access);
+      await repos.accounts.recordTest(account.id, true);
+      return accountInfo(account.id);
+    },
+
+    'accounts:signInCancel': () => {
+      signingIn?.abort();
+      signingIn = undefined;
+      return Promise.resolve({ ok: true as const });
     },
 
     'accounts:testConnection': async (connection) => {
@@ -218,6 +354,8 @@ export function createAccountHandlers({
     'accounts:test': async ({ id }) => {
       const account = await repos.accounts.get(id);
       try {
+        // A signed-in account checks with its provider that access is still allowed.
+        if (account.auth !== 'password') await tokens?.accessToken(account, true);
         await smtp.verify(await savedConfig(account));
         await repos.accounts.recordTest(id, true);
       } catch (error) {

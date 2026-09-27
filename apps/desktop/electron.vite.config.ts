@@ -14,8 +14,24 @@ const workspacePackages = [
   '@postloom/sending',
 ];
 
+/**
+ * Google and Microsoft sign-in app ids, from the release build's environment
+ * (see docs/oauth-setup.md). They aren't secrets: desktop apps can't keep
+ * secrets, which is why sign-in uses PKCE. Left empty, sign-in isn't offered.
+ */
+const oauthIds = {
+  __POSTLOOM_GOOGLE_CLIENT_ID__: JSON.stringify(process.env['POSTLOOM_GOOGLE_CLIENT_ID'] ?? ''),
+  __POSTLOOM_GOOGLE_CLIENT_SECRET__: JSON.stringify(
+    process.env['POSTLOOM_GOOGLE_CLIENT_SECRET'] ?? '',
+  ),
+  __POSTLOOM_MICROSOFT_CLIENT_ID__: JSON.stringify(
+    process.env['POSTLOOM_MICROSOFT_CLIENT_ID'] ?? '',
+  ),
+};
+
 export default defineConfig({
   main: {
+    define: oauthIds,
     build: {
       externalizeDeps: { exclude: workspacePackages },
       rollupOptions: {

@@ -20,7 +20,9 @@ export interface EmailAccountsTable {
   port: number;
   security: string;
   username: string;
-  /** Password encrypted by the OS keychain (Electron safeStorage); never plaintext. */
+  /** 'password', 'google' or 'microsoft' (see AccountAuth). */
+  auth: Generated<string>;
+  /** Password, or OAuth refresh token, encrypted by the OS keychain (Electron safeStorage); never plaintext. */
   secret_ciphertext: Uint8Array | null;
   daily_limit: number | null;
   delay_ms: number | null;

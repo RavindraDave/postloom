@@ -1,5 +1,6 @@
 import { AppError } from '@postloom/core';
 import nodemailer from 'nodemailer';
+import { sendWithGmailApi } from './gmail-api';
 
 export interface SmtpAccountConfig {
   host: string;
@@ -7,7 +8,17 @@ export interface SmtpAccountConfig {
   /** `tls`: encrypted from the start (usually port 465). `starttls`: upgrade after connecting (usually 587). */
   security: 'tls' | 'starttls';
   username: string;
+  /** The password or app password; empty for accounts that sign in with Google or Microsoft. */
   password: string;
+  /**
+   * A Google or Microsoft sign-in (OAuth) access token, used instead of the
+   * password: over SMTP (XOAUTH2) for Microsoft, or with the Gmail API.
+   */
+  oauth?: { accessToken: string; expiresAt: number } | undefined;
+  /** How emails leave: over SMTP (the default), or through the Gmail API (Google sign-in). */
+  via?: 'smtp' | 'gmail-api' | undefined;
+  /** The Gmail API's address; only tests change it. */
+  gmailApiBase?: string | undefined;
   /**
    * Extra trusted certificate authorities (PEM), e.g. a company's own CA.
    * Certificate verification itself can never be turned off.
@@ -52,17 +63,32 @@ export interface SendResult {
 
 const HEADER_BREAK = /[\r\n]/;
 
+/** Gets a fresh sign-in token (renew: the current one was refused). */
+export type RenewAccessToken = (
+  renew: boolean,
+) => Promise<{ accessToken: string; expiresAt: number }>;
+
 /** Creates a Nodemailer transport that always requires an encrypted, verified connection. */
-export function createSmtpTransport(config: SmtpAccountConfig, { pool = false } = {}) {
+export function createSmtpTransport(
+  config: SmtpAccountConfig,
+  { pool = false, renewAccessToken }: { pool?: boolean; renewAccessToken?: RenewAccessToken } = {},
+) {
   const timeout = config.connectionTimeoutMs ?? 20_000;
-  return nodemailer.createTransport({
+  const transport = nodemailer.createTransport({
     // A pool keeps one connection open across a whole send and reconnects if it drops.
     ...(pool ? { pool: true as const, maxConnections: 1, maxMessages: 100 } : {}),
     host: config.host,
     port: config.port,
     secure: config.security === 'tls',
     requireTLS: true,
-    auth: { user: config.username, pass: config.password },
+    auth: config.oauth
+      ? {
+          type: 'OAuth2' as const,
+          user: config.username,
+          accessToken: config.oauth.accessToken,
+          expires: config.oauth.expiresAt,
+        }
+      : { user: config.username, pass: config.password },
     connectionTimeout: timeout,
     greetingTimeout: timeout,
     socketTimeout: timeout * 3,
@@ -72,10 +98,27 @@ export function createSmtpTransport(config: SmtpAccountConfig, { pool = false } 
       ...(config.extraCa ? { ca: [config.extraCa] } : {}),
     },
   });
+  if (config.oauth && renewAccessToken) {
+    // A long send outlives its token: ask for a new one when it expires or is refused.
+    transport.set('oauth2_provision_cb', (_user, renew, callback) => {
+      renewAccessToken(renew).then(
+        (token) => {
+          callback(null, token.accessToken, token.expiresAt);
+        },
+        (error: unknown) => {
+          callback(error instanceof Error ? error : new Error('Sign-in failed'));
+        },
+      );
+    });
+  }
+  return transport;
 }
 
 /** Connects and signs in without sending anything ("Test connection"). */
 export async function verifySmtpAccount(config: SmtpAccountConfig): Promise<void> {
+  // The Gmail API has no "sign in only" call with the send-only permission;
+  // getting the token was the check.
+  if (config.via === 'gmail-api') return;
   const transport = createSmtpTransport(config);
   try {
     await transport.verify();
@@ -91,6 +134,13 @@ export async function sendEmail(
   email: OutgoingEmail,
 ): Promise<SendResult> {
   assertNoHeaderInjection(email);
+  if (config.via === 'gmail-api') {
+    try {
+      return await sendWithGmailApi(config, email);
+    } catch (error) {
+      throw toEmailError(error);
+    }
+  }
   const transport = createSmtpTransport(config);
   try {
     const info = await transport.sendMail(toMailOptions(email));
@@ -160,7 +210,7 @@ export function assertNoHeaderInjection(email: OutgoingEmail): void {
   }
 }
 
-const AUTH_CODES = new Set(['EAUTH', 'ENOAUTH']);
+const AUTH_CODES = new Set(['EAUTH', 'ENOAUTH', 'EOAUTH2']);
 const CONNECTION_CODES = new Set([
   'ECONNECTION',
   'ECONNREFUSED',

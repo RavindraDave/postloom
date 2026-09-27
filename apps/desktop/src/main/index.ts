@@ -29,6 +29,7 @@ import { createMainServices } from './handlers';
 import { registerIpcHandlers } from './ipc-router';
 import { loadPreferences } from './preferences';
 import { createSecretVault } from './secrets';
+import { oauthClients, type OAuthSettings } from './oauth';
 import { createProcessRunner } from './send-runner';
 import type { SendService } from './sends';
 import { createUpdateChecker, RELEASES_API } from './updates';
@@ -170,7 +171,7 @@ void app.whenReady().then(async () => {
     pickImageFile,
     pickDocumentPath,
     pickSpreadsheetFile,
-    createSendRunner: (events) =>
+    createSendRunner: (events, renewAccessToken) =>
       createProcessRunner(
         {
           fork: () =>
@@ -178,9 +179,21 @@ void app.whenReady().then(async () => {
               serviceName: 'Postloom sending',
             }),
           dbFile: location.file,
+          renewAccessToken,
         },
         events,
       ),
+    oauthClients: oauthClients(oauthSettings()),
+    oauth: {
+      openBrowser: testOAuth()
+        ? followRedirects
+        : async (url) => {
+            // Only Google's and Microsoft's own sign-in pages are ever opened.
+            if (url.startsWith('https://')) await shell.openExternal(url);
+          },
+      gmailApiBase: testOAuth()?.gmailApi,
+      microsoftSmtp: testOAuth()?.microsoftSmtp,
+    },
     saveFile,
     updates,
     dataStore: {
@@ -333,6 +346,45 @@ function testReleasesUrl(): string | undefined {
  * Lets end-to-end tests trust a local test mail server's certificate.
  * Ignored in packaged builds, so it can never weaken a user's installation.
  */
+/** The sign-in app ids this build was made with (tests may use a fake provider). */
+function oauthSettings(): OAuthSettings {
+  const test = testOAuth();
+  if (test) return test.settings;
+  return {
+    googleClientId: __POSTLOOM_GOOGLE_CLIENT_ID__ || undefined,
+    googleClientSecret: __POSTLOOM_GOOGLE_CLIENT_SECRET__ || undefined,
+    microsoftClientId: __POSTLOOM_MICROSOFT_CLIENT_ID__ || undefined,
+  };
+}
+
+/**
+ * Tests only (ignored in installed builds): a fake Google/Microsoft sign-in
+ * service, fake Gmail API and a local SMTP server standing in for Microsoft's.
+ */
+function testOAuth() {
+  const base = process.env['POSTLOOM_TEST_OAUTH_BASE'];
+  if (app.isPackaged || !base) return undefined;
+  const smtp = process.env['POSTLOOM_TEST_MICROSOFT_SMTP'];
+  const [host, port] = (smtp ?? '').split(':');
+  return {
+    settings: {
+      testBase: base,
+      googleClientId: 'test-google-client',
+      googleClientSecret: 'test-google-secret',
+      microsoftClientId: 'test-microsoft-client',
+    } satisfies OAuthSettings,
+    gmailApi: process.env['POSTLOOM_TEST_GMAIL_API'],
+    microsoftSmtp: host && port ? { host, port: Number(port) } : undefined,
+  };
+}
+
+/** In tests, "the browser" follows the fake provider's redirect back to the app itself. */
+async function followRedirects(url: string): Promise<void> {
+  const answer = await fetch(url, { redirect: 'manual' });
+  const next = answer.headers.get('location');
+  if (next) await fetch(next);
+}
+
 function testExtraCa(): string | undefined {
   const file = process.env['POSTLOOM_TEST_EXTRA_CA_FILE'];
   if (app.isPackaged || !file) return undefined;
