@@ -128,6 +128,7 @@ export function createSendService(deps: SendServiceDeps) {
         html,
         subject: version.subject,
         fallbackSubject: await nameOf(() => repos.templates.get(send.templateId)),
+        formats: document.attrs?.detailFormats,
       },
       inlineImages: await inlineImagesFor(repos, assetIds),
       delayMs: send.settings.delayMs,

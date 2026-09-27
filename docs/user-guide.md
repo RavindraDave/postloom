@@ -105,6 +105,12 @@ Change the words to your own. Postloom saves as you type.
 - **Insert detail** adds a gap, like *First Name*. Postloom fills it in from
   the column with the same name in your list. You can give each detail an
   "if empty" text, which is used when someone's cell is blank.
+- **Dates and amounts.** Spreadsheets give Postloom a date as 2026-10-01 and an
+  amount as 12400. Click the detail, choose **Edit detail**, and pick how it
+  should look under **Show as**: for example *1 October 2026*, *01/10/2026*,
+  *₹12,400.00* or *1,24,000*. It applies everywhere that detail appears,
+  including the subject. Values that aren't a date or a number (like "on
+  receipt") are left as they are.
 - **Picture** adds a picture. Pictures travel inside each email, so they show
   even when people have internet pictures switched off. Give each one a short
   description for people who can't see pictures.

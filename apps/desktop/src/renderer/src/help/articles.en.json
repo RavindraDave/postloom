@@ -105,7 +105,8 @@
       {
         "heading": "Personal details",
         "body": [
-          "Use Insert detail to add a gap like First Name. Postloom fills it in from the column with the same name in your list. You can give each detail an “if empty” text, used when someone's cell is blank."
+          "Use Insert detail to add a gap like First Name. Postloom fills it in from the column with the same name in your list. You can give each detail an “if empty” text, used when someone's cell is blank.",
+          "Dates and amounts come from spreadsheets as 2026-10-01 and 12400. Choose Edit detail on a detail, then Show as, to show them as 1 October 2026 or ₹12,400.00. It applies wherever the detail appears, including the subject."
         ]
       },
       {

@@ -476,7 +476,15 @@
       "fallback": "If it's empty, show",
       "fallbackHint": "Optional, e.g. “there” so it reads “Dear there”.",
       "save": "Add detail",
-      "saveEdit": "Save detail"
+      "saveEdit": "Save detail",
+      "format": "Show as",
+      "formatHint": "For dates and amounts. Spreadsheets give dates as 2026-10-01 and amounts as 124000; choose how they appear. Applies everywhere this detail is used, including the subject.",
+      "asInList": "As it is in the list",
+      "kind": {
+        "date": "Dates",
+        "number": "Numbers",
+        "money": "Money"
+      }
     },
     "checklist": "Checklist",
     "allGood": "Everything looks good",

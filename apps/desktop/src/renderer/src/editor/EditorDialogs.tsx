@@ -3,12 +3,19 @@ import {
   Group,
   Modal,
   SegmentedControl,
+  Select,
   Slider,
   Stack,
   Text,
   TextInput,
 } from '@mantine/core';
-import { fieldNameSchema, safeHref } from '@postloom/editor';
+import {
+  DETAIL_FORMATS,
+  fieldNameSchema,
+  formatDetail,
+  safeHref,
+  type DetailFormat,
+} from '@postloom/editor';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -141,7 +148,13 @@ function ButtonForm({
 export interface DetailValue {
   name: string;
   fallback: string;
+  /** How dates and amounts in this detail are shown; unset shows them as in the list. */
+  format?: DetailFormat | undefined;
 }
+
+/** "Show as" choice for leaving the value as it is in the list. */
+const AS_IN_LIST = 'asInList';
+const EXAMPLES = { date: '2026-10-01', number: '124000.5', money: '124000' } as const;
 
 /** Adds a personal detail (a spreadsheet column), or edits its "if empty" text. */
 export function DetailDialog({ opened, onClose, onSave, initial }: DialogProps<DetailValue>) {
@@ -168,13 +181,20 @@ function DetailForm({
   const { t } = useTranslation();
   const [name, setName] = useState(initial?.name ?? '');
   const [fallback, setFallback] = useState(initial?.fallback ?? '');
+  const [format, setFormat] = useState<string>(initial?.format ?? AS_IN_LIST);
   const [submitted, setSubmitted] = useState(false);
   const nameValid = fieldNameSchema.safeParse(name).success;
   const fallbackValid = fallback.trim() === '' || fieldNameSchema.safeParse(fallback).success;
   const submit = (event: Submit) => {
     event.preventDefault();
     setSubmitted(true);
-    if (nameValid && fallbackValid) onSave({ name: name.trim(), fallback: fallback.trim() });
+    if (nameValid && fallbackValid) {
+      onSave({
+        name: name.trim(),
+        fallback: fallback.trim(),
+        format: format === AS_IN_LIST ? undefined : (format as DetailFormat),
+      });
+    }
   };
   return (
     <form onSubmit={submit} noValidate>
@@ -199,6 +219,25 @@ function DetailForm({
           }}
           error={submitted && !fallbackValid ? t('editor.detailModal.nameInvalid') : undefined}
           data-autofocus={initial !== undefined || undefined}
+        />
+        <Select
+          label={t('editor.detailModal.format')}
+          description={t('editor.detailModal.formatHint')}
+          value={format}
+          allowDeselect={false}
+          onChange={(value) => {
+            setFormat(value ?? AS_IN_LIST);
+          }}
+          data={[
+            { value: AS_IN_LIST, label: t('editor.detailModal.asInList') },
+            ...(['date', 'number', 'money'] as const).map((kind) => ({
+              group: t(`editor.detailModal.kind.${kind}`),
+              items: DETAIL_FORMATS.filter((entry) => entry.kind === kind).map((entry) => ({
+                value: entry.id,
+                label: formatDetail(EXAMPLES[kind], entry.id),
+              })),
+            })),
+          ]}
         />
         <Group justify="flex-end">
           <Button type="submit">
