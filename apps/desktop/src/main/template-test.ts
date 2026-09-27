@@ -1,9 +1,4 @@
-import {
-  collectAssetIds,
-  lookFromBrand,
-  renderSubject,
-  writeDocumentToMjml,
-} from '@postloom/editor';
+import { emailAssetIds, lookFromBrand, renderSubject, writeDocumentToMjml } from '@postloom/editor';
 import { compileMjml } from '@postloom/email';
 import { loadSmtpConfig, type AccountDeps } from './accounts';
 import { inlineImagesFor, senderBrand } from './brand';
@@ -40,7 +35,7 @@ export function createTemplateTestHandler({
       const { html, text } = await compileMjml(
         writeDocumentToMjml(document, look, values ? { values } : 'placeholder'),
       );
-      const assetIds = [...(look.logo ? [look.logo.assetId] : []), ...collectAssetIds(document)];
+      const assetIds = emailAssetIds(document, look);
       await send(await loadSmtpConfig(account, { repos, vault, extraCa }), {
         from: { name: sender.fromName, address: sender.fromAddress },
         replyTo: sender.replyTo ?? undefined,

@@ -146,6 +146,7 @@ export function BrandLookCard({ sender }: { sender: SenderInfo }) {
             value={primaryColor}
             format="hex"
             swatches={SWATCHES}
+            eyeDropperButtonProps={{ 'aria-label': t('look.pickFromScreen') }}
             onChange={(value) => {
               setPrimaryColor(value.toUpperCase());
               setEditing(true);

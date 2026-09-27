@@ -833,5 +833,26 @@
     "unknown": "Couldn't check just now. Postloom will try again later.",
     "store": "The Microsoft Store keeps Postloom up to date.",
     "off": "Checking for new versions is off."
+  },
+  "look": {
+    "title": "Look",
+    "hint": "For this template only. Anything left on “Same as sender” follows the sender's brand look.",
+    "layout": "Layout",
+    "layoutLetter": "Full width",
+    "layoutCard": "Centred",
+    "layoutLetterHint": "Fills the reader's window, like an email you type yourself. Best for letters, reminders and business email.",
+    "layoutCardHint": "A centred column on a coloured background, like a newsletter.",
+    "font": "Font",
+    "sameAsSender": "Same as sender ({{value}})",
+    "textSize": "Text size",
+    "sizeSmall": "Small",
+    "sizeNormal": "Normal",
+    "sizeLarge": "Large",
+    "buttonColour": "Button and link colour",
+    "background": "Colour around the email",
+    "showLogo": "Show the sender's logo",
+    "useSender": "Use the sender's",
+    "colourInvalid": "Type a colour like #2F5D8C, or pick one",
+    "pickFromScreen": "Pick a colour from the screen"
   }
 }

@@ -29,7 +29,11 @@ describe('Write mode editor schema', () => {
     for (const starter of STARTER_GALLERY) {
       const node = ProseMirrorNode.fromJSON(schema, starter.document);
       node.check();
-      expect(fromEditorJson(node.toJSON())).toEqual(starter.document);
+      // The editor holds the words; the template's look (attrs) is kept alongside it.
+      expect(fromEditorJson(node.toJSON())).toEqual({
+        type: 'doc',
+        content: starter.document.content,
+      });
     }
     const extras = {
       type: 'doc',

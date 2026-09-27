@@ -13,6 +13,12 @@ import { conditionHolds, DEFAULT_BRAND, safeHref, writeDocumentToMjml } from './
 
 // Mirrors the personalisation settings planned for the sending engine:
 // every output is HTML-escaped and unknown filters are errors.
+/** The same document as a centred card, the newsletter layout. */
+const asCard = (doc: WriteDocument): WriteDocument => ({
+  ...doc,
+  attrs: { ...doc.attrs, layout: 'card' },
+});
+
 const liquid = new Liquid({ outputEscape: 'escape', strictFilters: true, ownPropertyOnly: true });
 
 async function personalise(doc: WriteDocument, row: Record<string, string>): Promise<string> {
@@ -119,15 +125,18 @@ describe('writeDocumentToMjml', () => {
     expect(mjml).not.toContain('file:');
   });
 
-  it('ignores unsafe brand values', () => {
-    const mjml = writeDocumentToMjml(paymentReminder, {
+  it.each([
+    ['letter', paymentReminder],
+    ['card', asCard(paymentReminder)],
+  ])('ignores unsafe brand values (%s)', (_layout, doc) => {
+    const mjml = writeDocumentToMjml(doc, {
       primaryColor: 'red" onload="x',
       backgroundColor: '#FFFFFF',
       fontFamily: 'Arial"><mj-raw>',
     });
 
     expect(mjml).not.toContain('onload');
-    expect(mjml).not.toContain('<mj-raw>');
+    expect(mjml).not.toContain('"><mj-raw>');
   });
 });
 
@@ -207,7 +216,7 @@ describe('formatting', () => {
   };
 
   it('renders headings, lists and marks', async () => {
-    const mjml = writeDocumentToMjml(doc);
+    const mjml = writeDocumentToMjml(asCard(doc));
     expect(mjml).toContain('font-size="22px"');
     expect(mjml).toContain('<ul');
     expect(mjml).toContain('<em>Due </em>');
@@ -275,7 +284,7 @@ describe('alignment, numbered lists and dividers', () => {
         { type: 'horizontalRule' },
       ],
     });
-    const mjml = writeDocumentToMjml(doc);
+    const mjml = writeDocumentToMjml(asCard(doc));
     expect(mjml).toContain('align="center"');
     expect(mjml).toContain('align="right"');
     expect(mjml).toContain('<ol start="2"');
@@ -321,7 +330,7 @@ describe('pictures and logo', () => {
   });
 
   it('sends pictures inside the email and links them only to safe addresses', async () => {
-    const mjml = writeDocumentToMjml(withPicture, {
+    const mjml = writeDocumentToMjml(asCard(withPicture), {
       ...DEFAULT_BRAND,
       logo: { assetId: 'logo1', width: 400, alt: 'Brightlane' },
     });
@@ -438,7 +447,7 @@ describe('Design mode blocks', () => {
   });
 
   it('compiles cleanly, with columns in their own section', async () => {
-    const mjml = writeDocumentToMjml(design);
+    const mjml = writeDocumentToMjml(asCard(design));
     expect(mjml.match(/<mj-section/g)).toHaveLength(3);
     expect(mjml).toContain('<mj-column padding="0 8px">');
     expect(mjml).toContain('<mj-table');
@@ -503,5 +512,102 @@ describe('Design mode blocks', () => {
     expect(rule({ field: 'Plan', op: 'equals' })).toBe(false);
     expect(rule({ field: 'Plan', op: 'equals', value: 'Gold" or 1' })).toBe(false);
     expect(rule({ field: 'Plan', op: 'equals', value: 'Gold' })).toBe(true);
+  });
+});
+
+describe('layouts and the template’s own look', () => {
+  it('sends a letter that fills the reader’s window, like a typed email', async () => {
+    const mjml = writeDocumentToMjml(paymentReminder);
+    expect(mjml).not.toContain('<mj-section');
+    expect(mjml).not.toContain('background-color="#F4F5F7"');
+
+    const { html, warnings } = await compileMjml(mjml);
+    expect(warnings).toEqual([]);
+    expect(html).not.toContain('max-width:600px');
+    expect(html).toContain('<p style="margin:0 0 14px">Dear {{ row["First Name"]');
+    // The button is a table, so it shows in Outlook too.
+    expect(html).toContain('role="presentation"');
+    expect(html).toContain('Pay now</a>');
+
+    const personal = (await liquid.parseAndRender(html, {
+      row: { 'First Name': 'Rahul', 'Invoice No': 'INV-1041', Amount: '₹ 18,400' },
+    })) as string;
+    expect(personal).toContain('Dear Rahul,');
+  });
+
+  it('keeps the centred card when a template asks for it', async () => {
+    const { html } = await compileMjml(writeDocumentToMjml(asCard(paymentReminder)));
+    expect(html).toContain('max-width:600px');
+  });
+
+  it('puts columns side by side, one under the other on phones', async () => {
+    const doc = writeDocumentSchema.parse({
+      type: 'doc',
+      content: [
+        {
+          type: 'columns',
+          attrs: { count: 2 },
+          content: [
+            {
+              type: 'column',
+              content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Left' }] }],
+            },
+            {
+              type: 'column',
+              content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Right' }] }],
+            },
+          ],
+        },
+      ],
+    });
+    const { html, warnings } = await compileMjml(writeDocumentToMjml(doc));
+    expect(warnings).toEqual([]);
+    expect(html).toContain('class="pl-column" valign="top" width="50%"');
+    expect(html).toContain('@media only screen and (max-width:480px)');
+  });
+
+  it('uses the template’s font, size and colour over the sender’s', () => {
+    const doc: WriteDocument = {
+      ...paymentReminder,
+      attrs: { fontFamily: 'Georgia, Times, serif', textSize: 'small', primaryColor: '#8A1C1C' },
+    };
+    const mjml = writeDocumentToMjml(doc, {
+      ...DEFAULT_BRAND,
+      fontFamily: 'Verdana, Geneva, sans-serif',
+    });
+    expect(mjml).toContain('font-family:Georgia, Times, serif;font-size:14px');
+    expect(mjml).not.toContain('Verdana');
+    expect(mjml).toContain('background-color:#8A1C1C');
+  });
+
+  it('follows the sender for anything the template leaves alone', () => {
+    const mjml = writeDocumentToMjml(asCard(paymentReminder), {
+      ...DEFAULT_BRAND,
+      primaryColor: '#0E6B66',
+      backgroundColor: '#FFFFFF',
+    });
+    expect(mjml).toContain('background-color="#0E6B66"');
+    expect(mjml).toContain('font-size="16px"');
+  });
+
+  it('colours the area around a card, and can leave the sender’s logo out', () => {
+    const brand = { ...DEFAULT_BRAND, logo: { assetId: 'logo1', width: 120, alt: 'Brightlane' } };
+    const doc: WriteDocument = {
+      ...paymentReminder,
+      attrs: { layout: 'card', backgroundColor: '#EEF3F8', showLogo: false },
+    };
+    const mjml = writeDocumentToMjml(doc, brand);
+    expect(mjml).toContain('<mj-body background-color="#EEF3F8">');
+    expect(mjml).not.toContain('logo1');
+    expect(writeDocumentToMjml(paymentReminder, brand)).toContain('logo1@postloom');
+  });
+
+  it('accepts only known fonts and real colours', () => {
+    const withLook = (attrs: unknown) =>
+      writeDocumentSchema.safeParse({ type: 'doc', attrs, content: [] }).success;
+    expect(withLook({ layout: 'card', fontFamily: 'Arial, Helvetica, sans-serif' })).toBe(true);
+    expect(withLook({ fontFamily: 'Comic Sans"><x' })).toBe(false);
+    expect(withLook({ primaryColor: 'red;background:url(x)' })).toBe(false);
+    expect(withLook({ layout: 'poster' })).toBe(false);
   });
 });

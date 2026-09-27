@@ -1,7 +1,7 @@
 import { AppError } from '@postloom/core';
 import type { SendSummary } from '@postloom/contracts';
 import type { PauseReason, Repositories, SendRecord } from '@postloom/db';
-import { collectAssetIds, lookFromBrand, writeDocumentToMjml } from '@postloom/editor';
+import { emailAssetIds, lookFromBrand, writeDocumentToMjml } from '@postloom/editor';
 import { compileMjml } from '@postloom/email';
 import type { Progress, SendJob } from '@postloom/sending';
 import { loadSmtpConfig, type AccountDeps } from './accounts';
@@ -117,7 +117,7 @@ export function createSendService(deps: SendServiceDeps) {
     const account = await repos.accounts.get(send.emailAccountId);
     const look = lookFromBrand(await senderBrand(repos, sender), sender.fromName);
     const { html } = await compileMjml(writeDocumentToMjml(document, look, 'liquid'));
-    const assetIds = [...(look.logo ? [look.logo.assetId] : []), ...collectAssetIds(document)];
+    const assetIds = emailAssetIds(document, look);
     return {
       sendId: send.id,
       accountId: account.id,

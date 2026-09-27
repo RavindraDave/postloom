@@ -1,3 +1,4 @@
+import { EMAIL_FONT_STACKS } from './fonts';
 import { z } from 'zod';
 
 /**
@@ -229,8 +230,40 @@ export const blockNodeSchema = z.union([
   footerSchema,
 ]);
 
+/**
+ * How the email sits in the reader's window:
+ * - `letter`: fills the window, like an email typed in Gmail or Outlook;
+ * - `card`: a centred column on a coloured background, like a newsletter.
+ */
+export const documentLayoutSchema = z.enum(['letter', 'card']);
+
+export const textSizeSchema = z.enum(['small', 'normal', 'large']);
+
+/**
+ * A template's own look. Anything left out comes from the sender's brand
+ * look, then Postloom's default.
+ */
+export const templateLookSchema = z.object({
+  layout: documentLayoutSchema.optional(),
+  fontFamily: z.enum(EMAIL_FONT_STACKS).optional(),
+  textSize: textSizeSchema.optional(),
+  /** Button and accent colour, as #RRGGBB. */
+  primaryColor: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .optional(),
+  /** Colour around a centred card, as #RRGGBB. */
+  backgroundColor: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .optional(),
+  /** False hides the sender's logo in this template. */
+  showLogo: z.boolean().optional(),
+});
+
 export const writeDocumentSchema = z.object({
   type: z.literal('doc'),
+  attrs: templateLookSchema.optional(),
   content: z.array(blockNodeSchema).max(500),
 });
 
@@ -243,6 +276,14 @@ export type ColumnsNode = z.infer<typeof columnsSchema>;
 export type ConditionalNode = z.infer<typeof conditionalSchema>;
 export type ConditionOp = z.infer<typeof conditionOpSchema>;
 export type WriteDocument = z.infer<typeof writeDocumentSchema>;
+export type DocumentLayout = z.infer<typeof documentLayoutSchema>;
+export type TextSize = z.infer<typeof textSizeSchema>;
+export type TemplateLook = z.infer<typeof templateLookSchema>;
+
+/** The document's layout; a letter unless it asks for a card. */
+export function documentLayout(doc: WriteDocument): DocumentLayout {
+  return doc.attrs?.layout ?? 'letter';
+}
 export type ImageNode = z.infer<typeof imageSchema>;
 
 /** Any block, wherever it sits (inside lists, columns, tables or "show only if" parts). */

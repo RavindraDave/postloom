@@ -19,14 +19,17 @@ import type { TemplateDetail } from '@postloom/contracts';
 import {
   checkTemplate,
   collectFields,
+  emailAssetIds,
   fromEditorJson,
-  collectAssetIds,
   lookFromBrand,
   MAX_IMAGE_WIDTH,
   MAX_LOGO_WIDTH,
   renderSubject,
   subjectFields,
+  TEXT_SIZES,
   usesDesignBlocks,
+  withTemplateLook,
+  type TemplateLook,
   type WriteDocument,
 } from '@postloom/editor';
 import { APP_ASSET_URL_PREFIX, toEditorContent } from '@postloom/editor/tiptap';
@@ -53,6 +56,7 @@ import {
 } from '../api/queries';
 import { EmailPreview, type PreviewDevice } from '../components/EmailPreview';
 import { ChecklistPanel } from './ChecklistPanel';
+import { TemplateLookPanel } from './TemplateLookPanel';
 import {
   ButtonDialog,
   DetailDialog,
@@ -124,7 +128,11 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
     },
     onUpdate: ({ editor: current }) => {
       try {
-        setDocument(fromEditorJson(current.getJSON()));
+        const content = fromEditorJson(current.getJSON());
+        // The editor only knows the words; the template's look lives alongside.
+        setDocument((previous) =>
+          previous.attrs ? { ...content, attrs: previous.attrs } : content,
+        );
         setInvalid(false);
         setRevision((value) => value + 1);
       } catch {
@@ -138,6 +146,14 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
 
   const changed = () => {
     setRevision((value) => value + 1);
+  };
+
+  const changeLook = (attrs: TemplateLook) => {
+    setDocument((previous) => {
+      const content: WriteDocument = { type: previous.type, content: previous.content };
+      return Object.keys(attrs).length > 0 ? { ...content, attrs } : content;
+    });
+    changed();
   };
 
   // What gets saved: the latest values, read by autosave and on leaving.
@@ -193,6 +209,8 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
     () => lookFromBrand(sender?.brand, sender?.fromName ?? ''),
     [sender?.brand, sender?.fromName],
   );
+  // What the letter looks like: the sender's look with the template's choices on top.
+  const letterLook = useMemo(() => withTemplateLook(look, document.attrs), [look, document.attrs]);
   const [previewDocument] = useDebouncedValue(document, 400);
   const [exampleValues, setExampleValues] = useState<Record<string, string>>({});
   const [debouncedExamples] = useDebouncedValue(exampleValues, 300);
@@ -208,10 +226,7 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
       ? debouncedExamples
       : null,
   );
-  const pictureIds = useMemo(
-    () => [...(look.logo ? [look.logo.assetId] : []), ...collectAssetIds(document)],
-    [look, document],
-  );
+  const pictureIds = useMemo(() => emailAssetIds(document, look), [look, document]);
   const picturesSize = useImagesSize(pictureIds);
   const imageBytes = pictureIds.length === 0 ? 0 : picturesSize.data?.bytes;
   const problems = useMemo(
@@ -456,17 +471,18 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
             className={classes.paper}
             style={
               {
-                '--pl-letter-accent': look.primaryColor,
-                '--pl-letter-font': look.fontFamily,
+                '--pl-letter-accent': letterLook.primaryColor,
+                '--pl-letter-font': letterLook.fontFamily,
+                '--pl-letter-size': `${String(TEXT_SIZES[document.attrs?.textSize ?? 'normal'])}px`,
               } as CSSProperties
             }
           >
-            {look.logo && (
+            {letterLook.logo && (
               <img
                 className={classes.logo}
-                src={`${APP_ASSET_URL_PREFIX}${look.logo.assetId}`}
-                alt={look.logo.alt}
-                width={Math.min(look.logo.width, MAX_LOGO_WIDTH)}
+                src={`${APP_ASSET_URL_PREFIX}${letterLook.logo.assetId}`}
+                alt={letterLook.logo.alt}
+                width={Math.min(letterLook.logo.width, MAX_LOGO_WIDTH)}
               />
             )}
             <EditorContent editor={editor} />
@@ -497,6 +513,7 @@ export function TemplateEditor({ template }: { template: TemplateDetail }) {
               />
             )}
           </Paper>
+          <TemplateLookPanel value={document.attrs} senderLook={look} onChange={changeLook} />
           <Paper p="md" radius="lg" bg="var(--pl-accent-soft)" component="section">
             <Text fw={700} size="sm">
               {mode === 'design' ? t('editor.designHelpTitle') : t('editor.designTitle')}
