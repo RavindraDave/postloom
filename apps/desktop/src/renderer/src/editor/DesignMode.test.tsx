@@ -150,7 +150,7 @@ describe('importing HTML from the Templates page', () => {
           ok({
             name: 'spring.html',
             html: '<title>Spring news</title><h1>Hello</h1><p>News <img src="https://x.example/a.png"></p>',
-            kind: 'html',
+            kind: 'html' as const,
             assetIds: [],
           }),
         ),
