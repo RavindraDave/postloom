@@ -55,4 +55,4 @@ Details and exit criteria: [PLAN.md §17](docs/PLAN.md#17-roadmap--phases).
 
 ## License
 
-To be decided (see [PLAN.md decision D8](docs/PLAN.md#18-open-decisions)). Until a license is added, all rights are reserved.
+[MIT](LICENSE) © 2026 Ravindra Dave.
