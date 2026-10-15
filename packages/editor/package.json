@@ -9,16 +9,16 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@tiptap/core": "3.31.3",
-    "@tiptap/extension-table": "3.31.3",
-    "@tiptap/extension-text-align": "3.31.3",
-    "@tiptap/pm": "3.31.3",
-    "@tiptap/starter-kit": "3.31.3",
-    "zod": "4.6.5"
+    "@tiptap/core": "3.31.4",
+    "@tiptap/extension-table": "3.31.4",
+    "@tiptap/extension-text-align": "3.31.4",
+    "@tiptap/pm": "3.31.4",
+    "@tiptap/starter-kit": "3.31.4",
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "@postloom/email": "workspace:*",
-    "liquidjs": "10.29.0"
+    "liquidjs": "10.30.0"
   },
   "exports": {
     ".": "./src/index.ts",

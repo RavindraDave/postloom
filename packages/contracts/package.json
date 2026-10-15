@@ -11,6 +11,6 @@
   "dependencies": {
     "@postloom/core": "workspace:*",
     "@postloom/editor": "workspace:*",
-    "zod": "4.6.5"
+    "zod": "4.6.6"
   }
 }

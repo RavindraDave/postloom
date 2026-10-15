@@ -11,7 +11,7 @@
   "dependencies": {
     "@postloom/core": "workspace:*",
     "papaparse": "5.7.0",
-    "read-excel-file": "9.3.10"
+    "read-excel-file": "9.3.12"
   },
   "devDependencies": {
     "@types/papaparse": "5.5.2",
