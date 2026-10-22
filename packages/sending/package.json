@@ -13,6 +13,6 @@
     "@postloom/db": "workspace:*",
     "@postloom/editor": "workspace:*",
     "@postloom/email": "workspace:*",
-    "liquidjs": "10.29.0"
+    "liquidjs": "10.30.0"
   }
 }
