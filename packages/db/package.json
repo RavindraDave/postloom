@@ -10,6 +10,6 @@
   },
   "dependencies": {
     "@postloom/core": "workspace:*",
-    "kysely": "0.29.6"
+    "kysely": "0.29.7"
   }
 }
