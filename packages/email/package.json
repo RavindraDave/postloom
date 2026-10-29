@@ -16,9 +16,9 @@
   },
   "devDependencies": {
     "@types/html-to-text": "9.0.4",
-    "@types/mjml": "5.0.0",
+    "@types/mjml": "5.4.1",
     "@types/nodemailer": "8.0.2",
     "@types/smtp-server": "3.5.13",
-    "smtp-server": "3.19.13"
+    "smtp-server": "3.21.1"
   }
 }
